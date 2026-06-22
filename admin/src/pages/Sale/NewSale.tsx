@@ -1,0 +1,1056 @@
+import { useEffect, useState } from "react";
+import api from "../../lib/axios";
+import type { Account, Batch, Contact, SaleProduct, SelectOption } from "../../types/type";
+import Select from "react-select";
+import { getReactSelectStyles, smallReactStyle, smallReactStyleMulti } from "../../utils/reactSelectStyles";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router";
+import type { Product, SearchParams, AccountOption } from "../../types/type";
+import { Calendar } from "lucide-react";
+import DatePicker from "react-datepicker";
+import { createPortal } from "react-dom";
+import "react-datepicker/dist/react-datepicker.css";
+import Table from "../../components/tables/Table";
+import { useSignal } from "@preact/signals-react";
+import { useSignals } from "@preact/signals-react/runtime";
+import { createSaleSchema } from "../../validators/sale.validator";
+import PaymentByAccounts from "../../components/Ui/PaymentOption";
+import Helper from "../../utils/helper";
+import IncrDecrButton from "../../components/buttons/IncrDecrButton";
+
+
+export default function NewSale() {
+    useSignals();
+    const navigate = useNavigate();
+    const [contactParams, setContactParams] = useState<SearchParams>({
+        search: "",
+        page: 1,
+        limit: 50,
+    });
+    const [productParams, setProductParams] = useState<SearchParams>({
+        search: "",
+        page: 1,
+        limit: 50,
+    });
+    const [barcode, setBarcode] = useState<string>("");
+    const [products, setProducts] = useState<SelectOption<Product>[]>([]);
+    const [customers, setCustomers] = useState<SelectOption<Contact>[]>([]);
+    const [selectedCustomer, setSelectedCustomer] = useState<SelectOption<Contact> | null>(null);
+    const [saleDate, setSaleDate] = useState<Date>(new Date());
+    const selectedProducts = useSignal<SaleProduct[]>([]);
+    // serial is open with index, if index exist it open
+    const [costName, setCostName] = useState<string | null>("");
+    const [otherCost, setOtherCost] = useState<number>(0);
+    const [discount, setDiscount] = useState<number>(0);
+    const [discountPercent, setDiscountPercent] = useState<number>(0);
+    const [note, setNote] = useState<string | null>("");
+    const [accounts, setAccounts] = useState<AccountOption[]>([]);
+    const [selectedAccounts, setSelectedAccounts] = useState<AccountOption[]>([]);
+
+    const [isExchanging, setIsExchanging] = useState<boolean>(false);
+    const [exchangeAccounts, setExchangeAccounts] = useState<AccountOption[]>([]);
+    const [selectedExchangeAccounts, setSelectedExchangeAccounts] = useState<AccountOption[]>([]);
+
+    const fetchProducts = async () => {
+        const res = await api("/product/list", {
+            params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
+        });
+        if (res.data.success)
+            setProducts(
+                res.data.data.items.map((u: Product) => ({ value: u._id, label: `${u.name} stock-${!u.manageStock ? " ∞" : u.stock}`, ...u }))
+            );
+    };
+
+    const fetchSaleProduct = async (id: string) => {
+        const res = await api(`/product/getSaleProduct/${id}`);
+        if (res.data.success) {
+            return res.data.data
+        }
+
+    };
+    const fetchContacts = async () => {
+        const res = await api("/contact/list", {
+            params: { search: contactParams.search, limit: contactParams.limit, page: contactParams.page, type: "customer" },
+        });
+        if (res.data.success) setCustomers(
+            res.data.data.items.map((u: Contact) => ({ value: u._id, label: `${u.name} balance(${u.balance})`, ...u }))
+        );;
+    };
+    const fetchAccount = async () => {
+        const res = await api("/account/list");
+        if (res.data.success) {
+            const formatted: AccountOption[] = res.data.data.map((a: Account) => ({
+                ...a,
+                label: a.name,
+                value: a._id,
+                amount: 0,
+                type: "Debit"
+            }));
+
+            // default account আলাদা করো
+            const defaultAccount = formatted.find((a) => a.default === true);
+            const rest = formatted.filter((a) => a.default !== true);
+
+            setAccounts(rest);
+            setExchangeAccounts(rest);
+            if (defaultAccount) {
+                setSelectedAccounts([defaultAccount]);
+                setSelectedExchangeAccounts([defaultAccount])
+            };
+        }
+    };
+    const fetchProductWithBarcode = async (barcode: string) => {
+        const res = await api("/product/productByBarcode", {
+            params: { barcode },
+        });
+        if (res.data.success) {
+            const p = res.data.data;
+
+            const product = { value: p._id, label: p.name, ...p };
+            return handleAddProduct(product)
+        } else {
+            return toast.error("No Product Found with This barcode")
+        }
+
+    };
+
+    const handleAddProduct = async (p: SelectOption<Product>) => {
+        if (!p.manageStock) {
+            const existing = selectedProducts.value.find(
+                product => product._id === p._id
+            );
+
+            if (existing) {
+                existing.soldQty++;
+            } else {
+                selectedProducts.value.push({
+                    ...p,
+                    soldQty: 1,
+                    warranty: 0,
+                    serials: [],
+                    selectedSerials: [],
+                    batches: [],
+                    selectedBatch: null,
+                });
+            }
+
+            return;
+        }
+
+        // only warranty product
+        if (p.manageStock && p.manageWarranty) {
+            const isExist = selectedProducts.value.find(product => product._id === p._id);
+            if (isExist) {
+                return toast.error("Product already exists");
+            }
+
+            const product: SaleProduct = await fetchSaleProduct(p._id);
+            if (product?.serials.length === 0) {
+                return toast.error("No Serial Available");
+            }
+            return selectedProducts.value = [...selectedProducts.value, product];
+        }
+
+        // only batches/non-warranty/stock product
+        if (p.manageStock && !p.manageWarranty) {
+            const existingRows = selectedProducts.value.filter(product => product._id === p._id);
+
+            if (existingRows.length > 0) {
+                // ✅ সবার শেষের row টা নিন (last added)
+                const lastRow = existingRows[existingRows.length - 1];
+
+                if (!lastRow.selectedBatch) {
+                    return toast.error("No batch selected");
+                }
+
+                // ✅ Check করুন last row এর batch এ আরো qty available আছে কিনা
+                const currentlyUsed = selectedProducts.value
+                    .filter(prod =>
+                        prod._id === p._id &&
+                        prod.selectedBatch?._id === lastRow.selectedBatch?._id
+                    )
+                    .reduce((sum, prod) => sum + prod.soldQty, 0);
+
+                const remainingQty = lastRow.selectedBatch.remainingQty;
+
+                if (currentlyUsed < remainingQty) {
+                    // ✅ Available আছে → last row এ qty বাড়ান
+                    selectedProducts.value = selectedProducts.value.map(product =>
+                        product === lastRow
+                            ? { ...product, soldQty: product.soldQty + 1 }
+                            : product
+                    );
+                    return;
+                }
+
+                // ✅ শেষ হয়ে গেছে → নতুন batch খুঁজুন
+                const usedBatchIds = existingRows
+                    .map(row => row.selectedBatch?._id)
+                    .filter(Boolean) as string[];
+
+                const availableBatches = lastRow.batches.filter(
+                    b => !usedBatchIds.includes(b._id)
+                );
+
+                if (availableBatches.length === 0) {
+                    return toast.error("No more stock available");
+                }
+
+                // ✅ নতুন row তৈরি করুন পরের batch দিয়ে
+                const newEntry: SaleProduct = {
+                    ...lastRow,
+                    selectedBatch: availableBatches[0],
+                    purchaseID: availableBatches[0].purchaseID,
+                    purchasePrice: availableBatches[0].purchasePrice,
+                    salePrice: availableBatches[0].salePrice,
+                    soldQty: 1,
+                    batches: availableBatches, // ✅ শুধু available batches
+                    selectedSerials: [],
+                };
+
+                selectedProducts.value = [...selectedProducts.value, newEntry];
+                return;
+            }
+
+            // ✅ First time adding this product
+            const product: SaleProduct = await fetchSaleProduct(p._id);
+
+            if (product?.batches.length === 0) {
+                return toast.error("No Stock Available");
+            }
+
+            selectedProducts.value = [...selectedProducts.value, product];
+        }
+    };
+
+
+    const selectSerial = (selectedSerials: SelectOption<Batch>[] | null, idx: number) => {
+
+        if (!selectedSerials || selectedSerials.length === 0) {
+            // Clear selection
+            selectedProducts.value = selectedProducts.value.map((product, i) =>
+                i === idx
+                    ? { ...product, selectedSerials: [], soldQty: 0 }
+                    : product
+            );
+            return;
+        }
+
+        const latest = selectedSerials[selectedSerials.length - 1];
+        const newPurchaseID = latest.purchaseID;
+
+        // ✅ Check if all selected serials are from same purchaseID
+        const allSamePurchase = selectedSerials.every(
+            s => s.purchaseID === selectedSerials[0].purchaseID
+        );
+
+        const updated = [...selectedProducts.value];
+        const oldProduct = { ...updated[idx] };
+        const oldPurchaseID = oldProduct.purchaseID;
+
+        // ─────────────────────────────
+        // CASE 1 — Same purchaseID
+        // ─────────────────────────────
+        if (allSamePurchase) {
+            updated[idx] = {
+                ...oldProduct,
+                purchaseID: latest.purchaseID,
+                selectedSerials,
+                soldQty: selectedSerials.length,
+                purchasePrice: latest.purchasePrice,
+                salePrice: latest.salePrice,
+                warranty: latest.warranty || 0,
+            };
+            selectedProducts.value = updated;
+            return;
+        }
+
+        // ─────────────────────────────
+        // CASE 2 — Mixed purchaseID → SPLIT
+        // ─────────────────────────────
+
+        // 1️⃣ PREPARE GLOBAL LIST OF ALL AVAILABLE SERIALS
+        const allSerials = [...oldProduct.serials];
+        const alreadySelected = [...oldProduct.selectedSerials];
+
+        // Keep only previous purchaseID in old row
+        const oldProductClean = {
+            ...oldProduct,
+            serials: allSerials.filter(s => s.purchaseID === oldPurchaseID),
+            selectedSerials: alreadySelected.filter(s => s.purchaseID === oldPurchaseID),
+        };
+
+        oldProductClean.soldQty = oldProductClean.selectedSerials.length;
+
+        updated[idx] = oldProductClean;
+
+        // 2️⃣ NEW ROW SHOULD GET: ALL SERIALS from new purchaseID
+        const remainingSerials = allSerials.filter(
+            s => s.purchaseID !== oldProductClean.purchaseID
+        );
+
+        const newProduct: SaleProduct = {
+            ...oldProduct,
+            purchaseID: newPurchaseID,
+            serials: remainingSerials,
+            selectedSerials: [latest],
+            soldQty: 1,
+            purchasePrice: latest.purchasePrice,
+            salePrice: latest.salePrice,
+            warranty: latest.warranty || 0,
+        };
+
+        selectedProducts.value = [...updated, newProduct];
+    };
+
+    const selectBatch = (selectedBatch: SelectOption<Batch> | null, productId: string, currentIndex: number) => {
+        if (!selectedBatch) {
+            selectedProducts.value = selectedProducts.value.map((product, idx) =>
+                idx === currentIndex
+                    ? { ...product, selectedBatch: null }
+                    : product
+            );
+            return;
+        }
+
+        const currentProduct = selectedProducts.value[currentIndex];
+        if (!currentProduct) return;
+
+        // ✅ If soldQty > 1 and changing batch → SPLIT
+        if (currentProduct.soldQty > 1 && currentProduct.selectedBatch?._id !== selectedBatch._id) {
+
+            // ✅ Collect all already selected batch IDs from all rows of this product
+            const alreadySelectedBatchIds = selectedProducts.value
+                .filter(p => p._id === productId)
+                .map(p => p.selectedBatch?._id)
+                .filter(Boolean) as string[];
+
+            // ✅ Add the newly selected batch to the list
+            alreadySelectedBatchIds.push(selectedBatch._id);
+
+            // ✅ Filter out all selected batches from available batches
+            const availableBatches = currentProduct.batches.filter(
+                b => !alreadySelectedBatchIds.includes(b._id)
+            );
+
+            // Current row এ নতুন batch, qty = 1
+            const updatedCurrentRow: SaleProduct = {
+                ...currentProduct,
+                soldQty: 1,
+                selectedBatch,
+                purchaseID: selectedBatch.purchaseID,
+                purchasePrice: selectedBatch.purchasePrice,
+                salePrice: selectedBatch.salePrice,
+                batches: availableBatches, // ✅ শুধু available batches
+            };
+
+            // New row তে পুরানো batch, বাকি qty
+            const newRow: SaleProduct = {
+                ...currentProduct,
+                soldQty: currentProduct.soldQty - 1,
+                batches: availableBatches, // ✅ শুধু available batches (same)
+                selectedBatch: currentProduct.selectedBatch, // Keep old batch
+            };
+
+            // ✅ Current row update + new row ঠিক নিচে insert
+            selectedProducts.value = [
+                ...selectedProducts.value.slice(0, currentIndex),      // Before current
+                updatedCurrentRow,                                     // Updated current (নতুন batch)
+                newRow,                                                // ✅ Old batch (ঠিক নিচে)
+                ...selectedProducts.value.slice(currentIndex + 1),     // After current
+            ];
+
+            toast.success("Row split - different batch selected");
+            return;
+        }
+
+        // ✅ soldQty === 1 or same batch → simple update
+        selectedProducts.value = selectedProducts.value.map((product, idx) =>
+            idx === currentIndex
+                ? {
+                    ...product,
+                    selectedBatch,
+                    purchaseID: selectedBatch.purchaseID,
+                    purchasePrice: selectedBatch.purchasePrice,
+                    salePrice: selectedBatch.salePrice,
+                }
+                : product
+        );
+    };
+
+    useEffect(() => {
+        Promise.all([fetchProducts(), fetchContacts(), fetchAccount()]);
+    }, []);
+
+
+    useEffect(() => {
+        const timer = setTimeout(() => fetchContacts(), 400);
+        return () => clearTimeout(timer);
+    }, [contactParams.search]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => fetchProducts(), 400);
+        return () => clearTimeout(timer);
+    }, [productParams.search]);
+
+    const handleProductChange = (idx: number, field: string, value: number) => {
+        selectedProducts.value = selectedProducts.value.map((p, i) =>
+            i === idx ? { ...p, [field]: value } : p
+        );
+    };
+
+    const handleRemoveProduct = (idx: number) => {
+        selectedProducts.value = selectedProducts.value.filter((_, i) => i !== idx);
+    };
+
+    const totalProductPrice = selectedProducts.value.reduce(
+        (acc, p) => acc + (p.salePrice || 0) * (p.soldQty || 0),
+        0
+    );
+
+    const prevBalance = selectedCustomer?.balance ?? 0;
+
+    const prevDue = prevBalance < 0 ? -prevBalance : 0;
+    const usableBalance = prevBalance > 0 ? prevBalance : 0;
+
+    const basePayable = totalProductPrice - discount + otherCost;
+
+    const totalPayableAmount =
+        basePayable + prevDue - usableBalance;
+
+    const paidWithAcc = selectedAccounts.reduce(
+        (acc, a) => acc + (a.amount || 0),
+        0
+    );
+
+    const adjustedPayable = basePayable - prevBalance;
+    const currentBalance = paidWithAcc - adjustedPayable;
+
+    // totalPaid ta hobe account er payment ar balance payment, but balance payment tokhon count hobe jokhon old balance + a thakbe.
+    const exchangeAmount = selectedExchangeAccounts.reduce(
+        (acc, a) => acc + (a.amount || 0),
+        0
+    );
+
+
+    useEffect(() => {
+        // jodi customer select na hoi ar paid beshi hoi
+        if (!selectedCustomer && (currentBalance > 0)) {
+            setIsExchanging(true);
+            return setSelectedExchangeAccounts((prev) => {
+                const updated = prev.map((a) =>
+                    a.default
+                        ? {
+                            ...a,
+                            amount: currentBalance,
+                        }
+                        : a
+                );
+                return updated;
+            });
+        }
+        // jodi customer select na hoi ar paid, amount er soman ba kom hoi
+        if (!selectedCustomer && (currentBalance <= 0)) {
+            return setIsExchanging(false)
+        }
+        //  // jodi customer select na hoi ar advance hoi ar exchange na hoi tokhon automatic exchange hobe,
+        if (!selectedCustomer && (currentBalance > 0) && !isExchanging) {
+            setIsExchanging(true);
+            setSelectedExchangeAccounts((prev) => {
+                const updated = prev.map((a) =>
+                    a.default
+                        ? {
+                            ...a,
+                            amount: currentBalance,
+                        }
+                        : a
+                );
+                return updated;
+            });
+            toast.error("Exchange must occur in this situation");
+            return;
+        }
+        // jodi customer select hoi ar due hoi, ar exchange o hoi tokhon exchanging desable hoye jabe
+        if (selectedCustomer && (currentBalance < 0) && isExchanging) {
+            setIsExchanging(false);
+            return;
+        }
+        // jodi customer select hoi ar advance hoi, ar exchange o hoi tokhon exchanging desable hoye jabe
+        if (selectedCustomer && (currentBalance > 0) && isExchanging) {
+            setSelectedExchangeAccounts((prev) => {
+                const updated = prev.map((a) =>
+                    a.default
+                        ? {
+                            ...a,
+                            amount: currentBalance,
+                        }
+                        : a
+                );
+                return updated;
+            });
+            return;
+        }
+
+
+    }, [selectedCustomer, currentBalance, isExchanging]);
+
+    useEffect(() => {
+        if (!isExchanging) {
+            setExchangeAccounts((prev) => [
+                ...prev,
+                ...selectedExchangeAccounts,
+            ]);
+
+            setSelectedExchangeAccounts([]);
+            return;
+        }
+
+        if (isExchanging) {
+            setSelectedExchangeAccounts((prev) => {
+                const defaultAccount = exchangeAccounts.find((a) => a.default);
+
+                if (!defaultAccount) return prev;
+
+                const updated = prev.some((a) => a._id === defaultAccount._id)
+                    ? prev
+                    : [
+                        {
+                            ...defaultAccount,
+                            amount: currentBalance,
+                        },
+                    ];
+
+                return updated;
+            });
+        }
+    }, [isExchanging])
+
+
+    const createSale = async () => {
+        if (selectedProducts.value.length === 0) {
+            return toast.error("Please add at least one product");
+        }
+
+
+        if (selectedProducts.value.some(p => p.serials.length > 0 && p.selectedSerials.length === 0)) {
+            return toast.error("Please select at least one serial or remove the product from the table")
+        }
+
+
+        // ✅ Products structure - backend অনুযায়ী
+        const products = selectedProducts.value.flatMap(p => {
+
+            // Serial managed product
+            if (p.manageWarranty && p.selectedSerials?.length) {
+
+                return p.selectedSerials.map(serial => ({
+                    productID: p._id,
+                    batchID: serial.value, // serial batch id
+                    soldQty: 1,
+                    salePrice: p.salePrice,
+                    warranty: p.warranty || 0,
+                }));
+            }
+
+            // Normal batch product
+            return [{
+                productID: p._id,
+                batchID: p.selectedBatch?._id || null,
+                soldQty: p.soldQty,
+                salePrice: p.salePrice,
+                warranty: p.warranty || 0,
+            }];
+        });
+
+        // ✅ Accounts structure
+        const accounts = selectedAccounts.map(a => ({
+            accountID: a.value,
+            amount: a.amount,
+        }));
+        
+        const exchangeAccounts = selectedExchangeAccounts.map(a => ({
+            accountID: a.value,
+            amount: a.amount,
+        }));
+        if (!selectedCustomer && paidWithAcc < totalPayableAmount) {
+            return toast.error(`You have pay ${totalPayableAmount} TK`)
+        }
+        if (isExchanging && (currentBalance > 0) && (exchangeAmount !== currentBalance) && (exchangeAmount <= 0)) {
+            return toast.error("You must have return the full exchange amount, not less or more.");
+        }
+
+        // ✅ Sale object - backend অনুযায়ী
+        const sale = {
+            contactID: selectedCustomer?.value || null, // ✅ contactID (not supplierID)
+            paid: paidWithAcc,
+            costName: costName || null,
+            otherCost: costName ? otherCost : 0,
+            totalProductPrice,
+            exchangeAmount,
+            discount,
+            totalAmount: basePayable,
+            note: note || null,
+            saleDate, // ✅ Date object
+            balanceBefore: selectedCustomer?.balance || 0,
+            balanceAfter: currentBalance,
+        };
+
+        // ✅ Validate
+        const saleResult = createSaleSchema.safeParse({
+            products,
+            accounts,
+            sale,
+            exchangeAccounts
+        });
+
+        if (!saleResult.success) {
+            const firstError = saleResult.error.issues[0];
+            toast.error(firstError.message);
+            console.error("Validation errors:", saleResult.error.issues);
+            return;
+        }
+
+        try {
+            const res = await api.post('/sale/create', saleResult.data);
+
+            if (res.data.success === true) {
+                toast.success(res.data.msg || "Sale created successfully!");
+                navigate(`/sale/invoice/${res.data.data._id}`);
+            } else {
+                toast.error(res.data.message || "Failed to create sale");
+            }
+        } catch (error: any) {
+            console.error("Sale creation error:", error);
+            const errorMsg = error.response?.data?.message || "Error creating sale";
+            toast.error(errorMsg);
+        }
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* Customer */}
+                <div className="flex flex-col">
+                    <label className="block text-sm font-medium mb-1">Customers</label>
+                    <Select
+                        options={customers}
+                        onChange={(val) => setSelectedCustomer(val as SelectOption<Contact> | null)}
+                        onInputChange={(e) => setContactParams(prev => ({ ...prev, search: e }))}
+                        placeholder="Select Customer"
+                        filterOption={() => true}
+                        isClearable
+
+                        styles={getReactSelectStyles<SelectOption<Contact>>()}
+                    />
+                </div>
+                {/* Products */}
+                <div className="flex flex-col">
+                    <label className="block text-sm font-medium mb-1">Products </label>
+                    <Select
+                        options={products}
+                        value={null}
+                        onChange={(val) => handleAddProduct(val as SelectOption<Product>)}
+                        onInputChange={(e) => setProductParams(prev => ({ ...prev, search: e }))}
+                        placeholder="Select Product"
+                        isClearable
+                        styles={getReactSelectStyles<SelectOption<Product>>()}
+                    />
+                </div>
+                {/* Product With Barcode */}
+                <div className="flex flex-col">
+                    <label className="block text-sm font-medium mb-1">Search With Barcode</label>
+                    <input
+                        value={barcode}
+                        onChange={(e) => {
+                            setBarcode(e.target.value);
+                        }}
+                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                fetchProductWithBarcode((e.target as HTMLInputElement).value);
+                            }
+                        }}
+                        className="global_input"
+                        placeholder="Search Product With Barcode"
+                    />
+                </div>
+                {/* Date */}
+                <div className="relative w-full">
+                    <label className="block text-sm font-medium mt-1 mb-1">
+                        Select Date
+                    </label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <DatePicker
+                            selected={saleDate}
+                            onChange={(date: Date | null) => setSaleDate(date as Date)}
+                            dateFormat="dd-MM-yyyy"
+                            className="global_input pl-10 w-full"
+                            popperPlacement="bottom"
+                            popperClassName="z-[9999]"
+                            calendarClassName="react-datepicker-custom"
+                            popperContainer={(props) =>
+                                createPortal(<div {...props} />, document.body)
+                            }
+                        />
+                    </div>
+                </div>
+            </div>
+            {/* Table */}
+            <Table
+                data={selectedProducts.value}
+                keyExtractor={(row, i) => `${row._id}-${i}`}
+                columns={[
+                    // #
+                    {
+                        header: "#",
+                        accessor: (_, i) => (i ?? 0) + 1,
+                        className: "w-10 text-center",
+                        headerClassName: "text-center"
+                    },
+                    // Name
+                    {
+                        header: "Name",
+                        accessor: "name",
+                        headerClassName: "min-w-[200px] text-left"
+                    },
+                    // Warranty
+                    {
+                        header: "Warranty",
+                        className: "text-center",
+                        headerClassName: "text-center",
+                        accessor: (row, i) => (
+                            <>  {row.manageWarranty && <input
+                                type="number"
+                                value={row.warranty === 0 ? "" : row.warranty}
+                                onChange={(e) => handleProductChange(i as number, "warranty", e.target.value === "" ? 0 : Number(e.target.value))}
+                                placeholder="Days"
+                                className="global_input text-center w-24"
+
+                            />}</>
+
+                        ),
+                    },
+                    // Serials
+                    {
+                        header: "Serials",
+                        className: "min-w-40",
+                        headerClassName: "text-center",
+                        accessor: (row, i) => {
+                            if (row.manageWarranty) {
+                                return (
+                                    <Select
+                                        options={row.serials || []}
+                                        value={row.selectedSerials}
+                                        onChange={(selectedSerials) => {
+                                            selectSerial(
+                                                selectedSerials as SelectOption<Batch>[] | null,
+                                                i as number // ✅ index pass করুন
+                                            );
+                                        }}
+                                        styles={smallReactStyleMulti<SelectOption<Batch>>()}
+                                        isMulti
+                                        menuPortalTarget={document.body}
+                                        menuPlacement="auto"
+                                        menuPosition="absolute"
+                                        placeholder="Select Serials"
+                                    />
+                                );
+                            }
+
+                            // ✅ manageWarranty false hole N/A
+                            return (
+                                <span className="text-gray-500 dark:text-gray-400 text-sm">
+                                    N/A
+                                </span>
+                            );
+                        }
+                    },
+                    // Batches
+                    {
+                        header: "Batches",
+                        className: "min-w-35",
+                        headerClassName: "text-center",
+                        accessor: (row, i) => {
+                            if (row.manageStock && !row.manageWarranty) {
+                                return (
+                                    <Select
+                                        options={row.batches || []}
+                                        value={row.selectedBatch}
+                                        onChange={(selectedBatch) => {
+                                            selectBatch(
+                                                selectedBatch as SelectOption<Batch> | null,
+                                                row._id,
+                                                i as number // ✅ Pass index
+                                            );
+                                        }}
+                                        styles={smallReactStyle<SelectOption<Batch>>()}
+                                        menuPortalTarget={document.body}
+                                        menuPlacement="auto"
+                                        menuPosition="absolute"
+                                        placeholder="Select Batch"
+                                    />
+
+                                );
+                            }
+
+                            // ✅ manageWarranty true hole
+                            return (
+                                <span className="text-gray-500 dark:text-gray-400 text-sm">
+                                    N/A
+                                </span>
+                            );
+                        }
+                    },
+                    // Purchase Price
+                    {
+                        header: "Purchase Price",
+                        className: "text-center",
+                        headerClassName: "text-center",
+                        accessor: (row, i) => (
+                            <input
+                                type="number"
+                                value={row.purchasePrice === 0 ? "" : row.purchasePrice}
+                                onChange={(e) => handleProductChange(i as number, "purchasePrice", e.target.value === "" ? 0 : Number(e.target.value))}
+                                className="global_input text-center w-24"
+                            />
+                        ),
+                    },
+                    // Sale Price
+                    {
+                        header: "Sale Price",
+                        className: "text-center",
+                        headerClassName: "text-center",
+                        accessor: (row, i) => (
+                            <input
+                                type="number"
+                                value={row.salePrice === 0 ? "" : row.salePrice}
+                                onChange={(e) => handleProductChange(i as number, "salePrice", e.target.value === "" ? 0 : Number(e.target.value))}
+                                className="global_input text-center w-24"
+                            />
+                        ),
+                    },
+                    // Qty
+                    {
+                        header: "Qty",
+                        className: "text-center",
+                        headerClassName: "text-center",
+                        accessor: (row, i) => (
+
+                            row.manageWarranty ?
+                                <input
+                                    type="number"
+                                    value={row.soldQty === 0 ? "" : row.soldQty}
+                                    disabled={row.manageWarranty}
+                                    className="global_input text-center w-10"
+                                /> :
+
+                                <div className="flex justify-center">
+                                    <IncrDecrButton
+                                        currentQty={row.soldQty}
+                                        min={row.decimal ? 0.01 : 1}
+                                        max={row.manageStock ? row.selectedBatch?.remainingQty : Infinity}
+                                        decimal={row.decimal}
+                                        onChange={(value) =>
+                                            handleProductChange(i as number, "soldQty", value)
+                                        }
+
+                                    />
+                                </div>
+                        ),
+                    },
+                    // Total
+                    {
+                        header: "Total",
+                        className: "text-center",
+                        headerClassName: "text-center",
+                        accessor: (row) => (
+                            <span>{Helper.formatLongNumber(row.salePrice * row.soldQty)}</span>
+                        ),
+                    },
+                    // Action
+                    {
+                        header: "Action",
+                        headerClassName: "text-right",
+                        className: "text-right",
+                        accessor: (_, i) => (
+                            <button
+                                onClick={() => handleRemoveProduct(i as number)}
+                                className="global_button_red"
+                            >
+                                Remove
+                            </button>
+                        ),
+                    },
+                ]}
+            />
+
+            {/* Summary + Note */}
+
+            <div className="flex flex-col lg:flex-row gap-6">
+                {/* Note */}
+                <div className="flex-1">
+                    <label className="block mb-2 font-medium">Note</label>
+                    <textarea
+                        value={note ?? ""}
+                        onChange={(e) => setNote(e.target.value)}
+                        className="global_input min-h-37.5 w-full"
+                    />
+                    {/* Other Cost */}
+                    <div className="mt-3 flex flex-col gap-2">
+                        <div className="flex justify-between items-center">
+                            <label>Cost Name:</label>
+                            <input
+                                type="text"
+                                value={costName ?? ""}
+                                onChange={(e) => setCostName(e.target.value)}
+                                className="global_input w-40 text-right"
+                                placeholder="e.g. Transport"
+                            />
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <label>Other Cost:</label>
+                            <input
+                                type="number"
+                                value={otherCost === 0 ? "" : otherCost}
+                                onChange={(e) => setOtherCost(e.target.value === "" ? 0 : Number(e.target.value))}
+                                className="global_input w-40 text-right"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Summary */}
+                <div className="flex-1 space-y-3">
+                    {/* Total Product Price */}
+                    <div className="flex justify-between">
+                        <label>Total Product Price:</label>
+                        <input type="number" value={totalProductPrice.toFixed(2)} disabled
+                            className="global_input w-40 rounded-sm cursor-not-allowed text-right" />
+                    </div>
+                    {/* Discount % */}
+                    <div className="flex justify-between">
+                        <label>Discount %:</label>
+                        <input
+                            type="number"
+                            value={discountPercent === 0 ? "" : discountPercent}
+                            onChange={(e) => {
+                                const percent = e.target.value === "" ? 0 : Number(e.target.value);
+                                setDiscountPercent(percent);
+                                setDiscount(parseFloat(((percent / 100) * totalProductPrice).toFixed(2)));
+                            }}
+                            className="global_input w-40 rounded-sm text-right" min="0" max="100"
+                        />
+                    </div>
+                    {/* Discount Amount */}
+                    <div className="flex justify-between">
+                        <label>Discount Amount:</label>
+                        <input
+                            type="number"
+                            value={discount === 0 ? "" : discount}
+                            onChange={(e) => {
+                                const val = e.target.value === "" ? 0 : Number(e.target.value);
+                                setDiscount(val);
+                                setDiscountPercent(totalProductPrice > 0 ? parseFloat(((val / totalProductPrice) * 100).toFixed(2)) : 0);
+                            }}
+                            className="global_input w-40 rounded-sm text-right" min="0"
+                        />
+                    </div>
+                    {/* Total Amount */}
+                    <div className="flex justify-between font-medium border-t pt-2">
+                        <label>Total Amount:</label>
+                        <input type="number" value={basePayable.toFixed(2)} disabled
+                            className="global_input w-40 rounded-sm cursor-not-allowed text-right" />
+                    </div>
+                    {/* Previous Due */}
+                    {selectedCustomer && prevDue > 0 && (
+                        <div className="flex justify-between">
+                            <label>Customer Prev Due:</label>
+                            <input type="number" value={prevDue.toFixed(2)} disabled
+                                className="global_input w-40 rounded-sm cursor-not-allowed text-right text-red-500" />
+                        </div>
+                    )}
+                    {/* Advance */}
+                    {selectedCustomer && usableBalance > 0 && (
+                        <div className="flex justify-between">
+                            <label>Adv. Paid from Bal.</label>
+                            <input type="number" value={prevBalance.toFixed(2)} disabled
+                                className="global_input w-40 rounded-sm cursor-not-allowed text-right text-green-500" />
+                        </div>
+                    )}
+                    {/* Payable */}
+                    <div className="flex justify-between font-medium">
+                        <label>Payable:</label>
+                        {basePayable - (usableBalance) > 0 ?
+                            <input type="number" value={(basePayable - usableBalance).toFixed(2)} disabled
+                                className="global_input w-40 rounded-sm cursor-not-allowed text-right" />
+                            :
+                            <input type="number" value={0} disabled
+                                className="global_input w-40 rounded-sm cursor-not-allowed text-right" />}
+                    </div>
+
+                    {/* Payment By */}
+                    <PaymentByAccounts
+                        accounts={accounts}
+                        setAccounts={setAccounts}
+                        selectedAccounts={selectedAccounts}
+                        setSelectedAccounts={setSelectedAccounts}
+                    />
+
+                    {/* Paid */}
+                    <div className="flex justify-between">
+                        <label>Total Paid:</label>
+                        <input type="number" value={paidWithAcc.toFixed(2)} disabled
+                            className="global_input w-40 rounded-sm cursor-not-allowed text-right text-green-500" />
+                    </div>
+                    {(() => {
+
+                        // CUrrent Due
+                        if (currentBalance < 0) return (
+                            <div className="flex justify-between font-semibold border-t pt-2">
+                                <label>Cus. Due Will Be:</label>
+                                <input type="number" value={Math.abs(currentBalance).toFixed(2)} disabled
+                                    className="global_input w-40 rounded-sm cursor-not-allowed text-right text-red-500" />
+                            </div>
+                        );
+                        // Advance Paid
+                        if (!isExchanging && (currentBalance > 0)) return (
+                            <div className="flex justify-between font-semibold border-t pt-2">
+                                <label>Cus. Bal. Will Be:</label>
+                                <input type="number" value={Math.abs(currentBalance).toFixed(2)} disabled
+                                    className="global_input w-40 rounded-sm cursor-not-allowed text-right text-green-500" />
+                            </div>
+                        );
+
+                        return null;
+                    })()}
+
+                    {/* Exchange button */}
+                    {(currentBalance > 0) && (
+                        <div className="flex justify-between font-semibold border-t pt-2">
+                            <button className="global_button" onClick={() => setIsExchanging(!isExchanging)}>{isExchanging ? `Exchanging - ${exchangeAmount}` : "Not Exchanging"}</button>
+                        </div>
+                    )}
+
+                    {/* Exchange Payment By */}
+                    {!!isExchanging && <PaymentByAccounts
+                        title="Exchange by"
+                        accounts={exchangeAccounts}
+                        setAccounts={setExchangeAccounts}
+                        selectedAccounts={selectedExchangeAccounts}
+                        setSelectedAccounts={setSelectedExchangeAccounts}
+                    />}
+                </div>
+            </div>
+
+
+
+            <div>
+                <button type="button" className="global_button" onClick={createSale}>Sale</button>
+            </div>
+
+        </div>
+    );
+}

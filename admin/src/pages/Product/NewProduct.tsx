@@ -1,0 +1,287 @@
+import { useEffect, useState } from "react";
+import api from "../../lib/axios";
+import type { Brand, Category, PaginatedResult, SearchParams, SelectOption, Unit } from "../../types/type";
+import Select from "react-select";
+import { getReactSelectStyles } from "../../utils/reactSelectStyles";
+import ToggleSwitch from "../../components/buttons/ToggleSwitch";
+import { createProductSchema } from "../../validators/product.validator";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router";
+
+export default function NewProduct() {
+  const navigate = useNavigate();
+  const [units, setUnits] = useState<SelectOption<Unit>[]>([]);
+  const [categories, setCategories] = useState<SelectOption<Category>[]>([]);
+  const [name, setName] = useState<string>("");
+  const [alertQty, setAlertQty] = useState<number | "">("");
+  const [selectedBrand, setSelectedBrand] = useState<SelectOption<Brand> | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<SelectOption<Unit> | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<SelectOption<Category> | null>(null);
+  const [manageStock, setManageStock] = useState<boolean>(true);
+  const [manageWarranty, setManageWarranty] = useState<boolean>(false);
+  const [decimal, setDecimal] = useState<boolean>(false);
+  const [barcode, setBarcode] = useState<string>("");
+  const [stock, setStock] = useState<number | "">("");
+  const [purchasePrice, setPurchasePrice] = useState<number | "">("");
+  const [salePrice, setSalePrice] = useState<number | "">("");
+
+  const [brandParams, setBrandParams] = useState<SearchParams>({
+    search: "",
+    page: 1,
+    limit: 50,
+  });
+  const [brands, setBrands] = useState<SelectOption<Brand>[]>([]);
+  const fetchCategories = async () => {
+    const res = await api("/category/list");
+    if (res.data.success)
+      setCategories(
+        res.data.data.map((c: Category) => ({ value: c._id, label: c.name, ...c }))
+      );
+  };
+
+  const fetchBrands = async () => {
+    const res = await api("/brand/list", {
+      params: {
+        search: brandParams.search,
+        limit: brandParams.limit,
+        page: brandParams.page
+      },
+    });
+    if (res.data.success) {
+      setBrands(
+        res.data.data.items.map((b: Brand) => ({
+          value: b._id,
+          label: b.name,
+          ...b
+        }))
+      );
+    }
+  };
+
+
+  const fetchUnits = async () => {
+    const res = await api("/unit/list");
+    if (res.data.success)
+      setUnits(
+        res.data.data.map((u: Unit) => ({ value: u._id, label: u.name, ...u }))
+      );
+  };
+
+
+
+  useEffect(() => {
+    Promise.all([fetchBrands(), fetchCategories(), fetchUnits()]);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchBrands(), 400);
+    return () => clearTimeout(timer);
+  }, [brandParams.search]);
+
+
+  const createProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUnit) {
+      toast.error("Unit is required");
+      return;
+    }
+    if (!manageStock && !purchasePrice && !salePrice) {
+      toast.error("Sale price and purchase price must include");
+      return;
+    }
+
+     if (!manageStock && stock) {
+      toast.error("You can't provide intial stock after disable manage stock");
+      return;
+    }
+
+        if (!!manageWarranty && !!stock ) {
+      toast.error("Disable manage warranty or remove all the initial stock");
+      return;
+    }
+
+      if (!!manageWarranty && !!decimal ) {
+      toast.error("Disable manage warranty or decimal");
+      return;
+    }
+
+    const payload = {
+      name,
+      barcode,
+      alertQty: alertQty === "" ? 0 : alertQty,
+      manageStock,
+      ...(selectedBrand && { brandID: selectedBrand._id }),
+      unitID: selectedUnit.value,
+      ...(selectedCategory && { categoryID: selectedCategory._id }),
+      decimal,
+      salePrice: salePrice === "" ? 0 : Number(salePrice),
+      purchasePrice: purchasePrice === "" ? 0 : Number(purchasePrice),
+      manageWarranty,
+        ...(stock && !!manageStock && { stock }),
+    };
+    const result = createProductSchema.safeParse(payload);
+    if (!result.success) {
+      const firstError = result.error.issues[0];
+      toast.error(firstError.message);
+      return;
+    }
+    const res = await api.post("/product/create", result.data);
+    if (res.data.success === true) {
+      return navigate('/product/list')
+    }
+  };
+  
+  useEffect(()=>{if(manageWarranty){
+    setStock("");
+  }},[manageWarranty])
+
+  return (
+    <form onSubmit={createProduct} className="grid lg:grid-cols-3 grid-cols-1 gap-2 space-y-4">
+      <h2 className="global_heading">New Product</h2>
+
+      {/* Name */}
+      <div className="col-span-3">
+        <label className="block text-sm font-medium mb-1">
+          Product Name <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Product name"
+          className="global_input"
+        />
+      </div>
+
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 col-span-3">
+        {/* Brand */}
+        <div className="flex flex-col">
+          <label className="block text-sm font-medium mb-1">Brand</label>
+          <Select
+            options={brands}
+            value={selectedBrand}
+            onChange={(val) => setSelectedBrand(val as SelectOption<Brand> | null)}
+            onInputChange={(e) => setBrandParams(prev => ({ ...prev, search: e }))}
+            placeholder="Select Brand"
+            isClearable
+            styles={getReactSelectStyles<SelectOption<Brand>>()}
+          />
+        </div>
+
+        {/* Unit */}
+        <div className="flex flex-col">
+          <label className="block text-sm font-medium mb-1">
+            Unit <span className="text-red-500">*</span>
+          </label>
+          <Select
+            options={units}
+            value={selectedUnit}
+            onChange={(val) => setSelectedUnit(val as SelectOption<Unit> | null)}
+            placeholder="Select Unit"
+            isClearable
+            styles={getReactSelectStyles<SelectOption<Unit>>()}
+          />
+        </div>
+
+        {/* Category */}
+        <div className="flex flex-col">
+          <label className="block text-sm font-medium mb-1">Category</label>
+          <Select
+            options={categories}
+            value={selectedCategory}
+            onChange={(val) => setSelectedCategory(val as SelectOption<Category> | null)}
+            placeholder="Select Category"
+            isClearable
+            styles={getReactSelectStyles<SelectOption<Category>>()}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 col-span-3">
+        {/* Alert Qty */}
+        <div className="">
+          <label className="block text-sm font-medium mb-1">Alert Quantity</label>
+          <input
+            type="number"
+            value={alertQty}
+            onChange={(e) => setAlertQty(e.target.value === "" ? "" : Number(e.target.value))}
+            placeholder="Alert quantity"
+            className="global_input"
+          />
+        </div>
+        {/* Initial Stock */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Initial Stock</label>
+          <input
+            type="number"
+            value={stock}
+            onChange={(e) => setStock(e.target.value === "" ? "" : Number(e.target.value))}
+            placeholder="Stock quantity"
+            className="global_input"
+            disabled={!!manageWarranty}
+          />
+        </div>
+        {/* Barcode */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Barcode</label>
+          <input
+            type="string"
+            value={barcode}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.preventDefault();
+            }}
+            onChange={(e) => setBarcode(e.target.value)}
+            placeholder="Barcode"
+            className="global_input"
+          />
+        </div>
+        {/* Purchase Price */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Purchase Price</label>
+          <input
+            type="number"
+            value={purchasePrice}
+            onChange={(e) => setPurchasePrice(e.target.value === "" ? "" : Number(e.target.value))}
+            placeholder="Stock quantity"
+            className="global_input"
+          />
+        </div>
+        {/* Sale Price */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Sale Price{!manageStock && <span className="text-red-500">*</span>} </label>
+          <input
+            type="number"
+            value={salePrice}
+            onChange={(e) => setSalePrice(e.target.value === "" ? "" : Number(e.target.value))}
+            placeholder="Stock quantity"
+            className="global_input"
+            required={!manageStock}
+          />
+        </div>
+      </div>
+
+
+
+      {/* Manage Stock + Warranty + Decimal */}
+      <div className="flex items-center gap-5 col-span-3 lg:col-span-2 justify-between">
+        <ToggleSwitch
+          label="Manage Stock"
+          value={manageStock}
+          onChange={setManageStock}
+        />
+        <ToggleSwitch
+          label="Manage Warranty"
+          value={manageWarranty}
+          onChange={setManageWarranty}
+        />
+        <ToggleSwitch
+          label="Decimal"
+          value={decimal}
+          onChange={setDecimal}
+        />
+      </div>
+
+      <button type="submit" className="global_button">Create Product</button>
+    </form>
+  );
+}

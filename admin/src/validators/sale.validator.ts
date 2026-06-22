@@ -1,0 +1,84 @@
+import { z } from "zod";
+
+export const saleProductSchema = z.object({
+  productID: z
+    .string()
+    .min(1, "Product is required"),
+
+  batchID: z.string().nullable().optional(),
+
+  soldQty: z
+    .number()
+    .min(1, "Quantity must be at least 1"),
+
+  salePrice: z
+    .number()
+    .min(0.01, "Sale price must be greater than 0"),
+
+  warranty: z.number().nullable().optional(),
+  
+});
+
+export const posSaleProductSchema = z.object({
+  productID: z
+    .string()
+    .min(1, "Product is required"),
+
+  
+
+  soldQty: z
+    .number()
+    .min(1, "Quantity must be at least 1"),
+
+  salePrice: z
+    .number()
+    .min(0.01, "Sale price must be greater than 0"),
+  
+});
+
+export const paymentAccountSchema = z.array(
+  z.object({
+    accountID: z
+      .string()
+      .min(1, "Account is required"),
+
+    amount: z
+      .number()
+      .min(0.1, "Amount cannot be 0")
+  })
+);
+
+export const saleSchema = z.object({
+  invoiceNo: z.string().trim().optional(),
+  contactID: z.string().nullable().optional(),
+  note: z.string().nullable().optional(),
+  costName: z.string().nullable().optional(),
+  exchangeAmount:z.number().min(0).default(0),
+  totalProductPrice: z.number().min(0).default(0),
+  otherCost: z.number().min(0).default(0),
+  discount: z.number().min(0).default(0),
+  totalAmount: z.number().min(0).default(0),
+  paid: z.number().min(0).default(0),
+  balanceBefore: z.number().default(0),
+  balanceAfter: z.number().default(0),
+  saleDate: z.coerce.date(),
+});
+
+export const createSaleSchema = z.object({
+  products: z
+    .array(saleProductSchema)
+    .min(1, "At least one product is required"),
+
+  accounts: paymentAccountSchema,
+  exchangeAccounts:paymentAccountSchema,
+  sale: saleSchema,
+});
+export const createfifoSaleSchema = z.object({
+  products: z
+    .array(posSaleProductSchema)
+    .min(1, "At least one product is required"),
+
+  accounts: paymentAccountSchema,
+  exchangeAccounts:paymentAccountSchema,
+  sale: saleSchema,
+});

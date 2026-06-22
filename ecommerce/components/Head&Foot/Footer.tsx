@@ -1,0 +1,63 @@
+import { Facebook, Instagram, Twitter, X, Youtube } from "lucide-react";
+import Link from "next/link";
+
+const Footer = () => {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 px-5 lg:px-20 text-sm">
+      <div className="flex flex-col gap-5 capitalize col-span-1">
+        <h1 className="uppercase font-bold">Programs</h1>
+        <h1>Training programs</h1>
+        <h1>Nutrition Plans</h1>
+      </div>
+      <div className="flex flex-col gap-5 capitalize col-span-1">
+        <h1 className="uppercase font-bold">SPONSORS</h1>
+        <h1>MacroFactor Diet App</h1>
+        <h1>Mass Research Review</h1> <h1>Neck Flex</h1>
+      </div>
+      {/* Subscription */}
+      <div className="flex flex-col gap-5 capitalize col-span-2 py-10 lg:py-0">
+        <h1 className="uppercase font-bold">
+          Get my zero fluff, 1 paragraph weekly newsletter. For FREE!
+        </h1>
+        <div className="flex gap-4 ">
+          <input
+            type="text"
+            name=""
+            id=""
+            placeholder="Your Email Address"
+            className="border border-gray-400 px-3 py-3 rounded-sm w-4/5"
+          />
+          <button className="bg-[#000000] text-white px-3 rounded-md font-bold text-nowrap">
+            SIGN UP
+          </button>
+        </div>
+      </div>
+      <div className="flex justify-end col-span-full py-10">
+        <div className="flex justify-between w-sm">
+          <a href="#">
+            <Youtube size={20} />
+          </a>
+          <a href="#">
+            <Facebook size={20} />
+          </a>
+          <a href="#">
+            <Instagram size={20} />
+          </a>
+          <a href="#">
+            <Instagram size={20} />
+          </a>
+        </div>
+      </div>
+      <div className="flex flex-col items-center col-span-full py-5">
+        <h1>© 2026 Jeff Nippard Fitness. All Rights Reserved.</h1>
+        <div className="py-5">
+          <Link href={"#"}>PRIVACY POLICY</Link>
+          <span className="px-5">|</span>
+          <Link href={"#"}>TERMS OF SERVICE</Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Footer;
