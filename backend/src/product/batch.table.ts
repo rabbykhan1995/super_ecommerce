@@ -7,6 +7,8 @@ import {
     numeric,
     index,
 } from "drizzle-orm/pg-core";
+import { productTable } from "./product.table";
+import { variantTable } from "./variant.table";
 
 export const batchTable = pgTable(
     "batches",
@@ -15,10 +17,10 @@ export const batchTable = pgTable(
 
         serial: integer("serial").unique(),
 
-        productID: integer("product_id").notNull(),
+        productID: integer("product_id").notNull().references(()=> productTable.id),
 
-        variantID: integer("variant_id").notNull(),
-
+        variantID: integer("variant_id").notNull().references(()=>variantTable.id),
+        // ekhanew same reference jog korte hobe
         purchaseID: integer("purchase_id").notNull(),
 
         cost: numeric("cost").default("0"),
@@ -67,3 +69,5 @@ export const batchTable = pgTable(
         index("batches_purchase_id_idx").on(table.purchaseID),
     ],
 );
+
+

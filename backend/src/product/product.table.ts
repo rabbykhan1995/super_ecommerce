@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import {
   pgTable,
   varchar,
@@ -8,6 +9,8 @@ import {
   integer,
   numeric,
 } from "drizzle-orm/pg-core";
+import { variantTable } from "./variant.table";
+import { batchTable } from "./batch.table";
 
 export const productTable = pgTable(
   "products",
@@ -100,3 +103,8 @@ export const productTable = pgTable(
     //   .where(sql`${table.barcode} IS NOT NULL AND ${table.barcode} <> ''`),
   ],
 );
+
+export const productRelations = relations(productTable, ({ many }) => ({
+  variants: many(variantTable),
+  batches: many(batchTable),
+}));
