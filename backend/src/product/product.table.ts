@@ -11,6 +11,9 @@ import {
 } from "drizzle-orm/pg-core";
 import { variantTable } from "./variant.table";
 import { batchTable } from "./batch.table";
+import { brandTable } from "../brand/brand.table";
+import { categoryTable } from "../category/category.table";
+import { unitTable } from "../unit/unit.table";
 
 export const productTable = pgTable(
   "products",
@@ -104,7 +107,23 @@ export const productTable = pgTable(
   ],
 );
 
-export const productRelations = relations(productTable, ({ many }) => ({
+export const productRelations = relations(productTable, ({ one, many }) => ({
+  // ১. ব্র্যান্ডের সাথে রিলেশন (যেহেতু প্রতিটি প্রোডাক্টের একটি নির্দিষ্ট ব্র্যান্ড থাকবে)
+  brand: one(brandTable, {
+    fields: [productTable.brandID], // প্রোডাক্ট টেবিলের কোন কলাম
+    references: [brandTable.id],    // ব্র্যান্ড টেবিলের কোন কলাম
+  }),
+
+  category: one(categoryTable, {
+    fields: [productTable.categoryID],
+    references: [categoryTable.id],
+  }),
+
+  unit: one(unitTable, {
+    fields: [productTable.unitID],
+    references: [unitTable.id],
+  }),
+
   variants: many(variantTable),
   batches: many(batchTable),
 }));

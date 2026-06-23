@@ -1,4 +1,6 @@
+import { relations } from "drizzle-orm";
 import { pgTable, varchar, timestamp, serial } from "drizzle-orm/pg-core";
+import { productTable } from "../product/product.table";
 
 export const unitTable = pgTable("units", {
     id: serial("id").primaryKey(),
@@ -18,3 +20,7 @@ export const unitTable = pgTable("units", {
         .defaultNow()
         .notNull(),
 });
+
+export const unitRelations = relations(unitTable, ({ many }) => ({
+  products: many(productTable),
+}));

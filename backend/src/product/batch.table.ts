@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { productTable } from "./product.table";
 import { variantTable } from "./variant.table";
+import { relations } from "drizzle-orm";
 
 export const batchTable = pgTable(
     "batches",
@@ -71,3 +72,14 @@ export const batchTable = pgTable(
 );
 
 
+// ব্যাচের রিলেশন
+export const batchRelations = relations(batchTable, ({ one }) => ({
+  product: one(productTable, {
+    fields: [batchTable.productID],
+    references: [productTable.id],
+  }),
+  variant: one(variantTable, {
+    fields: [batchTable.variantID],
+    references: [variantTable.id],
+  }),
+}));

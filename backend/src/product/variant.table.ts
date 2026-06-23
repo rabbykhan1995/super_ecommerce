@@ -8,6 +8,9 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { productTable } from "./product.table";
+import { relations } from "drizzle-orm";
+import { batchTable } from "./batch.table";
+import { variantAttributes } from "./attribute.table";
 
 export const variantTable = pgTable(
   "variants",
@@ -36,4 +39,12 @@ export const variantTable = pgTable(
 );
 
 
+export const variantRelations = relations(variantTable, ({ one, many }) => ({
+  product: one(productTable, {
+    fields: [variantTable.productID],
+    references: [productTable.id],
+  }),
+  batches: many(batchTable),
+  attributes: many(variantAttributes),
+}));
 

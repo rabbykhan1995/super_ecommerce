@@ -6,6 +6,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { variantTable } from "./variant.table";
+import { relations } from "drizzle-orm";
 
 export const variantAttributes = pgTable("variant_attributes", {
 
@@ -22,3 +23,11 @@ export const variantAttributes = pgTable("variant_attributes", {
 }, (table)=>[
   index("variant_attributes_variant_id_idx").on(table.variantID)
 ]);
+
+
+export const variantAttributesRelations = relations(variantAttributes, ({ one }) => ({
+  variant: one(variantTable, {
+    fields: [variantAttributes.variantID],
+    references: [variantTable.id],
+  }),
+}));
