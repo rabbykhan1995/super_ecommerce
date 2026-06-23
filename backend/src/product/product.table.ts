@@ -1,4 +1,3 @@
-import { sql } from "drizzle-orm";
 import {
   pgTable,
   varchar,
@@ -8,8 +7,6 @@ import {
   boolean,
   integer,
   numeric,
-  uniqueIndex,
-  index,
 } from "drizzle-orm/pg-core";
 
 export const productTable = pgTable(
@@ -21,7 +18,7 @@ export const productTable = pgTable(
 
     slug: varchar("slug", { length: 300 }).unique().notNull(),
 
-    barcode: varchar("barcode", { length: 100 }),
+    barcode: varchar("barcode", { length: 100 }).unique().notNull(),
 
     description: text("description"),
 
@@ -97,14 +94,9 @@ export const productTable = pgTable(
     totalReviews: integer("total_reviews").default(0).notNull(),
   },
   (table) => [
-    uniqueIndex("products_name_unique").on(table.name),
-
-    uniqueIndex("products_slug_unique").on(table.slug),
     // barcode empty/null হলে ignore করবে
-    uniqueIndex("products_barcode_unique")
-      .on(table.barcode)
-      .where(sql`${table.barcode} IS NOT NULL AND ${table.barcode} <> ''`),
-
-    index("products_name_idx").on(table.name),
+    // uniqueIndex("products_barcode_unique")
+    //   .on(table.barcode)
+    //   .where(sql`${table.barcode} IS NOT NULL AND ${table.barcode} <> ''`),
   ],
 );
