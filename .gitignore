@@ -17,10 +17,12 @@
 
 # next.js
 /.next/
+**/.next/
 /out/
 
 # production
 /build
+**/build
 /dokanpat_nextjs
 /shishir_backend
 
