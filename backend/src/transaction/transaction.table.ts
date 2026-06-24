@@ -15,6 +15,7 @@ import { saleTable } from "../sale/sale.table";
 import { saleReturnTable } from "../sale_return/sale_return.table";
 import { warrantyTable } from "../warranty/warranty.table";
 import { accountTable } from "../account/account.table";
+import { balanceTransferTable } from "../account/balance_transfer.table";
 
 // ১. ট্রানজেকশনের সোর্স মডিউল (কিসের মাধ্যমে জেনারেট হলো)
 export const txSourceEnum = pgEnum("tx_source", [
@@ -54,7 +55,7 @@ export const transactionTable = pgTable(
 
     saleReturnID:integer("sale_return_id").references(()=> saleReturnTable.id),
 
-    balanceTransferID:integer("balance_transfer_id"),
+    balanceTransferID:integer("balance_transfer_id").references(()=> balanceTransferTable.id),
 
     warrantyID:integer("warranty_id").references(()=> warrantyTable.id),
 
