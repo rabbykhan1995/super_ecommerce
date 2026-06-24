@@ -15,6 +15,7 @@ import { contactTable } from "../contact/contact.table";
 import { productTable } from "../product/product.table";
 import { batchTable } from "../product/batch.table";
 import { transactionTable } from "../transaction/transaction.table";
+import { ledgerTable } from "../ledger/ledger.table";
 
 // --- ১. মূল সেলস টেবিল ---
 export const saleTable = pgTable(
@@ -43,7 +44,7 @@ export const saleTable = pgTable(
     discount: numeric("discount", { precision: 12, scale: 2 }).default("0").notNull(),
     totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).default("0").notNull(),
     paid: numeric("paid", { precision: 12, scale: 2 }).default("0").notNull(),
-    
+
     // Snapshots
     exchangeAmount: numeric("exchange_amount", { precision: 12, scale: 2 }).default("0").notNull(),
     balanceBefore: numeric("balance_before", { precision: 12, scale: 2 }).default("0").notNull(),
@@ -78,7 +79,7 @@ export const saleItemsTable = pgTable(
 
     soldQty: numeric("sold_qty", { precision: 10, scale: 2 }).default("0").notNull(),
     salePrice: numeric("sale_price", { precision: 12, scale: 2 }).default("0").notNull(),
-    
+
     warranty: integer("warranty").default(0).notNull(), // ওয়ারেন্টি মাস/দিন ট্র্যাকিংয়ের জন্য
   },
   (table) => [
@@ -97,7 +98,8 @@ export const saleRelations = relations(saleTable, ({ one, many }) => ({
   // ১টি সেলের আন্ডারে অনেক প্রোডাক্ট থাকতে পারে
   items: many(saleItemsTable),
   // ১টি সেলের আন্ডারে অনেক পেমেন্ট/এক্সচেঞ্জ ট্রানজেকশন থাকতে পারে (সেন্ট্রাল টেবিল থেকে)
-  transactions: many(transactionTable), 
+  transactions: many(transactionTable),
+  ledgers: one(ledgerTable),
 }));
 
 // সেলস আইটেম টেবিলের রিলেশন

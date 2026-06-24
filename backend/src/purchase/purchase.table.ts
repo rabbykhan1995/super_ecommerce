@@ -13,6 +13,8 @@ import {
 import { relations } from "drizzle-orm";
 import { contactTable } from "../contact/contact.table";
 import { batchTable } from "../product/batch.table";
+import { ledgerTable } from "../ledger/ledger.table";
+import { transactionTable } from "../transaction/transaction.table";
 // আপনার প্রোজেক্টের পাথ অনুযায়ী নিচের ইম্পোর্টগুলো ঠিক করে নেবেন
 
 
@@ -44,7 +46,6 @@ export const purchaseTable = pgTable(
     discount: numeric("discount", { precision: 12, scale: 2 }).default("0").notNull(),
     totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).default("0").notNull(),
     paid: numeric("paid", { precision: 12, scale: 2 }).default("0").notNull(),
-
     // Snapshots
     exchangeAmount: numeric("exchange_amount", { precision: 12, scale: 2 }).default("0").notNull(),
     balanceBefore: numeric("balance_before", { precision: 12, scale: 2 }).default("0").notNull(),
@@ -66,5 +67,7 @@ export const purchaseRelations = relations(purchaseTable, ({ one,many }) => ({
     references: [contactTable.id],
   }),
 
-  batches:many(batchTable)
+  batches:many(batchTable),
+  ledgers:one(ledgerTable),
+  transactions:many(transactionTable),
 }));

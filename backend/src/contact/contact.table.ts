@@ -10,6 +10,10 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { purchaseTable } from "../purchase/purchase.table"; // আপনার পারচেজ টেবিল পাথ
+import { purchaseReturnTable } from "../purchase_return/purchase_return.table";
+import { saleTable } from "../sale/sale.table";
+import { saleReturnTable } from "../sale_return/sale_return.table";
+import { ledgerTable } from "../ledger/ledger.table";
 
 // ১. টাইপের জন্য pgEnum ডিফাইন করা (Mongoose enum-এর বিকল্প)
 export const contactTypeEnum = pgEnum("contact_type", ["customer", "supplier", "both"]);
@@ -48,4 +52,8 @@ export const contactTable = pgTable(
 // ২. কন্টাক্ট টেবিলের সাথে পারচেজ বা অন্যান্য টেবিলের রিলেশন
 export const contactRelations = relations(contactTable, ({ many }) => ({
   purchases: many(purchaseTable), // একজন সাপ্লায়ারের অনেকগুলো পারচেজ থাকতে পারে
+  purchaseReturns: many(purchaseReturnTable),
+  sales:many(saleTable),
+  saleReturns:many(saleReturnTable),
+  ledgers: many(ledgerTable),
 }));

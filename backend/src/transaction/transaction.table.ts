@@ -13,6 +13,8 @@ import { purchaseTable } from "../purchase/purchase.table";
 import { purchaseReturnTable } from "../purchase_return/purchase_return.table";
 import { saleTable } from "../sale/sale.table";
 import { saleReturnTable } from "../sale_return/sale_return.table";
+import { warrantyTable } from "../warranty/warranty.table";
+import { accountTable } from "../account/account.table";
 
 // ১. ট্রানজেকশনের সোর্স মডিউল (কিসের মাধ্যমে জেনারেট হলো)
 export const txSourceEnum = pgEnum("tx_source", [
@@ -36,7 +38,7 @@ export const transactionTable = pgTable(
 
     txNo: varchar("tx_no", { length: 100 }).notNull().unique(),
 
-    accountID: integer("account_id").notNull(), // কোন একাউন্ট (ক্যাশ বক্স, ব্যাংক, ইত্যাদি)
+    accountID: integer("account_id").notNull().references(()=> accountTable.id), // কোন একাউন্ট (ক্যাশ বক্স, ব্যাংক, ইত্যাদি)
 
     amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
 
@@ -44,15 +46,17 @@ export const transactionTable = pgTable(
 
     type:txTypeEnum("type").default("credit").notNull(),
 
-    purchaseID:integer("purchase_id"),
+    purchaseID:integer("purchase_id").references(()=> purchaseTable.id),
 
-    saleID:integer("sale_id"),
+    saleID:integer("sale_id").references(()=> saleTable.id),
 
-    purchaseReturnID:integer("purchase_return_id"),
+    purchaseReturnID:integer("purchase_return_id").references(()=> purchaseReturnTable.id),
 
-    saleReturnID:integer("sale_return_id"),
+    saleReturnID:integer("sale_return_id").references(()=> saleReturnTable.id),
 
     balanceTransferID:integer("balance_transfer_id"),
+
+    warrantyID:integer("warranty_id").references(()=> warrantyTable.id),
 
     date: timestamp("date", { withTimezone: true }).defaultNow().notNull(),
 
@@ -63,6 +67,7 @@ export const transactionTable = pgTable(
     index("transactions_purchase_return_id_idx").on(table.purchaseReturnID),
     index("transactions_sale_id_idx").on(table.saleID),
     index("transactions_sale_return_id_idx").on(table.saleReturnID),
+    index("transactions_warranty_id_idx").on(table.warrantyID),
   ]
 );
 
@@ -82,5 +87,10 @@ export const transactionRelations = relations(transactionTable, ({ one }) => ({
   saleReturn: one(saleReturnTable, {
     fields: [transactionTable.saleReturnID],
     references: [saleReturnTable.id],
+  }),
+
+  warranty: one(warrantyTable, {
+    fields: [transactionTable.warrantyID],
+    references: [warrantyTable.id],
   }),
 }));

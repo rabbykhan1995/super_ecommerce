@@ -15,6 +15,7 @@ import { productTable } from "../product/product.table";
 import { batchTable } from "../product/batch.table";
 import { saleTable } from "../sale/sale.table";
 import { transactionTable } from "../transaction/transaction.table";
+import { ledgerTable } from "../ledger/ledger.table";
 
 
 // --- ১. মূল সেলস রিটার্ন টেবিল ---
@@ -93,6 +94,7 @@ export const saleReturnRelations = relations(saleReturnTable, ({ one, many }) =>
   items: many(saleReturnItemsTable),
   // সেন্ট্রাল টেবিল থেকে আসা এই রিটার্নের ফিন্যান্সিয়াল ট্রানজেকশনসমূহ
   transactions: many(transactionTable),
+  ledger: one(ledgerTable),
 }));
 
 // সেলস রিটার্ন আইটেম টেবিলের রিলেশন
@@ -109,4 +111,5 @@ export const saleReturnItemsRelations = relations(saleReturnItemsTable, ({ one }
     fields: [saleReturnItemsTable.productID],
     references: [productTable.id],
   }),
+  
 }));

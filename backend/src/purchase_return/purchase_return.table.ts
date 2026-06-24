@@ -13,6 +13,8 @@ import { contactTable } from "../contact/contact.table";
 import { productTable } from "../product/product.table";
 import { batchTable } from "../product/batch.table";
 import { purchaseTable } from "../purchase/purchase.table";
+import { ledgerTable } from "../ledger/ledger.table";
+import { transactionTable } from "../transaction/transaction.table";
 
 // --- ১. মূল পারচেজ রিটার্ন টেবিল ---
 export const purchaseReturnTable = pgTable(
@@ -89,6 +91,8 @@ export const purchaseReturnRelations = relations(purchaseReturnTable, ({ one, ma
   }),
   // রিটার্নের ভেতরে অনেকগুলো আইটেম/ব্যাচ থাকতে পারে
   items: many(purchaseReturnItemsTable),
+  ledgers: one(ledgerTable),
+  transactions: many(transactionTable),
 }));
 
 export const purchaseReturnItemsRelations = relations(purchaseReturnItemsTable, ({ one }) => ({
