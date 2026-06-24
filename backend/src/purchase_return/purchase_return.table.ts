@@ -6,7 +6,6 @@ import {
   numeric,
   text,
   index,
-  jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -38,9 +37,6 @@ export const purchaseReturnTable = pgTable(
     // Snapshots
     balanceBefore: numeric("balance_before", { precision: 12, scale: 2 }).default("0").notNull(),
     balanceAfter: numeric("balance_after", { precision: 12, scale: 2 }).default("0").notNull(),
-
-    // Accounts array-টি ছোট এবং সিম্পল হওয়ায় সরাসরি jsonb রাখা হয়েছে
-    accounts: jsonb("accounts").$type<{ accountID: number; amount: number }[]>().default([]),
 
     date: timestamp("date", { withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
