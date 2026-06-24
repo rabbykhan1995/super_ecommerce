@@ -10,6 +10,7 @@ import {
 import { productTable } from "./product.table";
 import { variantTable } from "./variant.table";
 import { relations } from "drizzle-orm";
+import { purchaseTable } from "../purchase/purchase.table";
 
 export const batchTable = pgTable(
     "batches",
@@ -22,7 +23,7 @@ export const batchTable = pgTable(
 
         variantID: integer("variant_id").notNull().references(()=>variantTable.id),
         // ekhanew same reference jog korte hobe
-        purchaseID: integer("purchase_id").notNull(),
+        purchaseID: integer("purchase_id").references(()=>purchaseTable.id).notNull(),
 
         cost: numeric("cost").default("0"),
 
@@ -82,4 +83,9 @@ export const batchRelations = relations(batchTable, ({ one }) => ({
     fields: [batchTable.variantID],
     references: [variantTable.id],
   }),
+
+  purchase:one(purchaseTable,{
+    fields:[batchTable.purchaseID],
+    references:[purchaseTable.id],
+  })
 }));
