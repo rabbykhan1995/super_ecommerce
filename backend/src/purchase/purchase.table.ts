@@ -50,10 +50,6 @@ export const purchaseTable = pgTable(
     balanceBefore: numeric("balance_before", { precision: 12, scale: 2 }).default("0").notNull(),
     balanceAfter: numeric("balance_after", { precision: 12, scale: 2 }).default("0").notNull(),
 
-    // Accounts array-টিকে সহজে রাখার জন্য jsonb ব্যবহার করা হলো
-    // structure: [{ accountID: number, amount: number }]
-    accounts: jsonb("accounts").$type<{ accountID: number; amount: number }[]>().default([]),
-
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
