@@ -11,10 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { accountTable } from "./account.table";
 import { transactionTable } from "../transaction/transaction.table";
-
-
-export const txTypeEnum = pgEnum("tx_type", ["credit", "debit"]);
-
+ 
 export const balanceTransferTable = pgTable(
     "balance_transfer",
     {
@@ -30,8 +27,8 @@ export const balanceTransferTable = pgTable(
 
     },
     (table) => [
-        index("transactions_from_account_idx").on(table.fromAccountID),
-        index("transactions_to_account_idx").on(table.toAccountID),
+        index("balance_transfer_from_account_idx").on(table.fromAccountID),
+        index("balance_transfer_to_account_idx").on(table.toAccountID),
     ]
 );
 

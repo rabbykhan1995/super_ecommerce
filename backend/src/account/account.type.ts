@@ -5,15 +5,12 @@ import { createAccountSchema, updateAccountSchema } from "./account.validator";
 export interface Account  {
   id:number;
   name: string;
-  branch?: string;
+  branch?: string | undefined | null;
   number: string;
   balance: number;
-  createdAt: Date;
-  updatedAt: Date;
-  default:boolean;
+  isDefault:boolean;
 }
 
-export type AccountResponse = HydratedDocument<Account>;
 
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;
 export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;
@@ -23,4 +20,4 @@ export type AccBalancePayload = {
   amount: number;
 };
 
-export type AllAccountResponse = AccountResponse[];
+export type AllAccountResponse = Account[];

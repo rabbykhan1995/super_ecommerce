@@ -6,6 +6,7 @@ import {
   serial,
   boolean,
   numeric,
+  integer,
 } from "drizzle-orm/pg-core";
 import { transactionTable } from "../transaction/transaction.table";
 import { balanceTransferTable } from "./balance_transfer.table";
@@ -17,9 +18,9 @@ export const accountTable = pgTable("accounts", {
 
   branch: varchar("branch", { length: 100 }).default(""),
 
-  balance: numeric("balance")
+  balance: integer("balance")
     .notNull()
-    .default("0"),
+    .default(0),
 
   number: varchar("number", { length: 50 }).notNull(),
 

@@ -17,16 +17,16 @@ export const updateAccountSchema = z.object({
 });
 
 export const paymentAccountSchema = z.array(z.object({
-  accountID: z.string().min(1, "Account is required"),
+  accountID: z.number().min(1, "Account is required"),
   amount: z.number({ message: "Amount must be a number" }).min(0.1, { message: "Amount cannot be 0" }),
 }));
 
 export const balanceTransferSchema = z.object({
   selectedFrom: z.object({
-    _id: z.string().min(1, "From account is required"),
+    id: z.number().min(1, "From account is required"),
   }).strip(),
   selectedTo: z.object({
-    _id: z.string().min(1, "To account is required"),
+    id: z.number().min(1, "To account is required"),
   }).strip(),
   amount: z.number().positive("Amount must be greater than 0"),
 });

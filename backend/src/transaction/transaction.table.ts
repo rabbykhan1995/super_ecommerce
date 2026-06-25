@@ -73,6 +73,10 @@ export const transactionTable = pgTable(
 );
 
 export const transactionRelations = relations(transactionTable, ({ one }) => ({
+    account: one(accountTable, {
+    fields: [transactionTable.accountID],
+    references: [accountTable.id],
+  }),
   purchase: one(purchaseTable, {
     fields: [transactionTable.purchaseID],
     references: [purchaseTable.id],

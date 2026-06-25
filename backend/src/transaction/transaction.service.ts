@@ -4,10 +4,10 @@ import { AccountService } from "../account/account.service";
 import ContactService from "../contact/contact.service";
 import { ContactResponse } from "../contact/contact.type";
 import TransactionRepository from "./transaction.repository";
-
 import LedgerService from "../ledger/ledger.service";
-import { CreateLedgerInput } from "../ledger/ledger.type";
 import PayloadBuilder from "../../utils/builder";
+import { runInTransaction } from "../../utils/runTransaction";
+import { QueryClient } from "../../drizzle/src";
 
 
 export default class TransactionService {
@@ -26,27 +26,19 @@ export default class TransactionService {
         if (!contact) {
             throw new ApiError(404, "Contact didn't found");
         }
+        
+        runInTransaction(async (tx:QueryClient)=>{
+        if (transaction.type === "Credit") {
+                await AccountService.increaseBalance(accounts, tx);
+            } else {
+                await AccountService.decreaseBalance(accounts, tx);
+            } 
+        })
+
 
         // 3. start transaction
-        const session =
-            await mongoose.startSession();
-
-        session.startTransaction();
 
         try {
-
-            if (transaction.type === "Credit") {
-                await AccountService.increaseBalance(accounts, session);
-            } else {
-                await AccountService.decreaseBalance(accounts, session);
-            }
-
-            // 5. create transactions
-            const groupID =
-                accounts.length > 1
-                    ? new Types.ObjectId()
-                    : undefined;
-
 
             const transactionPayload =
                 PayloadBuilder.transaction(

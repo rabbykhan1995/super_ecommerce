@@ -1,6 +1,6 @@
 import mongoose, { ClientSession, Types } from "mongoose";
 import AccountRepository from "./account.repository";
-import { AccBalancePayload, AccountResponse, CreateAccountInput, UpdateAccountInput } from "./account.type";
+import { AccBalancePayload, Account, CreateAccountInput, UpdateAccountInput } from "./account.type";
 import { ApiError } from "../../utils/ApiError";
 import Transaction from "../transaction/transaction.model";
 import { DbTransactionClient, runInTransaction as withTransaction } from "../../utils/runTransaction";
@@ -31,9 +31,9 @@ export class AccountService {
 
     static async create(
         payload: CreateAccountInput
-    ): Promise<AccountResponse> {
+    ): Promise<Account> {
 
-        // check duplicate account
+        // check duplicate account 
 
         const exist =
             await AccountRepository.findByName(
@@ -64,7 +64,7 @@ export class AccountService {
 
         // create account
 
-        const account: AccountResponse | null =
+        const account: Account | null =
             await AccountRepository.create(payload);
 
         if (!account) {
@@ -77,15 +77,14 @@ export class AccountService {
         return account;
     }
 
-    static async update(accountID: any,
+    static async update(accountID: number,
         payload: UpdateAccountInput
-    ): Promise<AccountResponse> {
-        const id = new Types.ObjectId(accountID as string);
+    ): Promise<Account> {
         // check duplicate account
 
-        const account: AccountResponse | null =
+        const account: Account =
             await AccountRepository.findByID(
-                id
+                accountID
             );
 
         if (!account) {
@@ -96,16 +95,16 @@ export class AccountService {
         }
 
         if (payload.name) {
-            const exist = await AccountRepository.findByName(payload.name, id);
+            const exist = await AccountRepository.findByName(payload.name, accountID);
             if (exist) throw new ApiError(400, "Account already exists with this name");
         }
 
         if (payload.default === true) {
-            const exist = await AccountRepository.findDefault(id);// ✅ id দিয়ে বাদ দাও
+            const exist = await AccountRepository.findDefault(accountID);// ✅ id দিয়ে বাদ দাও
             if (exist) throw new ApiError(400, "Default account already exists");
         }
 
-        const updatedAccount: AccountResponse | null = await AccountRepository.updateById(id, payload) // ✅ create না, update
+        const updatedAccount: Account| null = await AccountRepository.updateById(accountID, payload) // ✅ create না, update
         if (!updatedAccount) throw new ApiError(404, "Account not found");
 
         // create account
@@ -115,19 +114,19 @@ export class AccountService {
         return updatedAccount;
     }
 
-    static async list(): Promise<AccountResponse[] | []> {
+    static async list(): Promise<Account[] | []> {
         // check duplicate account
-        const accounts: AccountResponse[] | [] =
+        const accounts: Account[] | [] =
             await AccountRepository.getAllAccounts();
         return accounts;
     }
 
-    static async accountByID(accountID: any, nullString?: string): Promise<AccountResponse> {
+    static async accountByID(accountID: number, nullString?: string): Promise<Account> {
         // check duplicate account
 
-        const id = new Types.ObjectId(accountID as string);
-        const account: AccountResponse | null =
-            await AccountRepository.findByID(id);
+    
+        const account: Account | null =
+            await AccountRepository.findByID(accountID);
 
         if (!account) {
             throw new ApiError(404, `${nullString} Account not found`)
@@ -144,14 +143,14 @@ export class AccountService {
         } = payload;
 
         // 1. fetch accounts
-        const fromAcc: AccountResponse =
+        const fromAcc: Account =
             await this.accountByID(
-                selectedFrom._id, "SelectedFrom"
+                selectedFrom.id, "SelectedFrom"
             );
 
-        const toAcc: AccountResponse =
+        const toAcc: Account=
             await this.accountByID(
-                selectedTo._id, "SelectedTo"
+                selectedTo.id, "SelectedTo"
             );
 
 
@@ -174,10 +173,10 @@ export class AccountService {
             // 4. update accounts
             await AccountRepository.decreaseAccountsAmount(
                 [{
-                    accountID: fromAcc._id.toString(),
+                    accountID: fromAcc.id,
                     amount
                 }],
-                session
+                
             );
 
             await AccountRepository.increaseAccountsAmount(
@@ -223,8 +222,8 @@ export class AccountService {
     static async balanceTransfer(payload: any) {
   const { selectedFrom, selectedTo, amount } = payload;
 
-  const fromAcc = await this.accountByID(selectedFrom._id, "SelectedFrom");
-  const toAcc = await this.accountByID(selectedTo._id, "SelectedTo");
+  const fromAcc = await this.accountByID(selectedFrom.id, "SelectedFrom");
+  const toAcc = await this.accountByID(selectedTo.id, "SelectedTo");
 
   if (fromAcc.balance < amount) {
     throw new ApiError(
