@@ -3,29 +3,29 @@ import AccountRepository from "./account.repository";
 import { AccBalancePayload, AccountResponse, CreateAccountInput, UpdateAccountInput } from "./account.type";
 import { ApiError } from "../../utils/ApiError";
 import Transaction from "../transaction/transaction.model";
-import { withTransaction } from "../../utils/runTransaction";
-import db from "../../drizzle/src";
+import { DbTransactionClient, runInTransaction as withTransaction } from "../../utils/runTransaction";
+import db, { QueryClient } from "../../drizzle/src";
 import PayloadBuilder from "../../utils/builder";
 
 export class AccountService {
 
     static async increaseBalance(
         accounts: AccBalancePayload[],
-        session?: ClientSession
+        tx?:QueryClient
     ) {
         await AccountRepository.increaseAccountsAmount(
             accounts,
-            session
+            tx
         );
     }
 
     static async decreaseBalance(
         accounts: AccBalancePayload[],
-        session?: ClientSession
+           tx?:QueryClient
     ) {
         await AccountRepository.decreaseAccountsAmount(
             accounts,
-            session
+            tx
         );
     }
 

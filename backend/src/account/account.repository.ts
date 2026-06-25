@@ -1,11 +1,10 @@
 import { eq, and, ne, desc, count, sql } from "drizzle-orm";
 import { accountTable } from "./account.table";
-import db from "../../drizzle/src";
-type DBClient = typeof db;
+import db, { QueryClient } from "../../drizzle/src";
 
 export default class AccountRepository {
 
-  static async findByID(id: number, client: DBClient = db) {
+  static async findByID(id: number, client: QueryClient = db) {
     const result = await client
       .select()
       .from(accountTable)
@@ -15,7 +14,7 @@ export default class AccountRepository {
     return result[0] || null;
   }
 
-  static async findByName(name: string, excludeId?: number, client: DBClient = db) {
+  static async findByName(name: string, excludeId?: number, client: QueryClient = db) {
     const result = await client
       .select()
       .from(accountTable)
@@ -32,7 +31,7 @@ export default class AccountRepository {
     return result[0] || null;
   }
 
-  static async create(payload: any, client: DBClient = db) {
+  static async create(payload: any, client: QueryClient = db) {
     const result = await client
       .insert(accountTable)
       .values({
@@ -45,7 +44,7 @@ export default class AccountRepository {
     return result[0];
   }
 
-  static async findDefault(excludeId?: number, client: DBClient = db) {
+  static async findDefault(excludeId?: number, client: QueryClient = db) {
     const result = await client
       .select()
       .from(accountTable)
@@ -62,7 +61,7 @@ export default class AccountRepository {
     return result[0] || null;
   }
 
-  static async updateById(id: number, payload: any, client: DBClient = db) {
+  static async updateById(id: number, payload: any, client: QueryClient = db) {
     const result = await client
       .update(accountTable)
       .set({
@@ -77,38 +76,36 @@ export default class AccountRepository {
     return result[0] || null;
   }
 
-  static async increaseAccountsAmount(accounts: any[], client: DBClient = db) {
+  static async increaseAccountsAmount(accounts: any[], client: QueryClient = db) {
     await Promise.all(
       accounts.map((acc) =>
         client
           .update(accountTable)
           .set({
             balance: sql`${accountTable.balance} + ${acc.amount}`,
-            updatedAt: new Date(),
+  
           })
           .where(eq(accountTable.id, acc.accountID))
       )
     );
   }
 
-  static async decreaseAccountsAmount(accounts: any[], client: DBClient = db) {
+  static async decreaseAccountsAmount(accounts: any[], client: QueryClient = db) {
     await Promise.all(
       accounts.map((acc) =>
         client
           .update(accountTable)
           .set({
             balance: sql`${accountTable.balance} - ${acc.amount}`,
-            updatedAt: new Date(),
           })
           .where(eq(accountTable.id, acc.accountID))
       )
     );
   }
 
-  static async getAllAccounts(client: DBClient = db) {
+  static async getAllAccounts(client: QueryClient = db) {
     return await client
       .select()
       .from(accountTable)
-      .orderBy(desc(accountTable.createdAt));
   }
 }

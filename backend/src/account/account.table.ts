@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import {
   pgTable,
   varchar,
@@ -6,6 +7,8 @@ import {
   boolean,
   numeric,
 } from "drizzle-orm/pg-core";
+import { transactionTable } from "../transaction/transaction.table";
+import { balanceTransferTable } from "./balance_transfer.table";
 
 export const accountTable = pgTable("accounts", {
   id: serial("id").primaryKey(),
@@ -21,16 +24,9 @@ export const accountTable = pgTable("accounts", {
   number: varchar("number", { length: 50 }).notNull(),
 
   isDefault: boolean("is_default").notNull().default(false),
-
-  createdAt: timestamp("created_at", {
-    withTimezone: true,
-  })
-    .defaultNow()
-    .notNull(),
-
-  updatedAt: timestamp("updated_at", {
-    withTimezone: true,
-  })
-    .defaultNow()
-    .notNull(),
 });
+
+export const accountRelations = relations(accountTable, ({ one,many }) => ({
+    transactions:many(transactionTable),
+    balanceTransfers:many(balanceTransferTable),
+}));
