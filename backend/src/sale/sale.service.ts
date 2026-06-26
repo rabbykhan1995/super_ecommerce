@@ -3,7 +3,7 @@ import { ApiError } from "../../utils/ApiError";
 import Helper from "../../utils/helper";
 import ContactService from "../contact/contact.service";
 import ProductService from "../product/product.service";
-import { CreateFifoSaleInput, CreateSaleInput } from "./sale.type";
+import { CreateFifoSaleInput, CreateSaleInput, Sale } from "./sale.type";
 import SaleCounter from "./saleCounter.model";
 import SaleRepository from "./sale.repository";
 import { AccountService } from "../account/account.service";
@@ -48,7 +48,7 @@ export default class SaleService {
                 mainProducts.push(product);
 
                 const soldQty = product.decimal ? Helper.roundQty(p.soldQty) : p.soldQty;
-        
+
                 p.soldQty = soldQty;
 
                 if (!product.manageStock) return;
@@ -239,12 +239,27 @@ export default class SaleService {
         return await SaleRepository.list(query);
     }
 
-    static async saleInvoiceByID(id: string) {
-        const sale = await SaleRepository.saleInvoiceByID(id);
-
+    static async saleInvoiceByID(id: number) {
+        const sale: Sale = await SaleRepository.getSaleByID(id);
+  
         if (!sale) {
             throw new ApiError(404, "sale not found");
         }
+
+      let accounts;
+        let exchangeAccounts;
+        if (sale.paid > 0) {
+            const transactions = await TransactionService.findBySourceID(sale.id, "sale");
+            accounts = transactions.filter(t=>t.type === "credit");
+
+        }
+
+        if(sale.exchangeAmount>0){
+            
+        }
+
+
+
 
         return sale
     }

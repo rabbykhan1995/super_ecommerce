@@ -8,13 +8,19 @@ import {
   varchar,
   text,
   index,
+  pgSequence,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 // আপনার প্রোজেক্টের পাথ অনুযায়ী ইমপোর্টগুলো চেক করে নেবেন
 import { contactTable } from "../contact/contact.table";
 import { transactionTable } from "../transaction/transaction.table";
 import { ledgerTable } from "../ledger/ledger.table";
 import { saleItemsTable } from "./sale_items.table";
+
+export const saleInvoiceNoSeq = pgSequence("sale_invoice_no_seq", {
+  startWith: 100001,
+  increment: 1,
+});
 
 // --- ১. মূল সেলস টেবিল ---
 export const saleTable = pgTable(
@@ -26,7 +32,10 @@ export const saleTable = pgTable(
       .defaultNow()
       .notNull(),
 
-    invoiceNo: varchar("invoice_no", { length: 100 }).unique(),
+    invoiceNo: integer("invoice_no")
+      .default(sql`nextval('sale_invoice_no_seq')`)
+      .notNull()
+      .unique(),
 
     // customerID (nullable হতে পারে ওয়াকিং কাস্টমারের জন্য, তাই .notNull() দেওয়া হয়নি)
     customerID: integer("customer_id").references(() => contactTable.id),
@@ -38,16 +47,16 @@ export const saleTable = pgTable(
     deletable: boolean("deletable").default(true).notNull(),
 
     // ফাইনান্সিয়াল হিসাবের জন্য numeric টাইপ
-    totalProductPrice: numeric("total_product_price", { precision: 12, scale: 2 }).default("0").notNull(),
-    otherCost: numeric("other_cost", { precision: 12, scale: 2 }).default("0").notNull(),
-    discount: numeric("discount", { precision: 12, scale: 2 }).default("0").notNull(),
-    totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).default("0").notNull(),
-    paid: numeric("paid", { precision: 12, scale: 2 }).default("0").notNull(),
+    totalProductPrice: integer("total_product_price").default(0).notNull(),
+    otherCost: integer("other_cost").default(0).notNull(),
+    discount: integer("discount").default(0).notNull(),
+    totalAmount: integer("total_amount").default(0).notNull(),
+    paid: integer("paid").default(0).notNull(),
 
     // Snapshots
-    exchangeAmount: numeric("exchange_amount", { precision: 12, scale: 2 }).default("0").notNull(),
-    balanceBefore: numeric("balance_before", { precision: 12, scale: 2 }).default("0").notNull(),
-    balanceAfter: numeric("balance_after", { precision: 12, scale: 2 }).default("0").notNull(),
+    exchangeAmount: integer("exchange_amount").default(0).notNull(),
+    balanceBefore: integer("balance_before").default(0).notNull(),
+    balanceAfter: integer("balance_after").default(0).notNull(),
 
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

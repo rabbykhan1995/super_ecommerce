@@ -79,4 +79,8 @@ export default class TransactionService {
     ) {
         return TransactionRepository.deleteTransactions(filter, tx);
     }
+
+    static async findBySourceID(sourceID:number, sourceType:TxSource){
+        return TransactionRepository.findBySourceID(sourceID, sourceType);
+    }
 }

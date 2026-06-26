@@ -31,6 +31,43 @@ export default class TransactionRepository {
     return result[0] || null;
   }
 
+static async findBySourceID(
+  sourceID: number,
+  sourceType: TxSource
+) {
+  const whereCondition = (() => {
+    switch (sourceType) {
+      case "purchase":
+        return eq(transactionTable.purchaseID, sourceID);
+
+      case "sale":
+        return eq(transactionTable.saleID, sourceID);
+
+      case "purchase_return":
+        return eq(transactionTable.purchaseReturnID, sourceID);
+
+      case "sale_return":
+        return eq(transactionTable.saleReturnID, sourceID);
+
+      case "balance_transfer":
+        return eq(transactionTable.balanceTransferID, sourceID);
+
+      case "warranty":
+        return eq(transactionTable.warrantyID, sourceID);
+
+      default:
+        throw new Error(`Unsupported source type: ${sourceType}`);
+    }
+  })();
+
+  return await db.query.transactionTable.findMany({
+    where: whereCondition,
+    with: {
+      account: true,
+    },
+  });
+}
+
   /**
    * 💡 ৪. Transaction Details Aggregate
    * মঙ্গুসের জটিল $group, $unwind, $addFields এর বদলে SQL Join এবং 

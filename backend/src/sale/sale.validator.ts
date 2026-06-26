@@ -30,10 +30,8 @@ export const fifoSaleProductSchema = z.object({
 });
 
 export const saleSchema = z.object({
-  invoiceNo: z.string().trim().optional(),
-
-  contactID: z
-    .string()
+  customerID: z
+    .number()
     .optional().nullable(),
 
   note: z.string().optional().nullable(),
@@ -79,7 +77,6 @@ export const saleSchema = z.object({
 })
 
 export const createSaleSchema = z.object({
-
   products: z
     .array(saleProductSchema)
     .min(1, { message: "At least one product is required" }),
