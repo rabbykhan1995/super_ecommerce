@@ -8,6 +8,8 @@ import * as unitSchema from "../src/unit/unit.table";
 import * as transactionSchema from "../src/transaction/transaction.table";
 import * as accountSchema from "../src/account/account.table";
 import * as balanceTransferSchema from "../src/account/balance_transfer.table"
+import * as saleSchema from "../src/sale/sale.table"
+import * as saleItemsSchema from "../src/sale/sale_items.table"
 
 // সব টেবিল এবং তাদের রিলেশন একসাথে কম্বাইন করা হলো
 export const dbSchema = {
@@ -20,5 +22,7 @@ export const dbSchema = {
   ...unitSchema,
   ...transactionSchema,
   ...accountSchema,
-  ...balanceTransferSchema
+  ...balanceTransferSchema,
+  ...saleSchema,
+  ...saleItemsSchema,
 };

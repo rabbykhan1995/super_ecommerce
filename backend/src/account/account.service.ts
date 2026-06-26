@@ -2,7 +2,7 @@ import AccountRepository from "./account.repository";
 import { AccBalancePayload, Account, CreateAccountInput, UpdateAccountInput } from "./account.type";
 import { ApiError } from "../../utils/ApiError";
 import { withTransaction } from "../../utils/withTransaction";
-import db, { QueryClient } from "../../drizzle/src";
+import { QueryClient } from "../../drizzle/src";
 import PayloadBuilder from "../../utils/builder";
 
 import TransactionService from "../transaction/transaction.service";

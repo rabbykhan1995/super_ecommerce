@@ -1,55 +1,29 @@
-import mongoose, { ClientSession, Types } from "mongoose";
 import { ApiError } from "../../utils/ApiError";
-
 import TransactionRepository from "./transaction.repository";
-
 import { QueryClient } from "../../drizzle/src";
-import { text } from "stream/consumers";
-import { TransactionCreateInput, TransactionPayload } from "./transaction.type";
-
+import { TransactionPayload, TxSource, TxType } from "./transaction.type";
 
 export default class TransactionService {
     constructor() { }
 
-    static async transactionList(
+    static async accountTransactionList(
         query: any
     ) {
+        let formattedQuery: any = { page: query.page, limit: query.limit, search: query.search };
 
-        const {
-            accountID,
-            type
-        } = query;
-
-        let filter: Record<string, any> = {};
-
-        // account filter
-        if (accountID) {
-
-            filter.$or = [
-                {
-                    fromAccount:
-                        new Types.ObjectId(
-                            accountID as string
-                        ),
-                },
-                {
-                    toAccount:
-                        new Types.ObjectId(
-                            accountID as string
-                        ),
-                },
-            ];
+        if (query.accountID) {
+            formattedQuery.accountID = query.accountID;
         }
 
-        // type filter
-        if (type) {
-            filter.type = type;
+        if (query.source) {
+            formattedQuery.source = query.source as TxSource;
         }
 
-        return TransactionRepository.paginatedList(
-            query,
-  
-        );
+        if (query.type) {
+            formattedQuery.type = query.type as TxType;
+        }
+
+        return TransactionRepository.accTransictionList(formattedQuery);
     }
     static async transactionDetails(
         transactionID: number
@@ -70,7 +44,7 @@ export default class TransactionService {
 
         // 3. aggregate match query
         // 4. aggregate result
-        const result =""
+        const result = ""
 
         if (!result) {
             throw new ApiError(
@@ -85,10 +59,6 @@ export default class TransactionService {
         payload: TransactionPayload,
         tx?: QueryClient
     ) {
-
-
-        // 2. build transaction payload
-
         // 3. DB insert
         const result =
             await TransactionRepository.create(
