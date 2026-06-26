@@ -1,12 +1,8 @@
 import mongoose, { ClientSession, Types } from "mongoose";
 import { ApiError } from "../../utils/ApiError";
-import { AccountService } from "../account/account.service";
-import ContactService from "../contact/contact.service";
-import { ContactResponse } from "../contact/contact.type";
+
 import TransactionRepository from "./transaction.repository";
-import LedgerService from "../ledger/ledger.service";
-import PayloadBuilder from "../../utils/builder";
-import { withTransaction } from "../../utils/withTransaction";
+
 import { QueryClient } from "../../drizzle/src";
 import { text } from "stream/consumers";
 import { TransactionCreateInput, TransactionPayload } from "./transaction.type";
@@ -15,7 +11,7 @@ import { TransactionCreateInput, TransactionPayload } from "./transaction.type";
 export default class TransactionService {
     constructor() { }
 
-    static async accountTransactionList(
+    static async transactionList(
         query: any
     ) {
 

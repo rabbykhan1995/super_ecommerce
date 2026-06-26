@@ -1,13 +1,14 @@
 import { eq, and, lte, gte, ilike, or, desc, sql, SQL } from "drizzle-orm";
-import db , { QueryClient } from "../../drizzle/src";
+import db, { QueryClient } from "../../drizzle/src";
 
 import { transactionTable } from "./transaction.table"; // আপনার ড্রিসেল টেবিল
 import { accountTable } from "../account/account.table";
 import { contactTable } from "../contact/contact.table";
-import { TransactionCreateInput, TransactionPayload } from "./transaction.type";
+import { TransactionCreateInput, TransactionPayload, TxSource, TxType } from "./transaction.type";
+import { paginateQuery } from "../../utils/queryBuilder";
 
 export default class TransactionRepository {
-  constructor() {}
+  constructor() { }
 
   /**
    * 💡 ১. Bulk Insert (createMany)
@@ -16,7 +17,7 @@ export default class TransactionRepository {
     return await client.insert(transactionTable).values(payload).returning();
   }
 
-    static async create(payload: TransactionPayload, client: QueryClient = db) {
+  static async create(payload: TransactionPayload, client: QueryClient = db) {
     return await client.insert(transactionTable).values(payload).returning();
   }
 
@@ -24,7 +25,7 @@ export default class TransactionRepository {
    * 💡 ২. Paginated List (মঙ্গুসের paginatedAggregate এর বিকল্প)
    * ড্রিসেলের Relational Query দিয়ে এটি মঙ্গুসের চেয়ে ১০ গুণ সহজে করা যায়
    */
-static async paginatedList(options: {
+  static async paginatedList(options: {
     page: number;
     limit: number;
     search?: string;
@@ -34,11 +35,11 @@ static async paginatedList(options: {
     const offset = (page - 1) * limit;
 
     // 💡 সমাধান: এখানে অ্যারের টাইপ `SQL[]` বলে দিতে হবে, কারণ Drizzle-এর eq() বা and() ফাংশনগুলো SQL টাইপ রিটার্ন করে
-    const conditions: SQL[] = []; 
-    
+    const conditions: SQL[] = [];
+
     if (accountId) {
       // 💡 সমাধান ২: .append() এর জায়গায় .push() হবে
-      conditions.push(eq(transactionTable.accountID, accountId)); 
+      conditions.push(eq(transactionTable.accountID, accountId));
     }
 
     // আপনার মেইন কুয়েরি
@@ -46,6 +47,7 @@ static async paginatedList(options: {
       where: conditions.length > 0 ? and(...conditions) : undefined,
       limit: limit,
       offset: offset,
+
       with: {
         // মঙ্গুসের lookup এর বদলে ডিরেক্ট রিলেশন জয়েন
         // (নিশ্চিত হয়ে নেবেন আপনার transactionTable-এর রিলেশনে 'account' নাম দেওয়া আছে কি না)
@@ -117,7 +119,7 @@ static async paginatedList(options: {
           id: accountTable.id,
           name: accountTable.name,
         },
-        
+
         // কন্টাক্ট বা কাস্টমার/সাপ্লায়ার ডিটেইলস (লেজার বা ভাউচার থেকে রিলেটেড)
         // আমরা রানটাইমে লেজারের স্ন্যাপশট অবজেক্টটি যোগ করে দিচ্ছি ($addFields এর মতো)
         ledger: {
@@ -139,7 +141,7 @@ static async paginatedList(options: {
    * 💡 ৫. Delete Transactions (রোলব্যাক বা ভাউচার ডিলিটের সময়)
    */
   static async deleteTransactions(
-    conditions: { purchaseID?: number; saleID?: number; id?: number },
+    conditions: { purchaseID?: number; saleID?: number; id?: number; },
     client: QueryClient = db
   ) {
     const deleteFilters = [];
@@ -151,5 +153,34 @@ static async paginatedList(options: {
       .delete(transactionTable)
       .where(and(...deleteFilters))
       .returning();
+  }
+
+
+  static async accTransictionList(query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    accountID?: number;
+    type?: TxType;
+    source?: TxSource;
+  }) {
+
+    return paginateQuery({
+      query: db.query.transactionTable,
+      countTable: transactionTable,
+      searchColumns: [transactionTable.txNo],
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      where: [
+        ...(query.accountID ? [eq(transactionTable.accountID, query.accountID)] : []),
+        ...(query.type ? [eq(transactionTable.type, query.type)] : []),
+        ...(query.source ? [eq(transactionTable.source, query.source)] : [])
+      ],
+      with: {
+        accounts: true,
+        transactions: true,
+      },
+    });
   }
 }
