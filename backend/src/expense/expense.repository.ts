@@ -4,7 +4,7 @@ import { Expense, ExpenseType } from "./expense.model";
 import {
   aggregateOne,
   paginatedAggregate,
-} from "../../utils/aggregationQueryBuilder";
+} from "../../utils/queryBuilder";
 import { SaleProduct, SaleResponse } from "../sale/sale.type";
 import {
   CreateExpenseInput,

@@ -1,6 +1,6 @@
 import { ClientSession, Types } from "mongoose";
 import PurchaseReturn from "./purchase_return.model";
-import { aggregateOne, paginatedAggregate } from "../../utils/aggregationQueryBuilder";
+import { aggregateOne, paginatedAggregate } from "../../utils/queryBuilder";
 import Batch from "../product/batch.model";
 
 export default class PurchaseReturnRepository {

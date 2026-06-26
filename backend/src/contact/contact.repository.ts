@@ -1,7 +1,7 @@
 import { ClientSession, Types } from "mongoose";
 import Contact from "./contact.model";
 import { ContactResponse, CreateContactInput, UpdateContactInput } from "./contact.type";
-import { paginatedAggregate } from "../../utils/aggregationQueryBuilder";
+import { paginatedAggregate } from "../../utils/queryBuilder";
 import { AccountResponse } from "../account/account.type";
 
 export default class ContactRepository {

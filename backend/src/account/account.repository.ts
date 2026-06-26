@@ -1,6 +1,10 @@
 import { eq, and, ne, desc, count, sql } from "drizzle-orm";
 import { accountTable } from "./account.table";
 import db, { QueryClient } from "../../drizzle/src";
+import { transactionTable } from "../transaction/transaction.table";
+import { paginateQuery } from "../../utils/queryBuilder";
+import { balanceTransferTable } from "./balance_transfer.table";
+import { BalanceTransferInput } from "./account.type";
 
 export default class AccountRepository {
 
@@ -21,9 +25,9 @@ export default class AccountRepository {
       .where(
         excludeId
           ? and(
-              eq(accountTable.name, name.trim()),
-              ne(accountTable.id, excludeId)
-            )
+            eq(accountTable.name, name.trim()),
+            ne(accountTable.id, excludeId)
+          )
           : eq(accountTable.name, name.trim())
       )
       .limit(1);
@@ -51,9 +55,9 @@ export default class AccountRepository {
       .where(
         excludeId
           ? and(
-              eq(accountTable.isDefault, true),
-              ne(accountTable.id, excludeId)
-            )
+            eq(accountTable.isDefault, true),
+            ne(accountTable.id, excludeId)
+          )
           : eq(accountTable.isDefault, true)
       )
       .limit(1);
@@ -83,7 +87,7 @@ export default class AccountRepository {
           .update(accountTable)
           .set({
             balance: sql`${accountTable.balance} + ${acc.amount}`,
-  
+
           })
           .where(eq(accountTable.id, acc.accountID))
       )
@@ -108,4 +112,41 @@ export default class AccountRepository {
       .select()
       .from(accountTable)
   }
+
+  static async createAccTransaction(payload: any, client: QueryClient = db) {
+    const result = await client.insert(transactionTable)
+      .values(payload)
+      .returning();
+    return result[0];
+  }
+
+  static async accTransictionList(query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) {
+
+    return paginateQuery({
+      db,
+      query: db.query.transactionTable,
+      countTable: transactionTable,
+      searchColumns:[transactionTable.txNo],
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      with: {
+        account: true,
+        contact: true,
+        transaction: true,
+      },
+    });
+  }
+  
+static async createBalanceTransfer(payload: BalanceTransferInput, client: QueryClient = db) {
+    const result = await client.insert(balanceTransferTable)
+      .values(payload)
+      .returning();
+    return result[0];
+  }
+
 }

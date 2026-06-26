@@ -1,37 +1,9 @@
 import { Types } from "mongoose";
 import { CreateLedgerInput } from "../src/ledger/ledger.type";
-
-export type TransactionPayloadItem = {
-    groupID?: Types.ObjectId;
-
-    type:
-    | "sale"
-    | "purchase"
-    | "sale_return"
-    | "purchase_return"
-    | "deposit"
-    | "withdraw"
-    |"exchange";
-
-    typeID?: Types.ObjectId;
-
-    typeModel?: "Sale" | "Purchase" | "Transaction" | "SaleReturn"
-    | "PurchaseReturn";
-
-    fromAccount?: Types.ObjectId;
-
-    toAccount?: Types.ObjectId;
-
-    contactID?: Types.ObjectId;
-
-    amount: number;
-
-    note?: string;
-
-    status?: string;
-
-    date?: Date;
-};
+import { TxSource, TxType } from "../src/transaction/transaction.type";
+import Transaction from "../src/transaction/transaction.model";
+import { AccBalancePayload } from "../src/account/account.type";
+import { txSourceEnum, txTypeEnum } from "../src/transaction/transaction.table";
 
 
 export type BatchPayloadItem = {
@@ -55,6 +27,18 @@ export type BatchPayloadItem = {
 
     isActive?: boolean;
 };
+
+export type trxConfig = {
+    source: TxSource;
+    type: TxType;
+    date: Date;
+    purchaseID?: number;
+    saleID?: number;
+    purchaseReturnID?: number;
+    saleReturnID?: number;
+    balanceTransferID?: number;
+    warrantyID?: number;
+}
 
 export default class PayloadBuilder {
     constructor() { }
@@ -126,63 +110,11 @@ export default class PayloadBuilder {
         }));
     }
 
-    static transaction(
-        accounts: any[],
-        config: {
-            groupID?: any;
 
-            type:
-            | "sale"
-            | "purchase"
-            | "sale_return"
-            | "purchase_return"
-            | "deposit"
-            | "withdraw"
-            | "exchange"
-            | "expense";
-
-            typeID?: any;
-
-            typeModel?: "Sale" | "Purchase" | "Transaction" | "SaleReturn"
-            | "PurchaseReturn" | "Expense";
-
-            contactID?: any;
-
-            accountField?: "fromAccount" | "toAccount";
-
-            note?: string;
-
-            status?: string;
-
-            date?: Date;
-        }
-    ): TransactionPayloadItem[] {
-
-        return accounts.map((acc) => ({
-
-            ...(config.groupID && {
-                groupID: config.groupID,
-            }),
-
-            type: config.type,
-
-            typeID: config.typeID,
-
-            typeModel: config.typeModel,
-
-            contactID: config.contactID,
-
-            [config.accountField || "toAccount"]:
-                acc.accountID,
-
-            amount: acc.amount,
-
-            note: config.note ?? "",
-
-            status: config.status ?? "completed",
-
-            date: config.date ?? new Date(),
-        }));
+    static transaction(account: AccBalancePayload,config:trxConfig) {
+       return ({...account, ...config})
     }
+
+
 
 }

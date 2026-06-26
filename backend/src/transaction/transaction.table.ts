@@ -3,7 +3,6 @@ import {
   pgTable,
   serial,
   integer,
-  numeric,
   timestamp,
   varchar,
   index,
@@ -16,6 +15,7 @@ import { saleReturnTable } from "../sale_return/sale_return.table";
 import { warrantyTable } from "../warranty/warranty.table";
 import { accountTable } from "../account/account.table";
 import { balanceTransferTable } from "../account/balance_transfer.table";
+import { randomUUID } from "crypto";
 
 // ১. ট্রানজেকশনের সোর্স মডিউল (কিসের মাধ্যমে জেনারেট হলো)
 export const txSourceEnum = pgEnum("tx_source", [
@@ -37,27 +37,30 @@ export const transactionTable = pgTable(
   {
     id: serial("id").primaryKey(),
 
-    txNo: varchar("tx_no", { length: 100 }).notNull().unique(),
+    txNo: varchar("tx_no", { length: 36 })
+      .$defaultFn(() => randomUUID())
+      .notNull()
+      .unique(),
 
-    accountID: integer("account_id").notNull().references(()=> accountTable.id), // কোন একাউন্ট (ক্যাশ বক্স, ব্যাংক, ইত্যাদি)
+    accountID: integer("account_id").notNull().references(() => accountTable.id), // কোন একাউন্ট (ক্যাশ বক্স, ব্যাংক, ইত্যাদি)
 
-    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    amount: integer("amount").default(0),
 
     source: txSourceEnum("source").notNull(),           // e.g., 'purchase', 'sale'
 
-    type:txTypeEnum("type").default("credit").notNull(),
+    type: txTypeEnum("type").default("credit").notNull(),
 
-    purchaseID:integer("purchase_id").references(()=> purchaseTable.id),
+    purchaseID: integer("purchase_id").references(() => purchaseTable.id),
 
-    saleID:integer("sale_id").references(()=> saleTable.id),
+    saleID: integer("sale_id").references(() => saleTable.id),
 
-    purchaseReturnID:integer("purchase_return_id").references(()=> purchaseReturnTable.id),
+    purchaseReturnID: integer("purchase_return_id").references(() => purchaseReturnTable.id),
 
-    saleReturnID:integer("sale_return_id").references(()=> saleReturnTable.id),
+    saleReturnID: integer("sale_return_id").references(() => saleReturnTable.id),
 
-    balanceTransferID:integer("balance_transfer_id").references(()=> balanceTransferTable.id),
+    balanceTransferID: integer("balance_transfer_id").references(() => balanceTransferTable.id),
 
-    warrantyID:integer("warranty_id").references(()=> warrantyTable.id),
+    warrantyID: integer("warranty_id").references(() => warrantyTable.id),
 
     date: timestamp("date", { withTimezone: true }).defaultNow().notNull(),
 
@@ -73,7 +76,7 @@ export const transactionTable = pgTable(
 );
 
 export const transactionRelations = relations(transactionTable, ({ one }) => ({
-    account: one(accountTable, {
+  account: one(accountTable, {
     fields: [transactionTable.accountID],
     references: [accountTable.id],
   }),

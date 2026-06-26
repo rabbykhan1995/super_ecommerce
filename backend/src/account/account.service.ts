@@ -1,17 +1,17 @@
-import mongoose, { ClientSession, Types } from "mongoose";
 import AccountRepository from "./account.repository";
 import { AccBalancePayload, Account, CreateAccountInput, UpdateAccountInput } from "./account.type";
 import { ApiError } from "../../utils/ApiError";
-import Transaction from "../transaction/transaction.model";
-import { DbTransactionClient, runInTransaction as withTransaction } from "../../utils/runTransaction";
+import { withTransaction } from "../../utils/withTransaction";
 import db, { QueryClient } from "../../drizzle/src";
 import PayloadBuilder from "../../utils/builder";
+
+import TransactionService from "../transaction/transaction.service";
 
 export class AccountService {
 
     static async increaseBalance(
         accounts: AccBalancePayload[],
-        tx?:QueryClient
+        tx?: QueryClient
     ) {
         await AccountRepository.increaseAccountsAmount(
             accounts,
@@ -21,7 +21,7 @@ export class AccountService {
 
     static async decreaseBalance(
         accounts: AccBalancePayload[],
-           tx?:QueryClient
+        tx?: QueryClient
     ) {
         await AccountRepository.decreaseAccountsAmount(
             accounts,
@@ -104,7 +104,7 @@ export class AccountService {
             if (exist) throw new ApiError(400, "Default account already exists");
         }
 
-        const updatedAccount: Account| null = await AccountRepository.updateById(accountID, payload) // ✅ create না, update
+        const updatedAccount: Account | null = await AccountRepository.updateById(accountID, payload) // ✅ create না, update
         if (!updatedAccount) throw new ApiError(404, "Account not found");
 
         // create account
@@ -124,7 +124,7 @@ export class AccountService {
     static async accountByID(accountID: number, nullString?: string): Promise<Account> {
         // check duplicate account
 
-    
+
         const account: Account | null =
             await AccountRepository.findByID(accountID);
 
@@ -134,27 +134,12 @@ export class AccountService {
         return account;
     }
 
-    static async balanceTransfer2(payload: any) {
+    static async balanceTransfer(payload: any) {
+        const { selectedFrom, selectedTo, amount } = payload;
 
-        const {
-            selectedFrom,
-            selectedTo,
-            amount
-        } = payload;
+        const fromAcc = await this.accountByID(selectedFrom.id, "SelectedFrom");
+        const toAcc = await this.accountByID(selectedTo.id, "SelectedTo");
 
-        // 1. fetch accounts
-        const fromAcc: Account =
-            await this.accountByID(
-                selectedFrom.id, "SelectedFrom"
-            );
-
-        const toAcc: Account=
-            await this.accountByID(
-                selectedTo.id, "SelectedTo"
-            );
-
-
-        // 2. business rule
         if (fromAcc.balance < amount) {
             throw new ApiError(
                 400,
@@ -162,108 +147,37 @@ export class AccountService {
             );
         }
 
-        // 3. transaction start
-        const session =
-            await mongoose.startSession();
+        return await withTransaction(async (tx: QueryClient) => {
 
-        session.startTransaction();
-
-        try {
-
-            // 4. update accounts
             await AccountRepository.decreaseAccountsAmount(
                 [{
                     accountID: fromAcc.id,
                     amount
                 }],
-                
+                tx
             );
 
             await AccountRepository.increaseAccountsAmount(
                 [{
-                    accountID: fromAcc._id.toString(),
+                    accountID: toAcc.id,   // ✅ FIXED (আগে ভুল ছিল)
                     amount
                 }],
-                session
-            );
- 
-            await Transaction.create(
-                [
-                    {
-                        type: "transfer",
-                        fromAccount: fromAcc._id,
-                        toAccount: toAcc._id,
-                        amount,
-                        status: "completed",
-                        date: new Date(),
-                    },
-                ],
-                { session }
+                tx
             );
 
-            await session.commitTransaction();
+            const balanceTransfer = await AccountRepository.createBalanceTransfer({ date: payload.date, fromAccountID: fromAcc.id, toAccountID: toAcc.id, amount }, tx);
 
-            return {
-                fromAccount: fromAcc._id,
-                toAccount: toAcc._id,
-                amount
-            };
+            if (!balanceTransfer) {
+                throw new ApiError(400, "balance transfer failed")
+            }
 
-        } catch (error) {
+            const fromtransactionPayload = PayloadBuilder.transaction(selectedFrom, { type: "debit", date: payload.date, source: "balance_transfer", balanceTransferID: balanceTransfer.id });
 
-            await session.abortTransaction();
-            throw error;
+            const totransactionPayload = PayloadBuilder.transaction(selectedTo, { type: "credit", date: payload.date, source: "balance_transfer", balanceTransferID: balanceTransfer.id });
 
-        } finally {
-            session.endSession();
-        }
+            await Promise.all([TransactionService.create(fromtransactionPayload, tx), TransactionService.create(totransactionPayload, tx)]);
+
+            return balanceTransfer;
+        });
     }
-
-    static async balanceTransfer(payload: any) {
-  const { selectedFrom, selectedTo, amount } = payload;
-
-  const fromAcc = await this.accountByID(selectedFrom.id, "SelectedFrom");
-  const toAcc = await this.accountByID(selectedTo.id, "SelectedTo");
-
-  if (fromAcc.balance < amount) {
-    throw new ApiError(
-      400,
-      `${fromAcc.name} balance must be greater than ${amount}`
-    );
-  }
-
-  return await withTransaction(async (tx) => {
-
-    await AccountRepository.decreaseAccountsAmount(
-      [{
-        accountID: fromAcc.id,
-        amount
-      }],
-      tx
-    );
-
-    await AccountRepository.increaseAccountsAmount(
-      [{
-        accountID: toAcc.id,   // ✅ FIXED (আগে ভুল ছিল)
-        amount
-      }],
-      tx
-    );
-
-    await tx.insert(Transaction).values({
-      type: "transfer",
-      fromAccount: fromAcc.id,
-      toAccount: toAcc.id,
-      amount,
-      status: "completed",
-      date: new Date(),
-    });
-
-    return {
-      fromAccount: fromAcc.id,
-      toAccount: toAcc.id,
-      amount
-    };
-  });
-}
 }

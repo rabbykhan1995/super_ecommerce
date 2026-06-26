@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { accountTable } from "./account.table";
 import { transactionTable } from "../transaction/transaction.table";
+import { number } from "zod";
  
 export const balanceTransferTable = pgTable(
     "balance_transfer",
@@ -21,7 +22,7 @@ export const balanceTransferTable = pgTable(
 
         toAccountID: integer("to_account_id").notNull().references(() => accountTable.id),
         
-        amount:numeric("amount", { precision: 20, scale: 2 }).notNull(),
+        amount:integer("amount").default(0),
 
         date: timestamp("date", { withTimezone: true }).defaultNow().notNull(),
 

@@ -4,6 +4,7 @@ import db , { QueryClient } from "../../drizzle/src";
 import { transactionTable } from "./transaction.table"; // আপনার ড্রিসেল টেবিল
 import { accountTable } from "../account/account.table";
 import { contactTable } from "../contact/contact.table";
+import { TransactionCreateInput, TransactionPayload } from "./transaction.type";
 
 export default class TransactionRepository {
   constructor() {}
@@ -11,7 +12,11 @@ export default class TransactionRepository {
   /**
    * 💡 ১. Bulk Insert (createMany)
    */
-  static async createMany(payload: any[], client: QueryClient = db) {
+  static async createMany(payload: TransactionPayload[], client: QueryClient = db) {
+    return await client.insert(transactionTable).values(payload).returning();
+  }
+
+    static async create(payload: TransactionPayload, client: QueryClient = db) {
     return await client.insert(transactionTable).values(payload).returning();
   }
 

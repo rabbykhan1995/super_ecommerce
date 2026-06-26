@@ -14,7 +14,7 @@ import Helper from "../../utils/helper";
 import { Types } from "mongoose";
 import { ApiError } from "../../utils/ApiError";
 import axios from "axios";
-import { paginatedAggregate } from "../../utils/aggregationQueryBuilder";
+import { paginatedAggregate } from "../../utils/queryBuilder";
 import { generateEmailTemplate } from "../../utils/emailTemplate";
 import { sendEmail } from "../../config/mailSender.config";
 

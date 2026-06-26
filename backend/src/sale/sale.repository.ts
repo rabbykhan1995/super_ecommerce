@@ -1,6 +1,6 @@
 import { ClientSession, Types } from "mongoose";
 import Sale from "./sale.model";
-import { aggregateOne, paginatedAggregate } from "../../utils/aggregationQueryBuilder";
+import { aggregateOne, paginatedAggregate } from "../../utils/queryBuilder";
 
 export default class SaleRepository {
     static async getSaleByID(id: string) {

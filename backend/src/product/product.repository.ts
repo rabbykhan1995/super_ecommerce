@@ -2,7 +2,7 @@ import { ClientSession, Types } from "mongoose";
 import Batch from "./batch.model";
 import Product from "./product.model";
 import { BatchResponse, CreateProductInput, IBatch, ProductResponse, UpdateProductInput } from "./product.type";
-import { aggregateOne, paginatedAggregate } from "../../utils/aggregationQueryBuilder";
+import { aggregateOne, paginatedAggregate } from "../../utils/queryBuilder";
 import { SaleProduct, SaleResponse } from "../sale/sale.type";
 
 export default class ProductRepository {

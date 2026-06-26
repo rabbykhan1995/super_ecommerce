@@ -1,5 +1,5 @@
 import { ClientSession, Types } from "mongoose";
-import { aggregateOne, paginatedAggregate } from "../../utils/aggregationQueryBuilder";
+import { aggregateOne, paginatedAggregate } from "../../utils/queryBuilder";
 import SaleQuotation from "./quotation.model";
 import { CreateSaleQuotationInput } from "./quotation.type";
 

@@ -2,7 +2,7 @@ import { ClientSession, Types } from "mongoose";
 import PurchaseCounter from "./purchaseCounter.model";
 import { IPurchase, PurchaseResponse } from "./purchase.type";
 import Purchase from "./purchase.model";
-import { aggregateOne, paginatedAggregate } from "../../utils/aggregationQueryBuilder";
+import { aggregateOne, paginatedAggregate } from "../../utils/queryBuilder";
 import Batch from "../product/batch.model";
 
 export default class PurchaseRepository {

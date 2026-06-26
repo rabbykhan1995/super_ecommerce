@@ -1,6 +1,6 @@
 import { ClientSession } from "mongoose";
 import Warranty from "./warranty.model";
-import { paginatedAggregate } from "../../utils/aggregationQueryBuilder";
+import { paginatedAggregate } from "../../utils/queryBuilder";
 import { IWarranty, WarrantyResponse } from "./warranty.type";
 
 export default class WarrantyRepositoy {

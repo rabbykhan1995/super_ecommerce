@@ -1,6 +1,6 @@
 import { ClientSession, Types } from "mongoose";
 import Ledger from "./ledger.model";
-import { aggregateOne, paginatedAggregate } from "../../utils/aggregationQueryBuilder";
+import { aggregateOne, paginatedAggregate } from "../../utils/queryBuilder";
 import { CreateLedgerInput, LedgerResponse } from "./ledger.type";
 
 export default class LedgerRepository {

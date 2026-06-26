@@ -1,7 +1,7 @@
 import { ClientSession, Types } from "mongoose";
 import SaleReturn from "./sale_return.model";
 import { CreateSaleReturnInput, SaleReturnDetail } from "./sale_return.type";
-import { aggregateOne, paginatedAggregate } from "../../utils/aggregationQueryBuilder";
+import { aggregateOne, paginatedAggregate } from "../../utils/queryBuilder";
 
 export default class SaleReturnRepository {
   static async create(

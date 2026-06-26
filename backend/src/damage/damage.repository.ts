@@ -1,6 +1,6 @@
 import { ClientSession } from "mongoose";
 import Damage from "./damage.model";
-import { paginatedAggregate } from "../../utils/aggregationQueryBuilder";
+import { paginatedAggregate } from "../../utils/queryBuilder";
 
 export default class DamageRepository {
     static async insertMany(payload: any[], session?: ClientSession) {

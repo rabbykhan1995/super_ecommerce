@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { dbSchema } from '../../utils/relations';
-import { DbTransactionClient } from '../../utils/runTransaction';
+import { DbTransactionClient } from '../../utils/withTransaction';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL!,

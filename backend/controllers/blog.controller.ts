@@ -7,7 +7,7 @@ import {
   UpdateBlogInput,
 } from "../types/blog.type";
 import Helper from "../utils/helper";
-import { paginatedAggregate } from "../utils/aggregationQueryBuilder";
+import { paginatedAggregate } from "../utils/queryBuilder";
 
 export class BlogController {
   constructor() {

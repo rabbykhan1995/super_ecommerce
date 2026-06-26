@@ -12,7 +12,7 @@ import Training from "../models/training.model";
 import Level from "../models/level.model";
 import { ApiError } from "../utils/ApiError";
 import { Types } from "mongoose";
-import { paginatedAggregate } from "../utils/aggregationQueryBuilder";
+import { paginatedAggregate } from "../utils/queryBuilder";
 
 export class TrainingController {
   constructor() {

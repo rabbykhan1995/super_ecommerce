@@ -15,7 +15,7 @@ export type DbTransactionClient = PgTransaction<
  * runInTransaction
  * @param callback একটি ফাংশন যা ট্রানজেকশনের ক্লায়েন্ট (tx) গ্রহণ করবে এবং ভেতরের সব কুয়েরি রান করবে।
  */
-export const runInTransaction = async <T>(
+export const withTransaction = async <T>(
   callback: (tx: DbTransactionClient) => Promise<T>
 ): Promise<T> => {
   try {
