@@ -7,6 +7,7 @@ export const saleProductSchema = z.object({
     .string()
     .min(1, { message: "Product is required" }),
   batchID: z.string().optional().nullable(),
+  variantID: z.string().optional().nullable(),
   soldQty: z
     .number({ message: "Quantity must be a number" })
     .min(1, { message: "Quantity must be at least 1" }),

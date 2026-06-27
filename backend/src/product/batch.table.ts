@@ -26,7 +26,7 @@ export const batchTable = pgTable(
 
         variantID: integer("variant_id").notNull().references(() => variantTable.id),
         // ekhanew same reference jog korte hobe
-        purchaseID: integer("purchase_id").references(() => purchaseTable.id).notNull(),
+        purchaseID: integer("purchase_id").references(() => purchaseTable.id),
 
         cost: numeric("cost").default("0"),
 

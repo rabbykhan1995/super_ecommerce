@@ -34,8 +34,9 @@ export const contactTable = pgTable(
     balance: numeric("balance", {
       precision: 12,
       scale: 2,
+      mode:"number"
     })
-      .default("0")
+      .default(0)
       .notNull(),
 
     address: text("address"),

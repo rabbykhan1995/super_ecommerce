@@ -13,6 +13,8 @@ import LedgerService from "../ledger/ledger.service";
 import { RedisReportService } from "../../utils/ReportServiceRedis";
 import WarrantyService from "../warranty/warranty.service";
 import PurchaseService from "../purchase/purchase.service";
+import { withTransaction } from "../../utils/withTransaction";
+import { QueryClient } from "../../drizzle/src";
 
 
 
@@ -30,7 +32,7 @@ export default class SaleService {
             customer = await ContactService.findByID(sale.customerID);
             if (!customer) throw new ApiError(404, "Customer not found");
 
-            sale.balanceBefore = Number(customer.balance) ?? 0;
+            sale.balanceBefore = customer.balance ?? 0;
             sale.balanceAfter = sale.paid - (sale.totalAmount - sale.balanceBefore);
 
         }
@@ -52,32 +54,163 @@ export default class SaleService {
                 p.soldQty = soldQty;
 
                 if (!product.manageStock) return;
-
-                if (p.batchID) {
                     if (!batch) throw new ApiError(404, `Batch not found`);
                     if (batch.remainingQty < soldQty) {
                         throw new ApiError(400, `Insufficient stock for ${product.name}. Available: ${batch.remainingQty}`);
                     }
-                } else {
-                    if (product.stock < soldQty) {
-                        throw new ApiError(400, `Insufficient stock for ${product.name}. Available: ${product.stock}`);
-                    }
-                }
+               
             })
         );
 
-        // transaction শুরু - যেন partial create না হয়
-        const session = await mongoose.startSession();
-        session.startTransaction();
+         withTransaction(async(tx:QueryClient)=>{
+            const formattedProducts = products.map(p => ({
+                ...p,
+                productID: p.productID,
+                batchID: p.batchID ?? null,
+                warranty: p.warranty ? p.warranty : 0
+            }));
 
+            // purchase create
+
+
+            const salePayload = sale;
+
+            const saleCreated = await SaleRepository.create(salePayload, tx);
+
+            //  update each batch by reducing thier remaining stock;
+            await Promise.all(
+                products.map(async (p) => {
+                
+                        const batch = await ProductService.findBatchByID(p.batchID!, tx);
+                        if (!batch) return;
+
+                        const newQty = batch.remainingQty - p.soldQty;
+                        const willBeEmpty = newQty <= 0;
+
+                        await ProductService.updateBatchDynamically(batch._id!.toString(),
+                            {
+                                inc: { remainingQty: -p.soldQty, soldQty: p.soldQty },
+                                ...(willBeEmpty && { set: { isActive: false } }),
+                            }, session)
+
+                        if (willBeEmpty) {
+                            const nextBatch = await ProductService.findOneBatch({
+                                productID: p.productID,
+                                isActive: true,
+                                remainingQty: { $gt: 0 },
+                            }, session)
+                                .sort({ PurchaseDate: 1 })
+                            if (!!nextBatch) {
+                                await ProductService.updateProductFifoBatchAndStock(
+                                    p.productID,
+                                    { fifoBatchID: nextBatch._id.toString() ?? null },
+                                    session
+                                );
+                            } else {
+                                await ProductService.updateProductFifoBatchAndStock(
+                                    p.productID,
+                                    { fifoBatchID: undefined },
+                                    session
+                                );
+                            }
+
+
+
+
+                        }
+
+                        const mainProduct = mainProducts.find(
+                            (prod: any) => prod._id.toString() === p.productID
+                        );
+
+                        if (mainProduct?.manageStock) {
+                            await ProductService.updateProductFifoBatchAndStock(
+                                p.productID,
+                                { qty: -p.soldQty },
+                                session
+                            );
+                        }
+                        // now warranty will create on this product
+                        if (mainProduct?.manageWarranty && !!batch.serial) {
+                            const purchase = await PurchaseService.purchaseByID(batch.purchaseID!.toString());
+
+                            await WarrantyService.create({
+                                saleID: saleCreated[0]._id.toString(),
+                                customerID: customer! ? customer._id : null,
+                                supplierID: purchase!.supplierID.toString(),
+                                productID: p.productID.toString(),
+                                batchID: p.batchID.toString(),
+                                serial: batch.serial!.toString(),
+                                salePrice: p.salePrice,
+                                warranty: Number(p.warranty),
+                                saleDate: saleCreated[0].SaleDate,
+                                expireDate: Helper.getWarrantyExpireDate(saleCreated[0].SaleDate, p.warranty!),
+                            }, session);
+                        }
+                   
+                })
+            );
+            //  Accounts
+            const isPaymentHappened: boolean = saleCreated[0].paid > 0;
+            if (isPaymentHappened) {
+                // accounts balance update
+                await AccountService.increaseBalance(accounts, session);
+
+                const transactionPayload = PayloadBuilder.transaction(accounts, { type: "sale", typeID: saleCreated[0]._id, typeModel: "Sale", date: sale.saleDate ?? new Date(), status: "completed", accountField: "toAccount" })
+
+                await TransactionService.create(transactionPayload, session);
+            }
+            const isExchangeHappened: boolean = saleCreated[0].exchangeAmount > 0;
+            if (isExchangeHappened) {
+                await AccountService.decreaseBalance(exchangeAccounts, session);
+
+                const transactionPayload = PayloadBuilder.transaction(exchangeAccounts, { type: "exchange", typeID: saleCreated[0]._id, typeModel: "Sale", date: sale.saleDate ?? new Date(), status: "completed", accountField: "fromAccount" })
+
+                await TransactionService.create(transactionPayload, session);
+            }
+            // ledger
+            if (customer) {
+                const amount = sale.balanceAfter - sale.balanceBefore;
+                await ContactService.balanceUpdate(customer._id, amount, session);
+                // Ekhane Transaction & Ledger er logic bosbe customer er...
+                const payableAmount: number = sale.totalAmount - (sale.balanceBefore || 0)
+                const ledgerPayload = PayloadBuilder.ledger({
+                    type: "sale",
+                    typeID: saleCreated[0]._id,
+                    typeModel: "Sale",
+                    contactID: customer._id,
+                    contactType: "customer",
+                    amount: payableAmount,
+                    discount: sale.discount,
+                    paidAmount: sale.paid,
+                    dueAmount: payableAmount - sale.paid,
+                    note: sale.note ?? "",
+                    date: sale.saleDate,
+                    balanceAfter: sale.balanceAfter,
+                    balanceBefore: sale.balanceBefore
+                })
+
+                await LedgerService.create(ledgerPayload, session);
+            }
+
+            await session.commitTransaction();
+
+            await RedisReportService.updateSaleReport({
+                amount: sale.totalAmount,
+                qty: products.reduce((sum, p) => sum + p.soldQty, 0),
+                due: sale.totalAmount - sale.paid,
+                paid: sale.paid,
+                discount: sale.discount ?? 0,
+                date: saleCreated[0].SaleDate
+            });
+            return saleCreated[0]
+        })
         try {
             const counter = await SaleCounter.findOneAndUpdate(
                 {},
                 { $inc: { counter: 1 } },
                 { new: true, upsert: true, session }
             );
-            const invoiceNo: string = `INV-${counter!.counter}`;
-
 
             const formattedProducts = products.map(p => ({
                 ...p,
@@ -90,7 +223,7 @@ export default class SaleService {
             // purchase create
 
 
-            const salePayload = [{ ...sale, invoiceNo, accounts, products: formattedProducts, customerID: sale.contactID as string, exchangeAccounts: exchangeAccounts }];
+            const salePayload = [{ ...sale, accounts, products: formattedProducts, customerID: sale.customerID, exchangeAccounts: exchangeAccounts }];
 
             const saleCreated = await SaleRepository.create(salePayload, session);
 

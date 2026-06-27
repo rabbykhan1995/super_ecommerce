@@ -1,9 +1,10 @@
-import { ClientSession } from "mongoose";
+
 import { ApiError } from "../../utils/ApiError";
 import Helper from "../../utils/helper";
 import ProductRepository from "./product.repository";
-import { BatchResponse, CreateProductInput, IBatch, ProductResponse, UpdateProductInput } from "./product.type";
+import { BatchResponse, CreateProductInput, Batch, Product, UpdateProductInput } from "./product.type";
 import { SaleProduct, SaleResponse } from "../sale/sale.type";
+import { QueryClient } from "../../drizzle/src";
 
 
 export default class ProductService {
@@ -255,67 +256,66 @@ export default class ProductService {
         return await ProductRepository.findSaleReturnBatches(batchIDs, sale);
     }
 
-    static async createBatches(payloads: any[], session?: ClientSession) {
-        const batches = await ProductRepository.createBatches(payloads, session);
+    static async createBatches(payloads: any[], tx?: QueryClient) {
+        const batches = await ProductRepository.createBatches(payloads, tx);
 
         return batches;
     }
 
-    static async findById(id: string, session?: ClientSession): Promise<ProductResponse | null> {
-        return ProductRepository.findByID(id);
+    static async findById(productID: number, tx?: QueryClient): Promise<Product| null> {
+        return ProductRepository.findByID(productID);
     }
 
-    static async updateProductFifoBatchAndStock(productID: string,
+    static async updateProductFifoBatchAndStock(productID: number,
         options: {
-            fifoBatchID?: string;
             qty?: number;
             salePrice?:number;
             purchasePrice?:number;
         },
-        session?: ClientSession) {
+        tx?: QueryClient) {
 
-        return ProductRepository.updateProductFifoBatchAndStock(productID, options, session)
+        return ProductRepository.updateProductFifoBatchAndStock(productID, options, tx)
     }
 
     static async updateBatchDynamically(
-        batchID: string,
+        batchID: number,
         options: {
-            set?: Partial<IBatch>;
-            inc?: Partial<Record<keyof IBatch, number>>;
+            set?: Partial<Batch>;
+            inc?: Partial<Record<keyof Batch, number>>;
         },
-        session?: ClientSession
+        tx?: QueryClient
     ) {
-        return await ProductRepository.updateBatchDynamically(batchID, options, session);
+        return await ProductRepository.updateBatchDynamically(batchID, options, tx);
     }
 
     static async findBatches(
         filter: Record<string, any>,
-        session?: ClientSession
+        tx?: QueryClient
     ): Promise<BatchResponse[]> {
 
-        return ProductRepository.findBatches(filter, session);
+        return ProductRepository.findBatches(filter, tx);
     }
 
     static async deleteBatches(
         filter: Record<string, any>,
-        session?: ClientSession
+        tx?: QueryClient
     ) {
 
-        await ProductRepository.deleteBatches(filter, session);
+        await ProductRepository.deleteBatches(filter, tx);
     }
 
     static async findBatchByID(
         id: string,
-        session?: ClientSession
+        tx?: QueryClient
     ): Promise<BatchResponse | null> {
 
-        return ProductRepository.findBatchByID(id, session);
+        return ProductRepository.findBatchByID(id, tx);
     }
     static findOneBatch(
         filter: Record<string, any>,
-        session?: ClientSession
+        tx?: QueryClient
     ) {
-        return ProductRepository.findOneBatch(filter, session);
+        return ProductRepository.findOneBatch(filter, tx);
     }
 
     static async getSaleReturnBatches() {
@@ -345,7 +345,7 @@ export default class ProductService {
         );
     }
 
-    static async getFifoBatch(productID:string){
+    static async getFifoBatch(productID:number){
       const batches = await  ProductRepository.batchByProductID(
             productID
         );
