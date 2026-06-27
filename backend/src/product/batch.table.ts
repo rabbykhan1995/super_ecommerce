@@ -6,6 +6,7 @@ import {
     integer,
     numeric,
     index,
+    varchar,
 } from "drizzle-orm/pg-core";
 import { productTable } from "./product.table";
 import { variantTable } from "./variant.table";
@@ -17,13 +18,15 @@ export const batchTable = pgTable(
     {
         id: serial("id").primaryKey(),
 
-        serial: integer("serial").unique(),
+        serial: varchar("serial").unique(),
 
-        productID: integer("product_id").notNull().references(()=> productTable.id),
+        productID: integer("product_id").notNull().references(() => productTable.id, {
+            onDelete: "cascade",
+        }),
 
-        variantID: integer("variant_id").notNull().references(()=>variantTable.id),
+        variantID: integer("variant_id").notNull().references(() => variantTable.id),
         // ekhanew same reference jog korte hobe
-        purchaseID: integer("purchase_id").references(()=>purchaseTable.id).notNull(),
+        purchaseID: integer("purchase_id").references(() => purchaseTable.id).notNull(),
 
         cost: numeric("cost").default("0"),
 
@@ -75,17 +78,17 @@ export const batchTable = pgTable(
 
 // ব্যাচের রিলেশন
 export const batchRelations = relations(batchTable, ({ one }) => ({
-  product: one(productTable, {
-    fields: [batchTable.productID],
-    references: [productTable.id],
-  }),
-  variant: one(variantTable, {
-    fields: [batchTable.variantID],
-    references: [variantTable.id],
-  }),
+    product: one(productTable, {
+        fields: [batchTable.productID],
+        references: [productTable.id],
+    }),
+    variant: one(variantTable, {
+        fields: [batchTable.variantID],
+        references: [variantTable.id],
+    }),
 
-  purchase:one(purchaseTable,{
-    fields:[batchTable.purchaseID],
-    references:[purchaseTable.id],
-  })
+    purchase: one(purchaseTable, {
+        fields: [batchTable.purchaseID],
+        references: [purchaseTable.id],
+    })
 }));

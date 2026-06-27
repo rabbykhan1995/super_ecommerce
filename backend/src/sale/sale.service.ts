@@ -25,12 +25,12 @@ export default class SaleService {
         let customer;
         let mainProducts: any = [];
 
-        if (sale.contactID) {
+        if (sale.customerID) {
             // const contactID = new Types.ObjectId(sale.contactID as string);
-            customer = await ContactService.findByID(sale.contactID);
+            customer = await ContactService.findByID(sale.customerID);
             if (!customer) throw new ApiError(404, "Customer not found");
 
-            sale.balanceBefore = customer.balance ?? 0;
+            sale.balanceBefore = Number(customer.balance) ?? 0;
             sale.balanceAfter = sale.paid - (sale.totalAmount - sale.balanceBefore);
 
         }
@@ -239,29 +239,56 @@ export default class SaleService {
         return await SaleRepository.list(query);
     }
 
-    static async saleInvoiceByID(id: number) {
-        const sale: Sale = await SaleRepository.getSaleByID(id);
-  
+    static async saleInvoiceByID(saleID: number) {
+
+        const sale: Sale = await SaleRepository.getSaleByID(saleID);
+
         if (!sale) {
+
             throw new ApiError(404, "sale not found");
+
         }
 
-      let accounts;
-        let exchangeAccounts;
+        let transactions;
+
+        let exchangeTransactions;
+
         if (sale.paid > 0) {
-            const transactions = await TransactionService.findBySourceID(sale.id, "sale");
-            accounts = transactions.filter(t=>t.type === "credit");
+            const allTransactions = await TransactionService.findBySourceID(sale.id, "sale");
+
+            transactions = allTransactions.filter(t => t.type === "credit");
+
+            if (sale.exchangeAmount > 0) {
+
+                exchangeTransactions = allTransactions.filter(t => t.type === "debit");
+
+            }
+        }
+
+        const saleProducts = await SaleRepository.getSoldProductsBySaleID(saleID);
+
+        return {
+
+            ...sale,
+
+            ...(sale.exchangeAmount>0?{
+                  ...exchangeTransactions!.map((t)=>({
+                    name:t.account.name,
+                    amount:t.amount
+                   }))
+            }:{}),
+
+            ...(sale.paid>0?{
+                  ...transactions!.map((t)=>({
+                    name:t.account.name,
+                    amount:t.amount
+                   }))
+            }:{}),
+
+            products:saleProducts,
 
         }
 
-        if(sale.exchangeAmount>0){
-            
-        }
-
-
-
-
-        return sale
     }
 
     static async delete(id: string) {
@@ -375,8 +402,8 @@ export default class SaleService {
         }
     }
 
-    static async getSaleByID(id: string) {
-        return await SaleRepository.getSaleByID(id);
+    static async getSaleByID(saleID: number) {
+        return await SaleRepository.getSaleByID(saleID);
     }
 
     static async findAndUpdateByID(

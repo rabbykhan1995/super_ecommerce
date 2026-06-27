@@ -5,6 +5,7 @@ import { saleTable } from "./sale.table";
 import { paginateQuery } from "../../utils/queryBuilder";
 import { OnlySalePayload } from "./sale.type";
 import { eq } from "drizzle-orm";
+import { saleItemsTable } from "./sale_items.table";
 
 export default class SaleRepository {
     static async getSaleByID(
@@ -56,5 +57,44 @@ export default class SaleRepository {
                 ...(session ? { session } : {}),
             }
         );
+    }
+
+    static async getSoldProductsBySaleID(
+        saleID: number,
+        client: QueryClient = db
+    ) {
+        return await client.query.saleItemsTable.findMany({
+            where: eq(saleItemsTable.saleID, saleID),
+            with: {
+                product: {
+                    columns: {
+                        id: true,
+                        name: true,
+                    },
+                    with: {
+                        unit: {
+                            columns: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                    },
+                },
+                batch: {
+                    columns: {
+                        id: true,
+                        serial: true,
+                    },
+                    with: {
+                        variant: {
+                            columns: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
     }
 }

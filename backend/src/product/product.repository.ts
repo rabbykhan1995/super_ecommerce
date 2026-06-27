@@ -1,332 +1,342 @@
 import { ClientSession, Types } from "mongoose";
-import Batch from "./batch.model";
-import Product from "./product.model";
-import { BatchResponse, CreateProductInput, IBatch, ProductResponse, UpdateProductInput } from "./product.type";
-import { aggregateOne, paginatedAggregate } from "../../utils/queryBuilder";
-import { SaleProduct, SaleResponse } from "../sale/sale.type";
+import { Batch, CreateProductInput, Product, UpdateProductInput } from "./product.type";
+import { productTable } from "./product.table";
+import db, { QueryClient } from "../../drizzle/src";
+import { and, asc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { batchTable } from "./batch.table";
+import { BatchPayloadItem } from "../../utils/builder";
+import { paginateQuery } from "../../utils/queryBuilder";
+
 
 export default class ProductRepository {
-    static async findByField(
-        fieldName: keyof ProductResponse,
-        fieldVal: any
-    ): Promise<ProductResponse | null> {
-
-        return Product.findOne({ [fieldName]: fieldVal });
-    }
-    static async findManyByField(
-        fieldName: keyof ProductResponse,
-        fieldVal: any
-    ): Promise<ProductResponse[]> {
-        return Product.find({ [fieldName]: fieldVal });
-    }
-    static async findByID(id: string, session?: ClientSession): Promise<ProductResponse | null> {
-        return Product.findById(new Types.ObjectId(id)).session(session ?? null);
-    }
-
-    static async findBatchByID(id: string, session?: ClientSession): Promise<BatchResponse | null> {
-        return Batch.findById(new Types.ObjectId(id)).session(session ?? null);
-    }
-
-    static async findOneBatch(
-        filter: Record<string, any>,
-        session?: ClientSession
+    static async findByField<
+        K extends keyof Product
+    >(
+        fieldName: K,
+        fieldVal: Product[K]
     ) {
-        return await Batch.findOne(filter).sort({ PurchaseDate: 1 }).session(session || null);
+        const [product] = await db
+            .select()
+            .from(productTable)
+            .where(eq(productTable[fieldName] as any, fieldVal as any))
+
+        return product ?? null;
+    }
+
+    static async findManyByField<
+        K extends keyof Product
+    >(
+        fieldName: K,
+        fieldVal: Product[K]
+    ): Promise<Product[]> {
+        return db
+            .select()
+            .from(productTable)
+            .where(eq(productTable[fieldName] as any, fieldVal as any));
+    }
+    static async findByID(
+        productID: number,
+        client: QueryClient = db
+    ): Promise<Product | null> {
+        const [product] = await client
+            .select()
+            .from(productTable)
+            .where(eq(productTable.id, productID))
+            .limit(1);
+
+        return product ?? null;
+    }
+
+    static async findBatchByID(
+        batchID: number,
+        client: QueryClient = db
+    ): Promise<Batch | null> {
+        const [batch] = await client
+            .select()
+            .from(batchTable)
+            .where(eq(batchTable.id, batchID))
+            .limit(1);
+
+        return batch ?? null;
+    }
+
+    static async findOneBatch<
+        K extends keyof Batch
+    >(
+        fieldName: K,
+        fieldVal: Batch[K],
+        client: QueryClient = db
+    ): Promise<Batch | null> {
+        const [batch] = await client
+            .select()
+            .from(batchTable)
+            .where(eq(batchTable[fieldName] as any, fieldVal as any))
+            .orderBy(asc(batchTable.purchaseDate))
+            .limit(1);
+
+        return batch ?? null;
     }
     static async createProduct(
-        payload: CreateProductInput
-    ): Promise<ProductResponse | null> {
+        payload: CreateProductInput,
+        client: QueryClient = db
+    ): Promise<Product | null> {
+        const [product] = await client
+            .insert(productTable)
+            .values(payload)
+            .returning();
 
-        return Product.create(payload);
+        return product ?? null;
     }
 
     static async createBatch(
-        payload: any
-    ): Promise<BatchResponse> {
+        payload: BatchPayloadItem,
+        client: QueryClient = db
+    ): Promise<Batch | null> {
+        const [batch] = await client
+            .insert(batchTable)
+            .values(payload)
+            .returning();
 
-        return Batch.create(payload);
+        return batch ?? null;
     }
 
-    static async createBatches(
-        payloads: any[],
-        session?: ClientSession
-    ): Promise<BatchResponse[]> {
+    static async updateProduct(
+        productID: number,
+        payload: UpdateProductInput,
+        client: QueryClient = db
+    ): Promise<Product | null> {
+        const [product] = await client
+            .update(productTable)
+            .set(payload)
+            .where(eq(productTable.id, productID))
+            .returning();
 
-        return Batch.insertMany(
-            payloads,
-            {
-                session,
-                ordered: true,
-            }
-        );
+        return product ?? null;
     }
 
-    static async updateProduct(id: string,
-        payload: UpdateProductInput
-    ): Promise<ProductResponse | null> {
-
-        return Product.findByIdAndUpdate(id, payload, { new: true });
+    static async FullStructuredProductByID(
+        productID: number,
+        client: QueryClient = db
+    ) {
+        return client.query.productTable.findFirst({
+            where: eq(productTable.id, productID),
+            with: {
+                brand: true,
+                unit: true,
+                category: true,
+            },
+        });
     }
-
-    static async FullStructuredProductByID(id: string
-    ): Promise<any | null> {
-
-        const product = await aggregateOne(
-            Product,
-            { _id: new Types.ObjectId(id as string) },
-            [
-                { from: "brands", localField: "brandID", foreignField: "_id", as: "brand" },
-                { from: "units", localField: "unitID", foreignField: "_id", as: "unit" },
-                { from: "categories", localField: "categoryID", foreignField: "_id", as: "category" },
-            ],
-        );
-
-        return product;
-    }
-    static async productByBarcode(barcode: any
-    ): Promise<any | null> {
-
-        const product = await aggregateOne(
-            Product,
-            { barcode: barcode as string },
-            [
-                { from: "brands", localField: "brandID", foreignField: "_id", as: "brand" },
-                { from: "units", localField: "unitID", foreignField: "_id", as: "unit" },
-                { from: "categories", localField: "categoryID", foreignField: "_id", as: "category" },
-            ],
-        );
-
-        return product;
+    static async productByBarcode(
+        barcode: string,
+        client: QueryClient = db
+    ) {
+        return client.query.productTable.findFirst({
+            where: eq(productTable.barcode, barcode),
+            with: {
+                brand: true,
+                unit: true,
+                category: true,
+            },
+        });
     }
 
     static async batchByProductID(
-        productID: string
-    ): Promise<BatchResponse[] | null> {
-
-        const batches = await Batch.find({
-            productID: new Types.ObjectId(productID as string),
-            isActive: true,
-            remainingQty: { $gt: 0 },
-        }).sort({ PurchaseDate: 1 });
-
-        return batches;
+        productID: number,
+        client: QueryClient = db
+    ): Promise<Batch[]> {
+        return client
+            .select()
+            .from(batchTable)
+            .where(
+                and(
+                    eq(batchTable.productID, productID),
+                    eq(batchTable.isActive, true),
+                    gt(batchTable.remainingQty, "0")
+                )
+            )
+            .orderBy(asc(batchTable.purchaseDate));
     }
 
     static async serialByProductID(
-        productID: string
-    ): Promise<BatchResponse[] | null> {
-
-        const serials = await Batch.find({
-            productID: new Types.ObjectId(productID as string),
-            isActive: true,
-            serial: { $exists: true, $ne: null }, // ✅ serial আছে এবং null না
-            remainingQty: { $gt: 0 },
-        })
-
-        return serials;
+        productID: number,
+        client: QueryClient = db
+    ): Promise<Batch[]> {
+        return client
+            .select()
+            .from(batchTable)
+            .where(
+                and(
+                    eq(batchTable.productID, productID),
+                    eq(batchTable.isActive, true),
+                    isNotNull(batchTable.serial),
+                    gt(batchTable.remainingQty, "0")
+                )
+            );
     }
 
     static async findBatchBySerial(
-        query: any
-    ): Promise<BatchResponse | null> {
+        serial: string,
+        client: QueryClient = db
+    ): Promise<Batch | null> {
+        const [batch] = await client
+            .select()
+            .from(batchTable)
+            .where(eq(batchTable.serial, serial))
+            .limit(1);
 
-        const batch = await Batch.findOne(query);
-
-        return batch;
+        return batch ?? null;
     }
 
-    static async list(
-        query: any
-    ) {
+    static async list(query: {
+        page?: number;
+        limit?: number;
+        search?: string;
+    }) {
+        return paginateQuery({
+            db,
 
-        const result = await paginatedAggregate({
-            model: Product,
-            query: query,
-            searchFields: [{ field: "name" }],
+            query: db.query.productTable,
 
-            lookups: [
-                {
-                    from: "brands",
-                    localField: "brandID",
-                    foreignField: "_id",
-                    as: "brand",
-                    preserveNull: true,
-                },
-                {
-                    from: "units",
-                    localField: "unitID",
-                    foreignField: "_id",
-                    as: "unit",
-                    preserveNull: true,
-                },
-                {
-                    from: "categories",
-                    localField: "categoryID",
-                    foreignField: "_id",
-                    as: "category",
-                    preserveNull: true,
-                },
+            countTable: productTable,
+
+            page: query.page,
+            limit: query.limit,
+
+            search: query.search,
+
+            searchColumns: [
+                productTable.name,
             ],
-            projection: {
-                include: ["name", "barcode", "thumbnail", "stock", "manageStock", "manageWarranty", "decimal", "createdAt", "purchasePrice", "salePrice", "posEnabled"],
-                computed: {
-                    brandName: "$brand.name",
-                    unitName: "$unit.name",
-                    categoryName: "$category.name",
+
+            with: {
+                brand: true,
+                unit: true,
+                category: true,
+            },
+        });
+    }
+    static async findSaleBatches(
+        productID: number,
+        client: QueryClient = db
+    ): Promise<Batch[]> {
+        return client
+            .select()
+            .from(batchTable)
+            .where(
+                and(
+                    eq(batchTable.productID, productID),
+                    eq(batchTable.isActive, true),
+                    isNull(batchTable.serial),
+                    gt(batchTable.remainingQty, "0")
+                )
+            );
+    }
+
+    static async findSaleReturnBatches(
+        batchIDs: SaleProduct[],
+        sale: Sale
+    ) {
+        const ids = batchIDs.map(x => x.batchID);
+
+        const batches = await db.query.batchTable.findMany({
+            where: and(
+                inArray(batchTable.id, ids)
+            ),
+            with: {
+                product: {
+                    with: {
+                        unit: true,
+                        brand: true,
+                        category: true,
+                    },
                 },
             },
         });
 
-        return result;
-    }
+        return batches.map((batch) => {
+            const soldInfo = sale.products.find(
+                (p) => p.batchID === batch.id
+            );
 
-    static async findSaleBatches(
-        productID: string
-    ) {
-        const formattedID = new Types.ObjectId(productID)
-        return Batch.find({
-            productID: formattedID,
-            isActive: true,
-            serial: null,
-            remainingQty: { $gt: 0 },
-        }).lean();
-
-    }
-
-    static async findSaleReturnBatches(batchIDs: SaleProduct[], sale: SaleResponse) {
-
-        const ids = batchIDs.map(x => x.batchID);
-
-        const batches = await Batch.aggregate([
-            {
-                $match: {
-                    _id: { $in: ids },
-                }
-            },
-            {
-                $lookup: {
-                    from: "products",
-                    localField: "productID",
-                    foreignField: "_id",
-                    as: "product",
-                },
-            },
-            { $addFields: { product: { $first: "$product" } } },
-            {
-                $lookup: {
-                    from: "units",
-                    localField: "product.unitID",
-                    foreignField: "_id",
-                    as: "unit",
-                },
-            },
-            {
-                $lookup: {
-                    from: "brands",
-                    localField: "product.brandID",
-                    foreignField: "_id",
-                    as: "brand",
-                },
-            },
-            {
-                $lookup: {
-                    from: "categories",
-                    localField: "product.categoryID",
-                    foreignField: "_id",
-                    as: "category",
-                },
-            },
-            // sale এর soldQty যোগ করো
-            {
-                $addFields: {
-                    soldInfo: {
-                        $first: {
-                            $filter: {
-                                input: sale.products,
-                                as: "sp",
-                                cond: { $eq: ["$$sp.batchID", "$_id"] }
-                            }
-                        }
-                    }
-                }
-            },
-            {
-                $project: {
-                    _id: 1,
-                    name: "$product.name",
-                    unitName: { $first: "$unit.name" },
-                    brandName: { $first: "$brand.name" },
-                    categoryName: { $first: "$category.name" },
-                    salePrice: "$soldInfo.salePrice", // sale এর actual salePrice
-                    saleReturnedQty: 1,
-                    soldQty: "$soldInfo.soldQty",     // sale এ কতটা বিক্রি হয়েছিল
-                    remainingQty: 1,
-                    purchasedQty: 1,
-                    warranty: 1,
-                    manageWarranty: { $gt: ["$warranty", 0] },
-                    serial: 1,
-                }
-            }
-        ]);
-        return batches;
+            return {
+                id: batch.id,
+                name: batch.product.name,
+                unitName: batch.product.unit?.name,
+                brandName: batch.product.brand?.name,
+                categoryName: batch.product.category?.name,
+                salePrice: soldInfo?.salePrice ?? 0,
+                saleReturnedQty: batch.saleReturnedQty,
+                soldQty: soldInfo?.soldQty ?? 0,
+                remainingQty: batch.remainingQty,
+                purchasedQty: batch.purchasedQty,
+                warranty: batch.warranty,
+                manageWarranty: (batch.warranty ?? 0) > 0,
+                serial: batch.serial,
+            };
+        });
     }
 
     static async findSaleSerials(
-        productID: string
-    ) {
-        const formattedID = new Types.ObjectId(productID)
-        return Batch.find({
-            productID: formattedID,
-            isActive: true,
-            serial: {
-                $ne: null,
-                $exists: true,
-            },
-            remainingQty: { $gt: 0 },
-        }).lean();
+        productID: number,
+        client: QueryClient = db
+    ): Promise<Batch[]> {
+        return client
+            .select()
+            .from(batchTable)
+            .where(
+                and(
+                    eq(batchTable.productID, productID),
+                    eq(batchTable.isActive, true),
+                    isNotNull(batchTable.serial),
+                    gt(batchTable.remainingQty, "0")
+                )
+            );
     }
 
     static async increaseProductStock(
-        productID: Types.ObjectId,
+        productID: number,
         qty: number,
-        session?: ClientSession
-    ) {
+        client: QueryClient = db
+    ): Promise<Product | null> {
+        const [product] = await client
+            .update(productTable)
+            .set({
+                stock: sql`${productTable.stock} + ${qty}`,
+            })
+            .where(eq(productTable.id, productID))
+            .returning();
 
-        return Product.findByIdAndUpdate(
-            productID,
-            {
-                $inc: { stock: qty },
-            },
-            { session, new: true }
-        );
+        return product ?? null;
     }
-
     static async decreaseProductStock(
-        productID: Types.ObjectId,
+        productID: number,
         qty: number,
-        session?: ClientSession
-    ) {
+        client: QueryClient = db
+    ): Promise<Product | null> {
 
-        return Product.findByIdAndUpdate(
-            productID,
-            {
-                $inc: { stock: -qty },
-            },
-            { session, new: true }
-        );
+        const [product] = await client
+            .update(productTable)
+            .set({
+                stock: sql`${productTable.stock} - ${qty}`,
+            })
+            .where(eq(productTable.id, productID))
+            .returning();
+
+        return product ?? null;
     }
 
     static async updateProductFifoBatchAndStock(
-        productID: string,
+        productID: number,
         options: {
-            fifoBatchID?: string;
+            fifoBatchID?: number;
             qty?: number;
             salePrice?: number;
             purchasePrice?: number;
         },
-        session?: ClientSession
-    ) {
-        const update: any = {};
+        client: QueryClient = db
+    ): Promise<Product | null> {
+        const update: Record<string, any> = {};
 
         if (options.fifoBatchID !== undefined) {
             update.fifoBatchID = options.fifoBatchID;
@@ -341,263 +351,101 @@ export default class ProductRepository {
         }
 
         if (options.qty !== undefined) {
-            update.$inc = {
-                stock: options.qty
-            };
+            update.stock = sql`${productTable.stock} + ${options.qty}`;
         }
 
-        return Product.findByIdAndUpdate(
-            productID,
-            update,
-            {
-                session,
-                new: true
-            }
-        );
+        const [product] = await client
+            .update(productTable)
+            .set(update)
+            .where(eq(productTable.id, productID))
+            .returning();
+
+        return product ?? null;
     }
     static async updateBatchDynamically(
-        batchID: string,
+        batchID: number,
         options: {
-            set?: Partial<IBatch>;
-            inc?: Partial<Record<keyof IBatch, number>>;
+            set?: Partial<Batch>;
+            inc?: Partial<Record<keyof Batch, number>>;
         },
-        session?: ClientSession
-    ) {
-        return Batch.findByIdAndUpdate(
-            new Types.ObjectId(batchID),
-            {
-                ...(options.set ? { $set: options.set } : {}),
-                ...(options.inc ? { $inc: options.inc } : {}),
-            },
-            { new: true, ...(session ? { session } : {}) }
-        );
-    }
-    static async deductStockFromBatch(
-        batchID: Types.ObjectId,
-        qty: number,
-        session?: ClientSession
-    ) {
-        return Batch.findByIdAndUpdate(
-            batchID,
-            {
-                $inc: {
-                    remainingQty: -qty,
-                    soldQty: qty,
-                },
-            },
-            {
-                session,
-                new: true,
+        client: QueryClient = db
+    ): Promise<Batch | null> {
+        const update: Record<string, any> = {
+            ...(options.set ?? {}),
+        };
+
+        if (options.inc) {
+            for (const [key, value] of Object.entries(options.inc)) {
+                update[key] = sql`${batchTable[key as keyof typeof batchTable]} + ${value}`;
             }
-        );
+        }
+
+        const [batch] = await client
+            .update(batchTable)
+            .set(update)
+            .where(eq(batchTable.id, batchID))
+            .returning();
+
+        return batch ?? null;
+    }
+
+    static async deductStockFromBatch(
+        batchID: number,
+        qty: number,
+        client: QueryClient = db
+    ): Promise<Batch | null> {
+        const [batch] = await client
+            .update(batchTable)
+            .set({
+                remainingQty: sql`${batchTable.remainingQty} - ${qty}`,
+                soldQty: sql`${batchTable.soldQty} + ${qty}`,
+            })
+            .where(eq(batchTable.id, batchID))
+            .returning();
+
+        return batch ?? null;
     }
 
     static async returnStockToBatch(
-        batchID: Types.ObjectId,
+        batchID: number,
         qty: number,
-        session?: ClientSession
-    ) {
-        return Batch.findByIdAndUpdate(
-            batchID,
-            {
-                $inc: {
-                    remainingQty: qty,
-                    soldQty: -qty,
-                },
+        client: QueryClient = db
+    ): Promise<Batch | null> {
+        const [batch] = await client
+            .update(batchTable)
+            .set({
+                remainingQty: sql`${batchTable.remainingQty} + ${qty}`,
+                soldQty: sql`${batchTable.soldQty} - ${qty}`,
                 isActive: true,
-            },
-            {
-                session,
-                new: true,
-            }
-        );
+            })
+            .where(eq(batchTable.id, batchID))
+            .returning();
+
+        return batch ?? null;
     }
 
-
-    static async findBatches(
-        filter: Record<string, any>,
-        session?: ClientSession
-    ): Promise<BatchResponse[]> {
-
-        return Batch.find(filter).sort({ PurchaseDate: 1 }).session(session || null);
+    static async findBatches<
+        K extends keyof Batch
+    >(
+        fieldName: K,
+        fieldVal: Batch[K],
+        client: QueryClient = db
+    ): Promise<Batch[]> {
+        return client
+            .select()
+            .from(batchTable)
+            .where(eq(batchTable[fieldName] as any, fieldVal as any))
+            .orderBy(asc(batchTable.purchaseDate));
     }
 
     static async deleteBatches(
-        filter: Record<string, any>,
-        session?: ClientSession
+        batchIDs: number[],
+        client: QueryClient = db
     ) {
-
-        return Batch.deleteMany(filter, session ? { session } : undefined);
+        return client
+            .delete(batchTable)
+            .where(inArray(batchTable.id, batchIDs));
     }
 
-    static async countProduct(filters: CountProductFilters) {
-  const conditions = [];
-
-  if (filters.brandID) {
-    conditions.push(eq(productTable.brandID, filters.brandID));
-  }
-
-  if (filters.categoryID) {
-    conditions.push(eq(productTable.categoryID, filters.categoryID));
-  }
-
-  if (filters.unitID) {
-    conditions.push(eq(productTable.unitID, filters.unitID));
-  }
-
-  const result = await db
-    .select({ count: count() })
-    .from(productTable)
-    .where(
-      conditions.length > 0
-        ? and(...conditions)
-        : undefined
-    );
-
-  return result[0].count;
 }
 
-}
-
-
-
-// static async saleReturnByID(req: Request, res: Response) {
-//   const { id } = req.params;
-
-
-
-//   const saleReturn = await aggregateOne<SaleReturnDetail>(
-//     SaleReturn,
-//     { _id: new Types.ObjectId(id as string) },
-//     [
-//       { from: "contacts", localField: "customerID", foreignField: "_id", as: "customer" },
-//       { from: "sales", localField: "saleID", foreignField: "_id", as: "sale" },
-//     ],
-//     undefined,
-//     [
-//       {
-//         $lookup: {
-//           from: "accounts",
-//           localField: "accounts.accountID",
-//           foreignField: "_id",
-//           as: "accountDetails",
-//         },
-//       },
-//       {
-//         $addFields: {
-//           accounts: {
-//             $map: {
-//               input: "$accounts",
-//               as: "acc",
-//               in: {
-//                 accountID: "$$acc.accountID",
-//                 amount: "$$acc.amount",
-//                 name: {
-//                   $let: {
-//                     vars: {
-//                       matched: {
-//                         $first: {
-//                           $filter: {
-//                             input: "$accountDetails",
-//                             as: "ad",
-//                             cond: { $eq: ["$$ad._id", "$$acc.accountID"] },
-//                           },
-//                         },
-//                       },
-//                     },
-//                     in: "$$matched.name",
-//                   },
-//                 },
-//               },
-//             },
-//           },
-//         },
-//       },
-//       { $project: { accountDetails: 0 } },
-//     ]
-//   );
-
-//   if (!saleReturn) throw new ApiError(404, "Sale return not found");
-
-//   const batches = await Batch.aggregate([
-//     {
-//       $match: {
-//         _id: {
-//           $in: saleReturn.batches.map((b) => new Types.ObjectId(b.batchID.toString()))
-//         }
-//       }
-//     },
-//     {
-//       $lookup: {
-//         from: "products",
-//         localField: "productID",
-//         foreignField: "_id",
-//         as: "product",
-//       },
-//     },
-//     { $addFields: { product: { $first: "$product" } } },
-//     {
-//       $lookup: {
-//         from: "brands",
-//         localField: "product.brandID",
-//         foreignField: "_id",
-//         as: "product.brand",
-//       },
-//     },
-//     { $addFields: { "product.brand": { $first: "$product.brand" } } },
-//     {
-//       $lookup: {
-//         from: "units",
-//         localField: "product.unitID",
-//         foreignField: "_id",
-//         as: "product.unit",
-//       },
-//     },
-//     { $addFields: { "product.unit": { $first: "$product.unit" } } },
-//     {
-//       $lookup: {
-//         from: "categories",
-//         localField: "product.categoryID",
-//         foreignField: "_id",
-//         as: "product.category",
-//       },
-//     },
-//     { $addFields: { "product.category": { $first: "$product.category" } } },
-//     {
-//       $addFields: {
-//         returnInfo: {
-//           $first: {
-//             $filter: {
-//               input: saleReturn.batches.map((b) => ({
-//                 batchID: new Types.ObjectId(b.batchID.toString()),
-//                 saleReturnedQty: b.saleReturnedQty,
-//                 reason: b.reason,
-//               })),
-//               as: "rb",
-//               cond: { $eq: ["$$rb.batchID", "$_id"] },
-//             },
-//           },
-//         },
-//       },
-//     },
-//     {
-//       $project: {
-//         serial: 1,
-//         warranty: 1,
-//         purchasedQty: 1,
-//         remainingQty: 1,
-//         purchasePrice: 1,
-//         saleReturnedQty: "$returnInfo.saleReturnedQty",
-//         reason: "$returnInfo.reason",
-//         "product._id": 1,
-//         "product.name": 1,
-//         "product.thumbnail": 1,
-//         "product.brand.name": 1,
-//         "product.unit.name": 1,
-//         "product.category.name": 1,
-//       },
-//     },
-//   ]);
-
-//   res.status(200).json({ success: true, data: { ...saleReturn, batches } });
-// }
