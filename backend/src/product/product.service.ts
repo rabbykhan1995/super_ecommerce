@@ -2,9 +2,10 @@
 import { ApiError } from "../../utils/ApiError";
 import Helper from "../../utils/helper";
 import ProductRepository from "./product.repository";
-import { BatchResponse, CreateProductInput, Batch, Product, UpdateProductInput } from "./product.type";
+import { BatchResponse, CreateProductInput, Batch, Product, UpdateProductInput, BatchPayload, VariantPayload, VariantAttribute } from "./product.type";
 import { SaleProduct, SaleResponse } from "../sale/sale.type";
 import { QueryClient } from "../../drizzle/src";
+import { variantAttributes } from "./attribute.table";
 
 
 export default class ProductService {
@@ -32,14 +33,20 @@ export default class ProductService {
             throw new ApiError(401, "Product Creation failed");
         }
 
-        if (
-            product.manageStock &&
-            payload.stock &&
-            payload.stock > 0
-        ) {
+             const variantAttribute: VariantAttribute = 
 
+            const  variantPaylod:VariantPayload = {
+
+            }
+     
+            const batchPayload: BatchPayload = {
+                productID:product.id,
+                purchaseID:null,
+                cost:product
+
+            }
             const batch = await ProductRepository.createBatch({
-                productID: product._id,
+                productID: product.id,
                 // opening stock, no purchase yet
                 purchaseID: null,
                 purchasedQty: payload.stock,
@@ -49,11 +56,6 @@ export default class ProductService {
                 isActive: true,
             });
 
-
-
-            // set fifo batch
-            product.fifoBatchID = batch._id as any;
-            await product.save();
         }
     }
 
@@ -89,7 +91,7 @@ export default class ProductService {
         return result;
     }
 
-    static async structuredProductByID(id: string) {
+    static async structuredProductByID(id: number) {
         const product = await ProductRepository.FullStructuredProductByID(id);
 
         if (!product) {
@@ -109,7 +111,7 @@ export default class ProductService {
         return product;
     }
 
-    static async batchByProduct(id: string) {
+    static async batchByProduct(id: number) {
         const batch = await ProductRepository.batchByProductID(id);
 
         if (!batch) {
@@ -119,7 +121,7 @@ export default class ProductService {
         return batch;
     }
 
-    static async serialByProduct(id: string) {
+    static async serialByProduct(id: number) {
         const batch = await ProductRepository.batchByProductID(id);
 
         if (!batch) {
@@ -137,7 +139,7 @@ export default class ProductService {
     }
 
     static async getSaleProduct(
-        productID: string
+        productID: number
     ) {
 
         // 1. find product
@@ -256,14 +258,14 @@ export default class ProductService {
         return await ProductRepository.findSaleReturnBatches(batchIDs, sale);
     }
 
-    static async createBatches(payloads: any[], tx?: QueryClient) {
-        const batches = await ProductRepository.createBatches(payloads, tx);
+    static async createBatch(payload: any, tx?: QueryClient) {
+        const batches = await ProductRepository.createBatch(payload, tx);
 
         return batches;
     }
 
     static async findById(productID: number, tx?: QueryClient): Promise<Product| null> {
-        return ProductRepository.findByID(productID);
+        return ProductRepository.findByID(productID, tx);
     }
 
     static async updateProductFifoBatchAndStock(productID: number,
