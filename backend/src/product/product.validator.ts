@@ -1,14 +1,32 @@
 import { optional, z } from "zod";
 
-const variantSchema = z.object({
-  name: z.string().default("none"),
-  value: z.string().nullable().default(null),
+
+const variantAttributeSchema = z.object({
+  name: z.string().trim().min(1).default("base"),
+  value: z.string().trim().min(1).default("none"),
+});
+
+export const variantItemSchema = z.object({
+  salePrice: z.coerce
+    .number()
+    .min(0, "Sale price cannot be negative")
+    .default(0),
+
+  // Weight in KG
+  weight: z.coerce
+    .number()
+    .min(0, "Weight cannot be negative")
+    .default(0),
+
+  barcode: z.string().trim().optional(),
+
+  attributes: z
+    .array(variantAttributeSchema)
+    .default([{ name: "base", value: "none" }]),
 });
 
 export const createProductSchema = z.object({
   name: z.string().min(1, "is required"),
-
-  barcode: z.string().optional(),
 
   description: z.string().nullable().optional(),
 
@@ -58,16 +76,9 @@ export const createProductSchema = z.object({
 
   showStock: z.boolean().default(true),
 
-  weight: z.coerce.number().nullable().optional(),
-
   sortOrder: z.coerce.number().default(0),
 
-  variants: z.array(variantSchema).default([
-    {
-      name: "none",
-      value: null,
-    },
-  ]),
+  variants: z.array(variantItemSchema, "must requird 1 variant"),
 });
 
 export const updateProductSchema = z.object({
@@ -123,9 +134,8 @@ export const updateProductSchema = z.object({
 
   showStock: z.boolean().optional(),
 
-  weight: z.coerce.number().nullable().optional(),
 
   sortOrder: z.coerce.number().optional(),
 
-  variants: z.array(variantSchema).optional(),
+  variants: z.array(variantItemSchema, "must requird 1 variant").optional(),
 });

@@ -1,6 +1,6 @@
 import * as productSchema from "../src/product/product.table";
 import * as variantSchema from "../src/product/variant.table";
-import * as attributeSchema from "../src/product/attribute.table";
+
 import * as batchSchema from "../src/product/batch.table";
 import * as stockFlowSchema from "../src/product/stock_flow.table";
 import * as brandSchema from "../src/brand/brand.table";
@@ -16,7 +16,6 @@ import * as contactSchema from "../src/contact/contact.table"
 export const dbSchema = {
   ...productSchema,
   ...variantSchema,
-  ...attributeSchema,
   ...batchSchema,
     ...stockFlowSchema,
   ...brandSchema,

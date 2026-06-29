@@ -5,29 +5,20 @@ import ProductRepository from "./product.repository";
 import { BatchResponse, CreateProductInput, Batch, Product, UpdateProductInput, BatchPayload, VariantPayload, VariantAttribute } from "./product.type";
 import { SaleProduct, SaleResponse } from "../sale/sale.type";
 import { QueryClient } from "../../drizzle/src";
-import { variantAttributes } from "./attribute.table";
+
 
 
 export default class ProductService {
     static async create(
         payload: CreateProductInput
     ) {
+
+       const { variants, ...productData } = payload;
+
         let exist = await ProductRepository.findByField("name", payload.name);
 
         if (exist) {
             throw new ApiError(400, "Product already exists with this name");
-        }
-
-
-        if (payload.barcode) {
-
-            exist = await ProductRepository.findByField("barcode", payload.barcode);
-
-            if (exist) {
-
-                throw new ApiError(400, "Product already exists with this barcode");
-
-            }
         }
 
 
@@ -42,23 +33,27 @@ export default class ProductService {
         }
 
 
-
-        const product = await ProductRepository.createProduct(payload);
+        const product = await ProductRepository.createProduct({...productData, slug});
 
         if (!product) {
 
             throw new ApiError(401, "Product Creation failed");
 
         }
+        
+        Promise.all(
+            variants.map(async(v)=>{
+                const variantPayload:VariantPayload = {...v, productID:product.id};
 
+                const variantCreated = await ProductRepository.createVariant(variantPaylaod);
+                // ekhon variant er create repo function create korte hobe, ar variant er barcode o dekhte hobe, etar jonno o ekta function create korte hobe repo te.
+            }
 
+            )
+        )
+        
+        const variantPayload = {...varians}
 
-
-
-
-        const variantPaylod: VariantPayload = {
-
-        }
 
         const batchPayload: BatchPayload = {
             productID: product.id,

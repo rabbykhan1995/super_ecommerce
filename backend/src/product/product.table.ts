@@ -25,8 +25,6 @@ export const productTable = pgTable(
 
     slug: varchar("slug", { length: 300 }).unique().notNull(),
 
-    barcode: varchar("barcode", { length: 100 }).unique().notNull(),
-
     description: text("description"),
 
     shortDescription: text("short_description"),
@@ -51,22 +49,27 @@ export const productTable = pgTable(
 
     video: text("video"),
 
-    stock: numeric("stock").default("0").notNull(),
+    stock: numeric("stock", {mode:"number", precision:12, scale:3}).default(0).notNull(),
 
     totalSold: numeric("total_sold").default("0").notNull(),
 
     alertQty: numeric("alert_qty", {
       precision: 18,
       scale: 3,
+      mode: "number"
     })
-      .default("0")
+      .default(0)
       .notNull(),
 
     decimal: boolean("decimal").default(false).notNull(),
 
-    purchasePrice: numeric("purchase_price").default("0").notNull(),
+    purchasePrice: numeric("purchase_price", {mode:"number", precision:12, scale:2}).default(0).notNull(),
 
-    salePrice: numeric("sale_price").default("0").notNull(),
+    salePrice: numeric("sale_price", {
+      precision: 12,
+      scale: 2,
+      mode: "number"
+    }).default(0).notNull(),
 
     isPublished: boolean("is_published").default(false).notNull(),
 
@@ -91,8 +94,6 @@ export const productTable = pgTable(
     featured: boolean("featured").default(false).notNull(),
 
     showStock: boolean("show_stock").default(true).notNull(),
-
-    weight: numeric("weight"),
 
     sortOrder: integer("sort_order").default(0).notNull(),
 
@@ -127,5 +128,5 @@ export const productRelations = relations(productTable, ({ one, many }) => ({
 
   variants: many(variantTable),
   batches: many(batchTable),
-  stockFlows:many(stockFlowTable),
+  stockFlows: many(stockFlowTable),
 }));

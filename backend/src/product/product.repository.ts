@@ -1,5 +1,5 @@
 import { ClientSession, Types } from "mongoose";
-import { Batch, CreateProductInput, Product, UpdateProductInput } from "./product.type";
+import { Batch, CreateProductInput, Product, ProductPayload, UpdateProductInput } from "./product.type";
 import { productTable } from "./product.table";
 import db, { QueryClient } from "../../drizzle/src";
 import { and, asc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
@@ -77,7 +77,7 @@ export default class ProductRepository {
         return batch ?? null;
     }
     static async createProduct(
-        payload: CreateProductInput,
+        payload: ProductPayload,
         client: QueryClient = db
     ): Promise<Product | null> {
         const [product] = await client

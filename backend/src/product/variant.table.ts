@@ -6,34 +6,52 @@ import {
   integer,
   numeric,
   index,
+  pgSequence,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { productTable } from "./product.table";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { batchTable } from "./batch.table";
-import { variantAttributes } from "./attribute.table";
+
+export const variantBarcodeSeq = pgSequence("variant_barcode_seq", {
+  startWith: 100001,
+  increment: 1,
+});
+
 
 export const variantTable = pgTable(
   "variants",
   {
     id: serial("id").primaryKey(),
 
-    productID: integer("product_id").notNull().references(()=>productTable.id),
-    
-    salePrice:numeric().default("0"),
+    productID: integer("product_id").notNull().references(() => productTable.id),
 
+    salePrice: numeric("sale_price", { mode: "number", precision: 12, scale: 2 }).default(0),
+
+    barcode: varchar("invoice_no", { length: 50 })
+      .default(sql`'VAR-' || nextval('variant_barcode_seq')`)
+      .notNull()
+      .unique(),
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })
       .defaultNow()
       .notNull(),
-    
+
+    // in kg
+    weight: numeric("weight", { mode: "number", precision: 12, scale: 4 }).default(0),
+
+    attributes: jsonb("attributes")
+      .$type<{ name: string; value: string }[]>()
+      .notNull()
+      .default(sql`'[{"name":"base","value":"none"}]'::jsonb`),
+
     updatedAt: timestamp("updated_at", {
       withTimezone: true,
     })
       .defaultNow()
       .notNull(),
 
-    sku: varchar("sku", { length: 100 }).unique(),
   },
   (table) => [index("variants_product_id_idx").on(table.productID)],
 );
@@ -45,6 +63,5 @@ export const variantRelations = relations(variantTable, ({ one, many }) => ({
     references: [productTable.id],
   }),
   batches: many(batchTable),
-  attributes: many(variantAttributes),
 }));
 
