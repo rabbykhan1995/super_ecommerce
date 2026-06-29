@@ -14,6 +14,7 @@ import { batchTable } from "./batch.table";
 import { brandTable } from "../brand/brand.table";
 import { categoryTable } from "../category/category.table";
 import { unitTable } from "../unit/unit.table";
+import { stockFlowTable } from "./stock_flow.table";
 
 export const productTable = pgTable(
   "products",
@@ -126,4 +127,5 @@ export const productRelations = relations(productTable, ({ one, many }) => ({
 
   variants: many(variantTable),
   batches: many(batchTable),
+  stockFlows:many(stockFlowTable),
 }));
