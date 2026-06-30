@@ -1,7 +1,7 @@
 import { Batch, BatchPayload, Product, ProductPayload, UpdateProductInput, Variant, VariantPayload } from "./product.type";
 import { productTable } from "./product.table";
 import db, { QueryClient } from "../../drizzle/src";
-import { and, asc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNotNull, isNull, ne, sql } from "drizzle-orm";
 import { batchTable } from "./batch.table";
 import { paginateQuery } from "../../utils/queryBuilder";
 import { variantTable } from "./variant.table";
@@ -18,6 +18,26 @@ export default class ProductRepository {
             .select()
             .from(productTable)
             .where(eq(productTable[fieldName] as any, fieldVal as any))
+
+        return product ?? null;
+    }
+
+    static async findByFieldExceptId<
+        K extends keyof Product
+    >(
+        fieldName: K,
+        fieldVal: Product[K],
+        excludeId: number
+    ) {
+        const [product] = await db
+            .select()
+            .from(productTable)
+            .where(
+                and(
+                    eq(productTable[fieldName] as any, fieldVal as any),
+                    ne(productTable.id, excludeId)
+                )
+            );
 
         return product ?? null;
     }
@@ -86,9 +106,9 @@ export default class ProductRepository {
 
         return product ?? null;
     }
-    
 
-        static async createVariant(
+
+    static async createVariant(
         payload: VariantPayload,
         client: QueryClient = db
     ): Promise<Variant | null> {
@@ -99,7 +119,7 @@ export default class ProductRepository {
 
         return variant ?? null;
     }
-    
+
     static async createBatch(
         payload: BatchPayload,
         client: QueryClient = db
@@ -124,7 +144,26 @@ export default class ProductRepository {
 
         return variant ?? null;
     }
+    
 
+    static async findVariantByBarcodeExceptID(
+    barcode: string,
+    variantID: number,
+    client: QueryClient = db
+): Promise<Variant | null> {
+    const [variant] = await client
+        .select()
+        .from(variantTable)
+        .where(
+            and(
+                eq(variantTable.barcode, barcode),
+                ne(variantTable.id, variantID)
+            )
+        )
+        .limit(1);
+
+    return variant ?? null;
+}
 
     static async updateProduct(
         productID: number,
@@ -138,6 +177,20 @@ export default class ProductRepository {
             .returning();
 
         return product ?? null;
+    }
+
+    static async updateVariant(
+        variantID: number,
+        payload: Partial<VariantPayload>,
+        client: QueryClient = db
+    ): Promise<Variant | null> {
+        const [variant] = await client
+            .update(variantTable)
+            .set(payload)
+            .where(eq(variantTable.id, variantID))
+            .returning();
+
+        return variant ?? null;
     }
 
     static async FullStructuredProductByID(

@@ -33,7 +33,7 @@ export default class ProductService {
         }
 
 
-        withTransaction(async (tx) => {
+        await withTransaction(async (tx) => {
             const product = await ProductRepository.createProduct({ ...productData, slug }, tx);
 
             if (!product) {
@@ -76,28 +76,103 @@ export default class ProductService {
 
 
     static async update(
-        id: number, payload: {productInput:UpdateProductInput, variants:VariantPayload[]} 
+        id: number, payload: { productInput: UpdateProductInput, variants: VariantPayload[] }
     ) {
-        const {productInput, variants} = payload;
+        const { productInput, variants } = payload;
+        const hasProductFields = productInput && Object.keys(productInput).length > 0;
 
-        let exist;
+       await withTransaction(async (tx) => {
+            if (hasProductFields) {
 
-        if (productInput.name) {
-            exist = await ProductRepository.findByField("name", productInput.name);
+                let exist;
 
-            if (exist) {
-                throw new ApiError(400, "Product already exists with this name");
+                if (productInput.name) {
+                    exist = await ProductRepository.findByFieldExceptId("name", productInput.name, id);
+
+                    if (exist) {
+                        throw new ApiError(400, "Product already exists with this name");
+                    }
+
+                }
+
+
+                const product = await ProductRepository.updateProduct(id, productInput, tx);
+
+                if (!product) {
+                    throw new ApiError(401, "Product Creation failed");
+                }
             }
-        }
 
 
-        const product = await ProductRepository.updateProduct(id, productInput);
 
-        if (!product) {
-            throw new ApiError(401, "Product Creation failed");
-        }
 
-        return product;
+            if (variants.length > 0) {
+
+                const haveToCreateNewVariant: boolean = variants.some(v => !v.id);
+
+                const oldVariantsToUpdate = variants.filter(v => !!v.id);
+
+
+                if (haveToCreateNewVariant) {
+                    const newVariants: VariantPayload[] = variants.filter(v => !v.id);
+
+                    await Promise.all(
+                        newVariants.map(async (v) => {
+
+                            if (v.barcode) {
+                                const exist = await ProductRepository.findVariantByBarcode(v.barcode);
+
+                                if (exist) {
+
+                                    throw new ApiError(400, "Please try with some different barcode");
+
+                                }
+                            }
+
+                            const variantPayload: VariantPayload = { ...v, productID: id };
+
+                            const variantCreated = await ProductRepository.createVariant(variantPayload, tx);
+
+                            if (!variantCreated) {
+                                throw new ApiError(400, "variant creation failed");
+                            }
+
+
+                        }
+
+                        )
+                    )
+
+                }
+
+                if (oldVariantsToUpdate.length > 0) {
+                    await Promise.all(
+                        oldVariantsToUpdate.map(async (v) => {
+
+                            if (v.barcode) {
+                                const exist = await ProductRepository.findVariantByBarcodeExceptID(v.barcode, v.id as number);
+
+                                if (exist) {
+
+                                    throw new ApiError(400, "Please try with some different barcode");
+
+                                }
+                            }
+
+                            const { id, ...variantPayload } = v;
+
+                            const variantUpdate = await ProductRepository.updateVariant(id!, variantPayload, tx);
+
+                        }
+
+                        )
+                    )
+                }
+
+            }
+        })
+
+
     }
 
     static async list(query: any) {
@@ -268,15 +343,15 @@ export default class ProductService {
         return formattedProduct;
     }
 
-    static async findSaleReturnBatches(batchIDs: SaleProduct[], sale: SaleResponse) {
-        return await ProductRepository.findSaleReturnBatches(batchIDs, sale);
-    }
+    // static async findSaleReturnBatches(batchIDs: SaleProduct[], sale: SaleResponse) {
+    //     return await ProductRepository.findSaleReturnBatches(batchIDs, sale);
+    // }
 
-    static async createBatch(payload: any, tx?: QueryClient) {
-        const batches = await ProductRepository.createBatch(payload, tx);
+    // static async createBatch(payload: any, tx?: QueryClient) {
+    //     const batches = await ProductRepository.createBatch(payload, tx);
 
-        return batches;
-    }
+    //     return batches;
+    // }
 
     static async findById(productID: number, tx?: QueryClient): Promise<Product | null> {
         return ProductRepository.findByID(productID, tx);
