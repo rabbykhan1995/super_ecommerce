@@ -3,7 +3,7 @@ import { createProductSchema, updateProductSchema } from "./product.validator";
 import { productTable } from "./product.table";
 import { batchTable } from "./batch.table";
 import { variantTable } from "./variant.table";
-import { variantAttributes } from "./attribute.table";
+
 
 export type Product = typeof productTable.$inferSelect;
 export type ProductPayload = typeof productTable.$inferInsert;
@@ -16,14 +16,9 @@ export type BatchPayload = Omit<typeof batchTable.$inferInsert, "id" | "createAt
 
 export type Variant = typeof variantTable.$inferSelect;
 
-export type VariantPayload = Omit<
-    typeof variantTable.$inferInsert,
-    "id" | "createdAt" | "updatedAt"
->;
 
-export type VariantAttribute = typeof variantAttributes.$inferSelect;
-
-export type VariantAttributePayload = Omit<
-    VariantAttribute,
-    "id"
->;
+export type VariantPayload =typeof variantTable.$inferInsert;
+// export type VariantPayload = Omit<
+//     typeof variantTable.$inferInsert,
+//     "id" | "createdAt" | "updatedAt"
+// >;

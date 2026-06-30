@@ -15,6 +15,8 @@ export type BatchPayloadItem = {
 
     purchasedQty: number;
 
+    variantID:number;
+
     remainingQty?: number;
 
     purchasePrice: number;

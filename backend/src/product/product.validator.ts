@@ -84,8 +84,6 @@ export const createProductSchema = z.object({
 export const updateProductSchema = z.object({
   name: z.string().min(1).optional(),
 
-  barcode: z.string().optional(),
-
   description: z.string().nullable().optional(),
 
   shortDescription: z.string().nullable().optional(),
