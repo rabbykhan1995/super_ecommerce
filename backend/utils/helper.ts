@@ -8,7 +8,7 @@ import crypto from "crypto";
 import redis from "../config/redis.config";
 import PurchaseCounter from "../src/purchase/purchaseCounter.model";
 import dayjs from "dayjs";
-import { CreateSaleInput, SaleResponse } from "../src/sale/sale.type";
+import { CreateSaleInput, Sale } from "../src/sale/sale.type";
 import { Types } from "mongoose";
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -146,7 +146,7 @@ export default class Helper {
   }
 
   static resolveCustomerBalanceMovement(
-    sale: Partial<SaleResponse>,
+    sale: Partial<Sale>,
     accounts: { accountID: string | Types.ObjectId;amount: number }[] | null = [],
   ):number {
     let paidWithAcc = 0;

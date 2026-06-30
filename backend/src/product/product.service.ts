@@ -2,7 +2,6 @@ import { ApiError } from "../../utils/ApiError";
 import Helper from "../../utils/helper";
 import ProductRepository from "./product.repository";
 import { CreateProductInput, Batch, Product, UpdateProductInput, VariantPayload } from "./product.type";
-import { SaleProduct, } from "../sale/sale.type";
 import { QueryClient } from "../../drizzle/src";
 import { withTransaction } from "../../utils/withTransaction";
 
@@ -190,6 +189,8 @@ export default class ProductService {
         return product;
     }
 
+
+
     static async productByBarcode(query: any) {
         const product = await ProductRepository.productByBarcode(query);
 
@@ -227,131 +228,6 @@ export default class ProductService {
         return batch;
     }
 
-    static async getSaleProduct(
-        productID: number
-    ) {
-
-        // 1. find product
-        const product =
-            await ProductRepository.findByID(
-                productID
-            );
-
-        if (!product) {
-            throw new ApiError(
-                404,
-                "Product not found"
-            );
-        }
-
-
-        const formattedProduct =
-            typeof product.toObject === "function"
-                ? product.toObject()
-                : product;
-        // ================================
-        // STOCK + NO WARRANTY
-        // ================================
-        if (
-            formattedProduct.manageStock &&
-            !formattedProduct.manageWarranty
-        ) {
-
-            const batches =
-                await ProductRepository.findSaleBatches(
-                    productID
-                );
-
-            const formattedBatches =
-                batches.map((b) => ({
-                    value: b._id,
-                    label: `${Helper.formatDate(
-                        b.PurchaseDate
-                    )} - ${b.remainingQty}`,
-                    ...b,
-                }));
-
-            return {
-                ...formattedProduct,
-
-                batches: formattedBatches,
-
-                purchaseID:
-                    formattedBatches[0]?.purchaseID,
-
-                purchasePrice:
-                    formattedBatches[0]?.purchasePrice,
-
-                salePrice:
-                    formattedBatches[0]?.salePrice,
-
-                soldQty: 1,
-
-                serials: [],
-
-                selectedSerials: [],
-
-                selectedBatch:
-                    formattedBatches[0] || null,
-            };
-        }
-
-        // ================================
-        // STOCK + WARRANTY
-        // ================================
-        if (
-            formattedProduct.manageStock &&
-            formattedProduct.manageWarranty
-        ) {
-
-            const serials =
-                await ProductRepository.findSaleSerials(
-                    productID
-                );
-
-            const formattedSerials =
-                serials.map((b) => ({
-                    value: b._id,
-                    label: b.serial,
-                    ...b,
-                }));
-
-            return {
-                ...formattedProduct,
-
-                serials: formattedSerials,
-
-                purchasePrice: 0,
-
-                salePrice: 0,
-
-                soldQty: 0,
-
-                selectedSerials: [],
-
-                batches: [],
-
-                selectedBatch: null,
-
-                purchaseID: null,
-            };
-        }
-
-        // ================================
-        // NO STOCK MANAGEMENT
-        // ================================
-        return formattedProduct;
-    }
-
-    // static async findSaleReturnBatches(batchIDs: SaleProduct[], sale: SaleResponse) {
-    //     return await ProductRepository.findSaleReturnBatches(batchIDs, sale);
-    // }
-
-    // static async createBatch(payload: any, tx?: QueryClient) {
-    //     const batches = await ProductRepository.createBatch(payload, tx);
-
-    //     return batches;
-    // }
 
     static async findById(productID: number, tx?: QueryClient): Promise<Product | null> {
         return ProductRepository.findByID(productID, tx);
@@ -379,13 +255,6 @@ export default class ProductService {
         return await ProductRepository.updateBatchDynamically(batchID, options, tx);
     }
 
-    static async findBatches(
-        filter: Record<string, any>,
-        tx?: QueryClient
-    ): Promise<BatchResponse[]> {
-
-        return ProductRepository.findBatches(filter, tx);
-    }
 
     static async deleteBatches(
         filter: Record<string, any>,
@@ -396,9 +265,9 @@ export default class ProductService {
     }
 
     static async findBatchByID(
-        id: string,
+        id: number,
         tx?: QueryClient
-    ): Promise<BatchResponse | null> {
+    ): Promise<Batch | null> {
 
         return ProductRepository.findBatchByID(id, tx);
     }
@@ -414,11 +283,11 @@ export default class ProductService {
     }
     static async getPosProducts() {
         return ProductRepository.findManyByField(
-            "posEnabled",
+            "inPosList",
             true
         );
     }
-    static async updatePosProduct(id: string) {
+    static async updatePosProduct(id: number) {
         const product = await ProductRepository.findByID(id);
 
         if (!product) {

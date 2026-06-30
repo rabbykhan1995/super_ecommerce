@@ -12,6 +12,7 @@ import {
 import { productTable } from "./product.table";
 import { relations, sql } from "drizzle-orm";
 import { batchTable } from "./batch.table";
+import { saleItemsTable } from "../sale/sale_items.table";
 
 export const variantBarcodeSeq = pgSequence("variant_barcode_seq", {
   startWith: 100001,
@@ -63,5 +64,6 @@ export const variantRelations = relations(variantTable, ({ one, many }) => ({
     references: [productTable.id],
   }),
   batches: many(batchTable),
+  saleItems:many(saleItemsTable)
 }));
 
