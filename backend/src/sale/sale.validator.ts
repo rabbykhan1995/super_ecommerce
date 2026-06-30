@@ -4,10 +4,10 @@ import { paymentAccountSchema } from "../account/account.validator";
 
 export const saleProductSchema = z.object({
   productID: z
-    .string()
+    .number()
     .min(1, { message: "Product is required" }),
-  batchID: z.string().optional().nullable(),
-  variantID: z.string().optional().nullable(),
+  batchID: z.number().optional().nullable(),
+  variantID: z.number(),
   soldQty: z
     .number({ message: "Quantity must be a number" })
     .min(1, { message: "Quantity must be at least 1" }),
@@ -15,7 +15,6 @@ export const saleProductSchema = z.object({
     .number({ message: "Sale price must be a number" })
     .min(1, { message: "Sale price must be greater than 0" }),
   warranty: z.number().optional().nullable(),
-
 })
 
 export const fifoSaleProductSchema = z.object({

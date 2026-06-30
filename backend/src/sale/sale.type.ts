@@ -9,7 +9,7 @@ export type Sale = typeof saleTable.$inferSelect;
 
 export type SaleItem = typeof saleItemsTable.$inferSelect;
 
-export type SaleItemPayload = typeof saleItemsTable.$inferInsert;
+// export type SaleItemPayload = typeof saleItemsTable.$inferInsert;
 
 export type CreateSaleInput = z.infer<typeof createSaleSchema>;
 

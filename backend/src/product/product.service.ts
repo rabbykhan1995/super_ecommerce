@@ -227,7 +227,10 @@ export default class ProductService {
 
         return batch;
     }
-
+    
+    static async findVariantByID(variantID:number, tx?:QueryClient){
+        return await ProductRepository.findVariantByID(variantID, tx);
+    }
 
     static async findById(productID: number, tx?: QueryClient): Promise<Product | null> {
         return ProductRepository.findByID(productID, tx);
@@ -320,4 +323,12 @@ export default class ProductService {
     static async countProduct(filters: CountProductFilters) {
         return await ProductRepository.countProduct(filters);
     }
+    static async decreaseProductStock(productID: number, qty:number, tx?:QueryClient) {
+        return await ProductRepository.decreaseProductStock(productID, qty, tx);
+    }
+
+       static async increaseProductStock(productID: number, qty:number, tx?:QueryClient) {
+        return await ProductRepository.increaseProductStock(productID, qty, tx);
+    }
+
 }

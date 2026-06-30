@@ -3,7 +3,7 @@ import { ApiError } from "../../utils/ApiError";
 import Helper from "../../utils/helper";
 import ContactService from "../contact/contact.service";
 import ProductService from "../product/product.service";
-import { CreateFifoSaleInput, CreateSaleInput, Sale } from "./sale.type";
+import { CreateFifoSaleInput, CreateSaleInput, OnlySalePayload, Sale, SaleItemPayload } from "./sale.type";
 import SaleCounter from "./saleCounter.model";
 import SaleRepository from "./sale.repository";
 import { AccountService } from "../account/account.service";
@@ -15,17 +15,26 @@ import WarrantyService from "../warranty/warranty.service";
 import PurchaseService from "../purchase/purchase.service";
 import { withTransaction } from "../../utils/withTransaction";
 import { QueryClient } from "../../drizzle/src";
+import { Contact } from "../contact/contact.type";
+import { AccBalancePayload } from "../account/account.type";
+import { Product } from "../product/product.type";
+import { WarrantyPayload } from "../warranty/warranty.type";
 
-
+// {
+//         sale: OnlySalePayload,
+//         products: SaleItemPayload[],
+//         accounts: AccBalancePayload[],
+//         exchangeAccounts: AccBalancePayload[]
+//     }
 
 export default class SaleService {
-    static async create(payload: CreateSaleInput) {
+    static async create(payload:CreateSaleInput ) {
         let sale = payload.sale;
         const products = payload.products;
         const accounts = payload.accounts;
         const exchangeAccounts = payload.exchangeAccounts;
-        let customer;
-        let mainProducts: any = [];
+        let customer: Contact | null;
+        let mainProducts: Product[] = [];
 
         if (sale.customerID) {
             // const contactID = new Types.ObjectId(sale.contactID as string);
@@ -41,9 +50,10 @@ export default class SaleService {
         // stock checking before sale
         await Promise.all(
             products.map(async (p) => {
-                const [product, batch] = await Promise.all([
+                const [product, batch, variant] = await Promise.all([
                     ProductService.findById(p.productID),
                     p.batchID ? ProductService.findBatchByID(p.batchID) : null,
+                    ProductService.findVariantByID(p.variantID),
                 ]);
 
                 if (!product) throw new ApiError(404, `Product not found`);
@@ -54,24 +64,20 @@ export default class SaleService {
                 p.soldQty = soldQty;
 
                 if (!product.manageStock) return;
-                    if (!batch) throw new ApiError(404, `Batch not found`);
-                    if (batch.remainingQty < soldQty) {
-                        throw new ApiError(400, `Insufficient stock for ${product.name}. Available: ${batch.remainingQty}`);
-                    }
-               
+
+                if (!batch) throw new ApiError(404, `Batch not found`);
+
+                if(!variant){
+                    throw new ApiError(404, `Batch not found`);
+                }
+                if (batch.remainingQty < soldQty) {
+                    throw new ApiError(400, `Insufficient stock for ${product.name}. Available: ${batch.remainingQty}`);
+                }
+
             })
         );
 
-         withTransaction(async(tx:QueryClient)=>{
-            const formattedProducts = products.map(p => ({
-                ...p,
-                productID: p.productID,
-                batchID: p.batchID ?? null,
-                warranty: p.warranty ? p.warranty : 0
-            }));
-
-            // purchase create
-
+        withTransaction(async (tx: QueryClient) => {
 
             const salePayload = sale;
 
@@ -80,74 +86,62 @@ export default class SaleService {
             //  update each batch by reducing thier remaining stock;
             await Promise.all(
                 products.map(async (p) => {
-                
-                        const batch = await ProductService.findBatchByID(p.batchID!, tx);
-                        if (!batch) return;
 
-                        const newQty = batch.remainingQty - p.soldQty;
-                        const willBeEmpty = newQty <= 0;
+                    const batch = await ProductService.findBatchByID(p.batchID!, tx);
+                    if (!batch) return;
 
-                        await ProductService.updateBatchDynamically(batch._id!.toString(),
-                            {
-                                inc: { remainingQty: -p.soldQty, soldQty: p.soldQty },
-                                ...(willBeEmpty && { set: { isActive: false } }),
-                            }, session)
+                    const newQty = batch.remainingQty - p.soldQty;
+                    const willBeEmpty = newQty <= 0;
 
-                        if (willBeEmpty) {
-                            const nextBatch = await ProductService.findOneBatch({
-                                productID: p.productID,
-                                isActive: true,
-                                remainingQty: { $gt: 0 },
-                            }, session)
-                                .sort({ PurchaseDate: 1 })
-                            if (!!nextBatch) {
-                                await ProductService.updateProductFifoBatchAndStock(
-                                    p.productID,
-                                    { fifoBatchID: nextBatch._id.toString() ?? null },
-                                    session
-                                );
-                            } else {
-                                await ProductService.updateProductFifoBatchAndStock(
-                                    p.productID,
-                                    { fifoBatchID: undefined },
-                                    session
-                                );
-                            }
+                    await ProductService.updateBatchDynamically(batch.id,
+                        {
+                            inc: { remainingQty: -p.soldQty},
+                            ...(willBeEmpty && { set: { isActive: false } }),
+                        }, tx)
 
 
+                    const mainProduct = mainProducts.find(
+                        (prod: any) => prod.id === p.productID
+                    );
 
-
-                        }
-
-                        const mainProduct = mainProducts.find(
-                            (prod: any) => prod._id.toString() === p.productID
+                    if (mainProduct?.manageStock) {
+                        await ProductService.decreaseProductStock(
+                            p.productID,
+                           p.soldQty ,
+                            tx
                         );
-
-                        if (mainProduct?.manageStock) {
-                            await ProductService.updateProductFifoBatchAndStock(
-                                p.productID,
-                                { qty: -p.soldQty },
-                                session
-                            );
+                    }
+                    // now warranty will create on this product
+                    if (mainProduct?.manageWarranty && !!batch.serial) {
+                        const purchase = await PurchaseService.purchaseByID(batch.purchaseID!.toString());
+                        const warrantyPayload:WarrantyPayload = {
+             {
+                            saleID: saleCreated.id,
+                            customerID: customer! ? customer.id : null,
+                            supplierID: purchase!.supplierID.toString(),
+                            productID: p.productID.toString(),
+                            batchID: p.batchID.toString(),
+                            serial: batch.serial!.toString(),
+                            salePrice: p.salePrice,
+                            warranty: p.warranty,
+                            saleDate: saleCreated.saleDate,
+                            expireDate: Helper.getWarrantyExpireDate(saleCreated.saleDate, p.warranty!),
                         }
-                        // now warranty will create on this product
-                        if (mainProduct?.manageWarranty && !!batch.serial) {
-                            const purchase = await PurchaseService.purchaseByID(batch.purchaseID!.toString());
-
-                            await WarrantyService.create({
-                                saleID: saleCreated[0]._id.toString(),
-                                customerID: customer! ? customer._id : null,
-                                supplierID: purchase!.supplierID.toString(),
-                                productID: p.productID.toString(),
-                                batchID: p.batchID.toString(),
-                                serial: batch.serial!.toString(),
-                                salePrice: p.salePrice,
-                                warranty: Number(p.warranty),
-                                saleDate: saleCreated[0].SaleDate,
-                                expireDate: Helper.getWarrantyExpireDate(saleCreated[0].SaleDate, p.warranty!),
-                            }, session);
                         }
-                   
+                        await WarrantyService.create({
+                            saleID: saleCreated.id,
+                            customerID: customer! ? customer._id : null,
+                            supplierID: purchase!.supplierID.toString(),
+                            productID: p.productID.toString(),
+                            batchID: p.batchID.toString(),
+                            serial: batch.serial!.toString(),
+                            salePrice: p.salePrice,
+                            warranty: Number(p.warranty),
+                            saleDate: saleCreated[0].SaleDate,
+                            expireDate: Helper.getWarrantyExpireDate(saleCreated[0].SaleDate, p.warranty!),
+                        }, session);
+                    }
+
                 })
             );
             //  Accounts
@@ -404,21 +398,21 @@ export default class SaleService {
 
             ...sale,
 
-            ...(sale.exchangeAmount>0?{
-                  ...exchangeTransactions!.map((t)=>({
-                    name:t.account.name,
-                    amount:t.amount
-                   }))
-            }:{}),
+            ...(sale.exchangeAmount > 0 ? {
+                ...exchangeTransactions!.map((t) => ({
+                    name: t.account.name,
+                    amount: t.amount
+                }))
+            } : {}),
 
-            ...(sale.paid>0?{
-                  ...transactions!.map((t)=>({
-                    name:t.account.name,
-                    amount:t.amount
-                   }))
-            }:{}),
+            ...(sale.paid > 0 ? {
+                ...transactions!.map((t) => ({
+                    name: t.account.name,
+                    amount: t.amount
+                }))
+            } : {}),
 
-            products:saleProducts,
+            products: saleProducts,
 
         }
 

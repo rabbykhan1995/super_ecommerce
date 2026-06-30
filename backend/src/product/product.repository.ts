@@ -146,6 +146,21 @@ export default class ProductRepository {
     }
     
 
+
+        static async findVariantByID(
+        variantID: number,
+        client: QueryClient = db
+    ): Promise<Variant | null> {
+        const [variant] = await client
+            .select()
+            .from(variantTable)
+            .where(eq(variantTable.id, variantID))
+            .limit(1);
+
+        return variant ?? null;
+    }
+    
+
     static async findVariantByBarcodeExceptID(
     barcode: string,
     variantID: number,
