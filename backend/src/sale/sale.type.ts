@@ -18,3 +18,5 @@ export type OnlySalePayload = z.infer<typeof saleSchema>;
 export type CreateFifoSaleInput = z.infer<typeof createFifoSaleSchema>;
 
 export type UpdateSaleInput = z.infer<typeof updateSaleSchema>;
+
+export type SaleItemPayload = typeof saleItemsTable.$inferInsert;

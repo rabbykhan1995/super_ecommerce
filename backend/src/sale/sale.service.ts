@@ -92,7 +92,7 @@ export default class SaleService {
 
                     const batch = await ProductService.findBatchByID(p.batchID!, tx);
                     if (!batch) return;
-
+                
                     const newQty = batch.remainingQty - p.soldQty;
                     const willBeEmpty = newQty <= 0;
 
@@ -144,6 +144,16 @@ export default class SaleService {
                         qty: p.soldQty,
                         beforeQty: batch.remainingQty,
                         afterQty: batch.remainingQty - p.soldQty,
+                    }, tx);
+
+                    await SaleRepository.createSaleItem({
+                        saleID: saleCreated.id,
+                        batchID: p.batchID!,
+                        productID: p.productID,
+                        variantID: p.variantID,
+                        salePrice: p.salePrice,
+                        soldQty: p.soldQty,
+                        warranty: p.warranty??0,
                     }, tx)
 
                     await ProductService.decreaseVariantStock(p.variantID, p.soldQty, tx);
@@ -280,20 +290,21 @@ export default class SaleService {
 
     }
 
-    static async delete(id: string) {
+    static async delete(id: number) {
         const sale = await SaleRepository.getSaleByID(id);
         if (!sale) throw new ApiError(404, "Sale not found");
 
         if (!sale.deletable) {
             throw new ApiError(400, "Sale can not be deleted");
         }
-        const session = await mongoose.startSession();
-        session.startTransaction();
 
+     
 
-        try {
+        await withTransaction(async (tx) => {
+
+               const saleItems = await SaleRepository.getSoldProductsBySaleID(id, tx)
             await Promise.all(
-                sale.products
+                saleItems
                     .filter((p) => p.batchID)
                     .map(async (p) => {
                         const updatedBatch = await ProductService.updateBatchDynamically(
@@ -383,12 +394,9 @@ export default class SaleService {
             });
 
 
-        } catch (err) {
-            await session.abortTransaction();
-            throw err;
-        } finally {
-            session.endSession();
-        }
+        })
+
+
     }
 
     static async getSaleByID(saleID: number) {

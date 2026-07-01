@@ -3,7 +3,7 @@ import Sale from "./sale.model";
 import db, { QueryClient } from "../../drizzle/src";
 import { saleTable } from "./sale.table";
 import { paginateQuery } from "../../utils/queryBuilder";
-import { OnlySalePayload } from "./sale.type";
+import { OnlySalePayload, SaleItemPayload } from "./sale.type";
 import { eq } from "drizzle-orm";
 import { saleItemsTable } from "./sale_items.table";
 
@@ -96,5 +96,11 @@ export default class SaleRepository {
                 },
             },
         });
+    }
+
+    static async createSaleItem(payload: SaleItemPayload, client: QueryClient = db){
+         const result = await client.insert(saleItemsTable).values(payload).returning();
+
+        return result[0];
     }
 }
