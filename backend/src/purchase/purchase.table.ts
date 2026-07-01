@@ -41,15 +41,15 @@ export const purchaseTable = pgTable(
     deletable: boolean("deletable").default(true).notNull(),
 
     // ডেসিমেল সংখ্যার জন্য numeric টাইপ ব্যবহার করা বেস্ট (Precision, Scale)
-    totalProductPrice: numeric("total_product_price", { precision: 12, scale: 2 }).default("0").notNull(),
-    otherCost: numeric("other_cost", { precision: 12, scale: 2 }).default("0").notNull(),
-    discount: numeric("discount", { precision: 12, scale: 2 }).default("0").notNull(),
-    totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).default("0").notNull(),
-    paid: numeric("paid", { precision: 12, scale: 2 }).default("0").notNull(),
+    totalProductPrice: numeric("total_product_price", { precision: 12, scale: 2 , mode:"number"}).default(0).notNull(),
+    otherCost: numeric("other_cost", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
+    discount: numeric("discount", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
+    totalAmount: numeric("total_amount", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
+    paid: numeric("paid", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
     // Snapshots
-    exchangeAmount: numeric("exchange_amount", { precision: 12, scale: 2 }).default("0").notNull(),
-    balanceBefore: numeric("balance_before", { precision: 12, scale: 2 }).default("0").notNull(),
-    balanceAfter: numeric("balance_after", { precision: 12, scale: 2 }).default("0").notNull(),
+    exchangeAmount: numeric("exchange_amount", { precision: 12, scale: 2 , mode:"number"}).default(0).notNull(),
+    balanceBefore: numeric("balance_before", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
+    balanceAfter: numeric("balance_after", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
 
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

@@ -1,17 +1,20 @@
 import { ClientSession, Types } from "mongoose";
-import Ledger from "./ledger.model";
 import { aggregateOne, paginatedAggregate } from "../../utils/queryBuilder";
-import { CreateLedgerInput, LedgerResponse } from "./ledger.type";
+import { CreateLedgerInput, Ledger, LedgerPayload, } from "./ledger.type";
+import db, { QueryClient } from "../../drizzle/src";
+import { ledgerTable } from "./ledger.table";
 
 export default class LedgerRepository {
     constructor() { }
 
     static async create(
-        payload: CreateLedgerInput[],
-        session?: ClientSession
-    ): Promise<LedgerResponse[]> {
+        payload: LedgerPayload,
+        client: QueryClient = db
+    ): Promise<Ledger> {
 
-        return Ledger.insertMany(payload, { session });
+        const [ledger] = await client.insert(ledgerTable).values(payload).returning();
+
+        return ledger??null;
     }
 
     static async paginatedList(

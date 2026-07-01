@@ -53,7 +53,7 @@ export const warrantyTable = pgTable(
     batchID: integer("batch_id").notNull().references(() => batchTable.id),
 
     serial: varchar("serial", { length: 100 }), // প্রোডাক্টের আইএমইআই (IMEI) বা ইউনিক সিরিয়াল
-    salePrice: numeric("sale_price", { precision: 12, scale: 2 }).default("0").notNull(),
+    salePrice: numeric("sale_price", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
     warrantyMonths: integer("warranty_months").default(0).notNull(), // কত মাসের ওয়ারেন্টি
     
     saleDate: timestamp("sale_date", { withTimezone: true }).notNull(),
@@ -78,9 +78,9 @@ export const warrantyTable = pgTable(
 
     // --- রিফান্ড ও আদার কস্ট (Financial Phase) ---
     // accounts পার্টটি বাদ গিয়েছে, কারণ খরচ বা রিফান্ড হলে সেন্ট্রাল ট্রানজেকশনে হিট করবে
-    refundAmount: numeric("refund_amount", { precision: 12, scale: 2 }).default("0").notNull(),
+    refundAmount: numeric("refund_amount", { precision: 12, scale: 2, mode:'number' }).default(0).notNull(),
     otherCost: numeric("other_cost", { precision: 12, scale: 2 }).default("0").notNull(),
-
+    warranty: numeric("warranty", { precision: 4, scale: 2, mode:'number' }).default(0).notNull(),
     resolvedDate: timestamp("resolved_date", { withTimezone: true }),
     note: text("note"),
 

@@ -2,17 +2,18 @@ import { ClientSession, Types } from "mongoose";
 import { ApiError } from "../../utils/ApiError";
 
 import LedgerRepository from "./ledger.repository";
-import { CreateLedgerInput, LedgerResponse } from "./ledger.type";
+import { CreateLedgerInput, LedgerPayload, LedgerResponse } from "./ledger.type";
+import { QueryClient } from "../../drizzle/src";
 
 export default class LedgerService {
   constructor() { }
 
   static async create(
-    payload: CreateLedgerInput,
-    session?: ClientSession
-  ): Promise<LedgerResponse[]> {
+    payload: LedgerPayload,
+    tx?: QueryClient
+  ){
 
-    const ledger = await LedgerRepository.create([payload], session);
+    const ledger = await LedgerRepository.create(payload, tx);
 
     if (!ledger || ledger.length === 0) {
       throw new ApiError(500, "Ledger creation failed");

@@ -48,14 +48,14 @@ export const ledgerTable = pgTable(
       .notNull()
       .references(() => contactTable.id),
     // ৪. ফাইনান্সিয়াল ক্যালকুলেশনের জন্য numeric টাইপ
-    amount: numeric("amount", { precision: 12, scale: 2 }).default("0").notNull(),
-    discount: numeric("discount", { precision: 12, scale: 2 }).default("0").notNull(),
-    paidAmount: numeric("paid_amount", { precision: 12, scale: 2 }).default("0").notNull(),
-    dueAmount: numeric("due_amount", { precision: 12, scale: 2 }).default("0").notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2,mode:"number" }).default(0).notNull(),
+    discount: numeric("discount", { precision: 12, scale: 2,mode:"number" }).default(0).notNull(),
+    paidAmount: numeric("paid_amount", { precision: 12, scale: 2 ,mode:"number" }).default(0).notNull(),
+    dueAmount: numeric("due_amount", { precision: 12, scale: 2 ,mode:"number" }).default(0).notNull(),
 
     // Snapshots (ব্যালেন্স মেলানোর জন্য)
-    balanceBefore: numeric("balance_before", { precision: 12, scale: 2 }).default("0").notNull(),
-    balanceAfter: numeric("balance_after", { precision: 12, scale: 2 }).default("0").notNull(),
+    balanceBefore: numeric("balance_before", { precision: 12, scale: 2 ,mode:"number" }).default(0).notNull(),
+    balanceAfter: numeric("balance_after", { precision: 12, scale: 2 ,mode:"number" }).default(0).notNull(),
 
     note: text("note"),
     date: timestamp("date", { withTimezone: true }).defaultNow().notNull(),

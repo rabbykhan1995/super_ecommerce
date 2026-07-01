@@ -9,6 +9,7 @@ import { AccountService } from "../account/account.service";
 import TransactionService from "../transaction/transaction.service";
 import LedgerService from "../ledger/ledger.service";
 import { RedisReportService } from "../../utils/ReportServiceRedis";
+import { QueryClient } from "../../drizzle/src";
 
 export default class PurchaseService {
   static async create(payload: CreatePurchaseInput) {
@@ -261,8 +262,8 @@ export default class PurchaseService {
     return purchase
   }
 
-  static async purchaseByID(id: string) {
-    return await PurchaseRepository.findById(id);
+  static async purchaseByID(id: number, tx?:QueryClient) {
+    return await PurchaseRepository.findByID(id, tx);
   }
 
   static async list(query: any) {

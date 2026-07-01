@@ -1,10 +1,11 @@
-import { Batch, BatchPayload, Product, ProductPayload, UpdateProductInput, Variant, VariantPayload } from "./product.type";
+import { Batch, BatchPayload, Product, ProductPayload, stockFlowPayload, UpdateProductInput, Variant, VariantPayload } from "./product.type";
 import { productTable } from "./product.table";
 import db, { QueryClient } from "../../drizzle/src";
 import { and, asc, eq, gt, inArray, isNotNull, isNull, ne, sql } from "drizzle-orm";
 import { batchTable } from "./batch.table";
 import { paginateQuery } from "../../utils/queryBuilder";
 import { variantTable } from "./variant.table";
+import { stockFlowTable } from "./stock_flow.table";
 
 
 export default class ProductRepository {
@@ -144,10 +145,10 @@ export default class ProductRepository {
 
         return variant ?? null;
     }
-    
 
 
-        static async findVariantByID(
+
+    static async findVariantByID(
         variantID: number,
         client: QueryClient = db
     ): Promise<Variant | null> {
@@ -159,26 +160,26 @@ export default class ProductRepository {
 
         return variant ?? null;
     }
-    
+
 
     static async findVariantByBarcodeExceptID(
-    barcode: string,
-    variantID: number,
-    client: QueryClient = db
-): Promise<Variant | null> {
-    const [variant] = await client
-        .select()
-        .from(variantTable)
-        .where(
-            and(
-                eq(variantTable.barcode, barcode),
-                ne(variantTable.id, variantID)
+        barcode: string,
+        variantID: number,
+        client: QueryClient = db
+    ): Promise<Variant | null> {
+        const [variant] = await client
+            .select()
+            .from(variantTable)
+            .where(
+                and(
+                    eq(variantTable.barcode, barcode),
+                    ne(variantTable.id, variantID)
+                )
             )
-        )
-        .limit(1);
+            .limit(1);
 
-    return variant ?? null;
-}
+        return variant ?? null;
+    }
 
     static async updateProduct(
         productID: number,
@@ -407,6 +408,38 @@ export default class ProductRepository {
         return product ?? null;
     }
 
+    static async increaseVariantStock(
+        variantID: number,
+        qty: number,
+        client: QueryClient = db
+    ): Promise<Variant | null> {
+        const [variant] = await client
+            .update(variantTable)
+            .set({
+                stock: sql`${variantTable.stock} + ${qty}`,
+            })
+            .where(eq(variantTable.id, variantID))
+            .returning();
+
+        return variant ?? null;
+    }
+    static async decreaseVariantStock(
+        variantID: number,
+        qty: number,
+        client: QueryClient = db
+    ): Promise<Variant | null> {
+        const [variant] = await client
+            .update(variantTable)
+            .set({
+                stock: sql`${variantTable.stock} - ${qty}`,
+            })
+            .where(eq(variantTable.id, variantID))
+            .returning();
+
+        return variant ?? null;
+    }
+
+
     static async updateProductFifoBatchAndStock(
         productID: number,
         options: {
@@ -526,6 +559,16 @@ export default class ProductRepository {
         return client
             .delete(batchTable)
             .where(inArray(batchTable.id, batchIDs));
+    }
+
+
+    static async createStockFlow(payload: stockFlowPayload, client: QueryClient = db) {
+        const [stockFlow] = await client
+            .insert(stockFlowTable)
+            .values(payload)
+            .returning();
+
+        return stockFlow ?? null;
     }
 
 }

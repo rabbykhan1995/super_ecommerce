@@ -1,9 +1,12 @@
 import { ClientSession, Types } from "mongoose";
 import PurchaseCounter from "./purchaseCounter.model";
-import { IPurchase, PurchaseResponse } from "./purchase.type";
+import { IPurchase, Purchase, PurchaseResponse } from "./purchase.type";
 import Purchase from "./purchase.model";
 import { aggregateOne, paginatedAggregate } from "../../utils/queryBuilder";
-import Batch from "../product/batch.model";
+
+import { purchaseTable } from "./purchase.table";
+import { eq } from "drizzle-orm";
+import db, { QueryClient } from "../../drizzle/src";
 
 export default class PurchaseRepository {
     static async getPurchaseInvoiceNo(session?: ClientSession): Promise<string> {
@@ -29,10 +32,17 @@ export default class PurchaseRepository {
         return purchase;
     }
 
-    static async findById(id: string): Promise<PurchaseResponse | null> {
-        const formattedID = new Types.ObjectId(id)
-        return await Purchase.findById(formattedID);
+       static async findByID(
+        purchaseID: number,
+        client: QueryClient = db
+    ): Promise<Purchase | null> {
+        const [purchase] = await client
+            .select()
+            .from(purchaseTable)
+            .where(eq(purchaseTable.id, purchaseID))
+            .limit(1);
 
+        return purchase ?? null;
     }
 
     static async deletePurchaseByID(id: string, session?: ClientSession) {
@@ -455,4 +465,6 @@ export default class PurchaseRepository {
             }
         );
     }
+
+ 
 }

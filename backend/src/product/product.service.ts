@@ -1,7 +1,7 @@
 import { ApiError } from "../../utils/ApiError";
 import Helper from "../../utils/helper";
 import ProductRepository from "./product.repository";
-import { CreateProductInput, Batch, Product, UpdateProductInput, VariantPayload } from "./product.type";
+import { CreateProductInput, Batch, Product, UpdateProductInput, VariantPayload, stockFlowPayload } from "./product.type";
 import { QueryClient } from "../../drizzle/src";
 import { withTransaction } from "../../utils/withTransaction";
 
@@ -329,6 +329,18 @@ export default class ProductService {
 
        static async increaseProductStock(productID: number, qty:number, tx?:QueryClient) {
         return await ProductRepository.increaseProductStock(productID, qty, tx);
+    }
+
+        static async createStockFlow(payload: stockFlowPayload, tx?:QueryClient) {
+        return await ProductRepository.createStockFlow(payload, tx);
+    }
+
+        static async decreaseVariantStock(variantID: number, qty:number, tx?:QueryClient) {
+        return await ProductRepository.decreaseVariantStock(variantID, qty, tx);
+    }
+
+       static async increaseVariantStock(variantID: number, qty:number, tx?:QueryClient) {
+        return await ProductRepository.increaseVariantStock(variantID, qty, tx);
     }
 
 }
