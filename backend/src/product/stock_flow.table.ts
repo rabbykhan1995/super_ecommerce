@@ -13,6 +13,10 @@ import { relations } from "drizzle-orm";
 import { batchTable } from "./batch.table";
 import { productTable } from "./product.table";
 import { variantTable } from "./variant.table";
+import { saleTable } from "../sale/sale.table";
+import { purchaseTable } from "../purchase/purchase.table";
+import { saleReturnTable } from "../sale_return/sale_return.table";
+import { purchaseReturnTable } from "../purchase_return/purchase_return.table";
 
 export const stockFlowTypeEnum = pgEnum("stock_flow_type", [
     "in",
@@ -54,7 +58,21 @@ export const stockFlowTable = pgTable(
 
         referenceType: stockFlowReferenceTypeEnum("reference_type").notNull(),
 
-        referenceID: integer("reference_id").$type<number | null>(),
+        saleID: integer("sale_id").references(() => saleTable.id, {
+            onDelete: "cascade",
+        }),
+
+        purchaseID: integer("purchase_id").references(() => purchaseTable.id, {
+            onDelete: "cascade",
+        }),
+
+        saleReturnID: integer("sale_return_id").references(() => saleReturnTable.id, {
+            onDelete: "cascade",
+        }),
+
+        purchaseReturnID: integer("purchase_return_id").references(() => purchaseReturnTable.id, {
+            onDelete: "cascade",
+        }),
 
         qty: numeric("qty", {
             precision: 12,
@@ -86,31 +104,52 @@ export const stockFlowTable = pgTable(
         index("stock_flows_batch_idx").on(table.batchID),
         index("stock_flows_product_idx").on(table.productID),
         index("stock_flows_variant_idx").on(table.variantID),
-        index("stock_flows_reference_idx").on(
-            table.referenceType,
-            table.referenceID
-        ),
+        index("stock_flows_sale_idx").on(table.saleID),
+        index("stock_flows_purchase_idx").on(table.purchaseID),
+        index("stock_flows_sale_return_idx").on(table.saleReturnID),
+        index("stock_flows_purchase_return_idx").on(table.purchaseReturnID),
     ]
 );
 
 
 export const stockFlowRelations = relations(
-    stockFlowTable,
-    ({ one, }) => ({
-        batch: one(batchTable, {
-            fields: [stockFlowTable.batchID],
-            references: [batchTable.id],
-        }),
+  stockFlowTable,
+  ({ one }) => ({
+    batch: one(batchTable, {
+      fields: [stockFlowTable.batchID],
+      references: [batchTable.id],
+    }),
 
-        product: one(productTable, {
-            fields: [stockFlowTable.productID],
-            references: [productTable.id],
-        }),
+    product: one(productTable, {
+      fields: [stockFlowTable.productID],
+      references: [productTable.id],
+    }),
 
-        variant: one(variantTable, {
-            fields: [stockFlowTable.variantID],
-            references: [variantTable.id],
-        }),
+    variant: one(variantTable, {
+      fields: [stockFlowTable.variantID],
+      references: [variantTable.id],
+    }),
 
-    })
+    sale: one(saleTable, {
+      fields: [stockFlowTable.saleID],
+      references: [saleTable.id],
+    }),
+
+    purchase: one(purchaseTable, {
+      fields: [stockFlowTable.purchaseID],
+      references: [purchaseTable.id],
+    }),
+
+    saleReturn: one(saleReturnTable, {
+      fields: [stockFlowTable.saleReturnID],
+      references: [saleReturnTable.id],
+    }),
+
+    purchaseReturn: one(purchaseReturnTable, {
+      fields: [stockFlowTable.purchaseReturnID],
+      references: [purchaseReturnTable.id],
+    }),
+
+
+  })
 );

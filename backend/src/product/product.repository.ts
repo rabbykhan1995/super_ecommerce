@@ -440,6 +440,38 @@ export default class ProductRepository {
     }
 
 
+        static async increaseBatchStock(
+        batchID: number,
+        qty: number,
+        client: QueryClient = db
+    ): Promise<Batch | null> {
+        const [batch] = await client
+            .update(batchTable)
+            .set({
+                remainingQty: sql`${batchTable.remainingQty} + ${qty}`,
+            })
+            .where(eq(batchTable.id, batchID))
+            .returning();
+
+        return batch ?? null;
+    }
+        static async decreaseBatchStock(
+        batchID: number,
+        qty: number,
+        client: QueryClient = db
+    ): Promise<Batch | null> {
+        const [batch] = await client
+            .update(batchTable)
+            .set({
+                remainingQty: sql`${batchTable.remainingQty} - ${qty}`,
+            })
+            .where(eq(batchTable.id, batchID))
+            .returning();
+
+        return batch ?? null;
+    }
+
+
     static async updateProductFifoBatchAndStock(
         productID: number,
         options: {

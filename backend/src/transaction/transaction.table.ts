@@ -50,17 +50,29 @@ export const transactionTable = pgTable(
 
     type: txTypeEnum("type").default("credit").notNull(),
 
-    purchaseID: integer("purchase_id").references(() => purchaseTable.id),
+    purchaseID: integer("purchase_id").references(() => purchaseTable.id, {
+      onDelete: "cascade",
+    }),
 
-    saleID: integer("sale_id").references(() => saleTable.id),
+    saleID: integer("sale_id").references(() => saleTable.id, {
+      onDelete: "cascade",
+    }),
 
-    purchaseReturnID: integer("purchase_return_id").references(() => purchaseReturnTable.id),
+    purchaseReturnID: integer("purchase_return_id").references(() => purchaseReturnTable.id, {
+      onDelete: "cascade",
+    }),
 
-    saleReturnID: integer("sale_return_id").references(() => saleReturnTable.id),
+    saleReturnID: integer("sale_return_id").references(() => saleReturnTable.id, {
+      onDelete: "cascade",
+    }),
 
-    balanceTransferID: integer("balance_transfer_id").references(() => balanceTransferTable.id),
+    balanceTransferID: integer("balance_transfer_id").references(() => balanceTransferTable.id, {
+      onDelete: "cascade",
+    }),
 
-    warrantyID: integer("warranty_id").references(() => warrantyTable.id),
+    warrantyID: integer("warranty_id").references(() => warrantyTable.id, {
+      onDelete: "cascade",
+    }),
 
     date: timestamp("date", { withTimezone: true }).defaultNow().notNull(),
 

@@ -92,7 +92,7 @@ export default class SaleService {
 
                     const batch = await ProductService.findBatchByID(p.batchID!, tx);
                     if (!batch) return;
-                
+
                     const newQty = batch.remainingQty - p.soldQty;
                     const willBeEmpty = newQty <= 0;
 
@@ -153,7 +153,7 @@ export default class SaleService {
                         variantID: p.variantID,
                         salePrice: p.salePrice,
                         soldQty: p.soldQty,
-                        warranty: p.warranty??0,
+                        warranty: p.warranty ?? 0,
                     }, tx)
 
                     await ProductService.decreaseVariantStock(p.variantID, p.soldQty, tx);
@@ -298,60 +298,30 @@ export default class SaleService {
             throw new ApiError(400, "Sale can not be deleted");
         }
 
-     
+
 
         await withTransaction(async (tx) => {
 
-               const saleItems = await SaleRepository.getSoldProductsBySaleID(id, tx)
+            const saleItems = await SaleRepository.getSoldProductsBySaleID(id, tx)
+            
             await Promise.all(
                 saleItems
-                    .filter((p) => p.batchID)
                     .map(async (p) => {
-                        const updatedBatch = await ProductService.updateBatchDynamically(
-                            p.batchID!.toString(),
-                            {
-                                inc: {
-                                    remainingQty: p.soldQty,
-                                    soldQty: -p.soldQty,
-                                },
-
-                                set: {
-                                    isActive: true,
-                                },
-                            },
-                            session
+                        await Promise.all(
+                            [
+                                ProductService.increaseBatchStock(p.batchID, p.soldQty, tx),
+                                ProductService.increaseProductStock(p.productID, p.soldQty, tx),
+                                ProductService.increaseVariantStock(p.variantID, p.soldQty, tx)
+                            ]
                         );
-
-                        // fifoBatchID check — এই batch আগের fifo batch হতে পারে
-                        const product = await ProductService.findById(p.productID.toString(), session)
-                        if (updatedBatch && product) {
-                            const currentFifoBatch = await ProductService.findBatchByID(product.fifoBatchID!.toString(), session);
-                            // এই batch এর PurchaseDate আগের fifo batch এর চেয়ে পুরনো হলে update করো
-                            if (
-                                !currentFifoBatch ||
-                                updatedBatch.PurchaseDate < currentFifoBatch.PurchaseDate
-                            ) {
-                                await ProductService.updateProductFifoBatchAndStock(p.productID.toString(), { fifoBatchID: updatedBatch._id.toString() }, session);
-                            }
-                        }
                     })
             );
-
-            // product stock restore
-            await Promise.all(
-                sale.products.map((p) =>
-                    ProductService.updateProductFifoBatchAndStock(
-                        p.productID!.toString(),
-                        { qty: p.soldQty },
-                        session
-                    )
-                )
-            );
-
             // account balance reverse
-
-            const isPaymentHappened: boolean = sale.accounts.length > 0
+            const isPaymentHappened: boolean = sale.paid > 0
             if (isPaymentHappened) {
+                
+                const allTransactions = 
+
                 await AccountService.decreaseBalance(
                     sale.accounts.map((a) => ({
                         ...a,

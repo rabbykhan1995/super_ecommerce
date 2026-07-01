@@ -343,4 +343,13 @@ export default class ProductService {
         return await ProductRepository.increaseVariantStock(variantID, qty, tx);
     }
 
+    
+        static async decreaseBatchStock(batchID: number, qty:number, tx?:QueryClient) {
+        return await ProductRepository.decreaseBatchStock(batchID, qty, tx);
+    }
+
+       static async increaseBatchStock(batchID: number, qty:number, tx?:QueryClient) {
+        return await ProductRepository.increaseBatchStock(batchID, qty, tx);
+    }
+
 }
