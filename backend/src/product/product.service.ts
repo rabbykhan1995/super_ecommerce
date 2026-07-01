@@ -80,7 +80,7 @@ export default class ProductService {
         const { productInput, variants } = payload;
         const hasProductFields = productInput && Object.keys(productInput).length > 0;
 
-       await withTransaction(async (tx) => {
+        await withTransaction(async (tx) => {
             if (hasProductFields) {
 
                 let exist;
@@ -227,8 +227,8 @@ export default class ProductService {
 
         return batch;
     }
-    
-    static async findVariantByID(variantID:number, tx?:QueryClient){
+
+    static async findVariantByID(variantID: number, tx?: QueryClient) {
         return await ProductRepository.findVariantByID(variantID, tx);
     }
 
@@ -273,6 +273,14 @@ export default class ProductService {
     ): Promise<Batch | null> {
 
         return ProductRepository.findBatchByID(id, tx);
+    }
+
+      static async findBatchByIDForSale(
+        id: number,
+        tx?: QueryClient
+    ): Promise<Batch | null> {
+
+        return ProductRepository.findBatchByIDForSale(id, tx);
     }
     static findOneBatch(
         filter: Record<string, any>,
@@ -323,33 +331,37 @@ export default class ProductService {
     static async countProduct(filters: CountProductFilters) {
         return await ProductRepository.countProduct(filters);
     }
-    static async decreaseProductStock(productID: number, qty:number, tx?:QueryClient) {
+    static async decreaseProductStock(productID: number, qty: number, tx?: QueryClient) {
         return await ProductRepository.decreaseProductStock(productID, qty, tx);
     }
 
-       static async increaseProductStock(productID: number, qty:number, tx?:QueryClient) {
+    static async increaseProductStock(productID: number, qty: number, tx?: QueryClient) {
         return await ProductRepository.increaseProductStock(productID, qty, tx);
     }
 
-        static async createStockFlow(payload: stockFlowPayload, tx?:QueryClient) {
+    static async createStockFlow(payload: stockFlowPayload, tx?: QueryClient) {
         return await ProductRepository.createStockFlow(payload, tx);
     }
 
-        static async decreaseVariantStock(variantID: number, qty:number, tx?:QueryClient) {
+    static async decreaseVariantStock(variantID: number, qty: number, tx?: QueryClient) {
         return await ProductRepository.decreaseVariantStock(variantID, qty, tx);
     }
 
-       static async increaseVariantStock(variantID: number, qty:number, tx?:QueryClient) {
+    static async increaseVariantStock(variantID: number, qty: number, tx?: QueryClient) {
         return await ProductRepository.increaseVariantStock(variantID, qty, tx);
     }
 
-    
-        static async decreaseBatchStock(batchID: number, qty:number, tx?:QueryClient) {
+
+    static async decreaseBatchStock(batchID: number, qty: number, tx?: QueryClient) {
         return await ProductRepository.decreaseBatchStock(batchID, qty, tx);
     }
 
-       static async increaseBatchStock(batchID: number, qty:number, tx?:QueryClient) {
+    static async increaseBatchStock(batchID: number, qty: number, tx?: QueryClient) {
         return await ProductRepository.increaseBatchStock(batchID, qty, tx);
+    }
+
+    static async findBatchesByVariantID(variantID: number, tx?: QueryClient) {
+        return ProductRepository.findBatchesByVariantID(variantID, tx);
     }
 
 }

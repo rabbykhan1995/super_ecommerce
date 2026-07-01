@@ -46,20 +46,29 @@ export const warrantyTable = pgTable(
 
     saleID: integer("sale_id")
       .notNull()
-      .references(() => saleTable.id),
+      .references(() => saleTable.id, {
+      onDelete: "cascade",
+    }),
 
     customerID: integer("customer_id").references(() => contactTable.id),
+
     productID: integer("product_id").notNull().references(() => productTable.id),
+
     batchID: integer("batch_id").notNull().references(() => batchTable.id),
 
     serial: varchar("serial", { length: 100 }), // প্রোডাক্টের আইএমইআই (IMEI) বা ইউনিক সিরিয়াল
+
     salePrice: numeric("sale_price", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
+
     warrantyMonths: integer("warranty_months").default(0).notNull(), // কত মাসের ওয়ারেন্টি
+
     
     saleDate: timestamp("sale_date", { withTimezone: true }).notNull(),
+
     expireDate: timestamp("expire_date", { withTimezone: true }), // saleDate + warranty months
 
     status: warrantyStatusEnum("status").default("sold").notNull(),
+
     supplierAction: supplierActionEnum("supplier_action"),
 
     // --- ক্লেইম সংক্রান্ত ফিল্ডস (Claim Phase) ---
@@ -68,23 +77,32 @@ export const warrantyTable = pgTable(
 
     // --- সাপ্লায়ার সংক্রান্ত ফিল্ডস (Supplier Phase) ---
     supplierID: integer("supplier_id").references(() => contactTable.id), // সাপ্লায়ার ও কন্টাক্ট টেবিল এক হওয়ায় রেফারেন্স এক
+
     sentDate: timestamp("sent_date", { withTimezone: true }),
+
     receivedDate: timestamp("received_date", { withTimezone: true }),
+
     supplierNote: text("supplier_note"),
 
     // --- রিপ্লেসমেন্ট সংক্রান্ত ফিল্ডস (Replace Phase) ---
     replacedSerial: varchar("replaced_serial", { length: 100 }),
+
     replacedBatchID: integer("replaced_batch_id").references(() => batchTable.id),
 
     // --- রিফান্ড ও আদার কস্ট (Financial Phase) ---
     // accounts পার্টটি বাদ গিয়েছে, কারণ খরচ বা রিফান্ড হলে সেন্ট্রাল ট্রানজেকশনে হিট করবে
     refundAmount: numeric("refund_amount", { precision: 12, scale: 2, mode:'number' }).default(0).notNull(),
+
     otherCost: numeric("other_cost", { precision: 12, scale: 2 }).default("0").notNull(),
+
     warranty: numeric("warranty", { precision: 4, scale: 2, mode:'number' }).default(0).notNull(),
+
     resolvedDate: timestamp("resolved_date", { withTimezone: true }),
+
     note: text("note"),
 
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [

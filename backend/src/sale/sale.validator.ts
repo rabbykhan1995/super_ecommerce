@@ -19,7 +19,10 @@ export const saleProductSchema = z.object({
 
 export const fifoSaleProductSchema = z.object({
   productID: z
-    .string()
+    .number()
+    .min(1, "Product is required"),
+  variantID: z
+    .number()
     .min(1, "Product is required"),
   soldQty: z
     .number()

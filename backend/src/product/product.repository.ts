@@ -79,6 +79,19 @@ export default class ProductRepository {
 
         return batch ?? null;
     }
+    static async findBatchByIDForSale(
+        batchID: number,
+        client: QueryClient = db
+    ): Promise<Batch | null> {
+        const [batch] = await client
+            .select()
+            .from(batchTable)
+            .where(eq(batchTable.id, batchID))
+            .for("update")
+            .limit(1);
+
+        return batch ?? null;
+    }
 
     static async findOneBatch<
         K extends keyof Batch
@@ -300,6 +313,7 @@ export default class ProductRepository {
     }
     static async findSaleBatches(
         productID: number,
+        variantID: number,
         client: QueryClient = db
     ): Promise<Batch[]> {
         return client
@@ -308,7 +322,7 @@ export default class ProductRepository {
             .where(
                 and(
                     eq(batchTable.productID, productID),
-                    eq(batchTable.isActive, true),
+                    eq(batchTable.variantID, variantID),
                     isNull(batchTable.serial),
                     gt(batchTable.remainingQty, 0)
                 )
@@ -440,7 +454,7 @@ export default class ProductRepository {
     }
 
 
-        static async increaseBatchStock(
+    static async increaseBatchStock(
         batchID: number,
         qty: number,
         client: QueryClient = db
@@ -455,7 +469,7 @@ export default class ProductRepository {
 
         return batch ?? null;
     }
-        static async decreaseBatchStock(
+    static async decreaseBatchStock(
         batchID: number,
         qty: number,
         client: QueryClient = db
@@ -601,6 +615,21 @@ export default class ProductRepository {
             .returning();
 
         return stockFlow ?? null;
+    }
+
+
+    static async findBatchesByVariantID(variantID: number, client: QueryClient = db) {
+        return client
+            .select()
+            .from(batchTable)
+            .where(
+                and(
+                    eq(batchTable.variantID, variantID),
+                    isNull(batchTable.serial),
+                    gt(batchTable.remainingQty, 0)
+
+                )
+            ).orderBy(asc(batchTable.purchaseDate));
     }
 
 }

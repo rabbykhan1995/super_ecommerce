@@ -21,6 +21,17 @@ export default class SaleRepository {
         return sale;
     }
 
+    static async delete(
+        saleID: number,
+        client: QueryClient = db
+    ) {
+        const [sale] = await client
+            .delete(saleTable)
+            .where(eq(saleTable.id, saleID))
+            .returning();
+
+        return sale ?? null;
+    }
     static async create(payload: OnlySalePayload, client: QueryClient = db) {
 
         const result = await client.insert(saleTable).values(payload).returning();
@@ -98,8 +109,8 @@ export default class SaleRepository {
         });
     }
 
-    static async createSaleItem(payload: SaleItemPayload, client: QueryClient = db){
-         const result = await client.insert(saleItemsTable).values(payload).returning();
+    static async createSaleItem(payload: SaleItemPayload, client: QueryClient = db) {
+        const result = await client.insert(saleItemsTable).values(payload).returning();
 
         return result[0];
     }

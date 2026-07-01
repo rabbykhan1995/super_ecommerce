@@ -16,19 +16,11 @@ import PurchaseService from "../purchase/purchase.service";
 import { withTransaction } from "../../utils/withTransaction";
 import { QueryClient } from "../../drizzle/src";
 import { Contact } from "../contact/contact.type";
-import { AccBalancePayload } from "../account/account.type";
 import { Product } from "../product/product.type";
 import { WarrantyPayload } from "../warranty/warranty.type";
-import { text } from "drizzle-orm/sqlite-core";
 import { TransactionPayload } from "../transaction/transaction.type";
 import { LedgerPayload } from "../ledger/ledger.type";
 
-// {
-//         sale: OnlySalePayload,
-//         products: SaleItemPayload[],
-//         accounts: AccBalancePayload[],
-//         exchangeAccounts: AccBalancePayload[]
-//     }
 
 export default class SaleService {
     static async create(payload: CreateSaleInput) {
@@ -49,38 +41,39 @@ export default class SaleService {
 
         }
 
-
-        // stock checking before sale
-        await Promise.all(
-            products.map(async (p) => {
-                const [product, batch, variant] = await Promise.all([
-                    ProductService.findById(p.productID),
-                    p.batchID ? ProductService.findBatchByID(p.batchID) : null,
-                    ProductService.findVariantByID(p.variantID),
-                ]);
-
-                if (!product) throw new ApiError(404, `Product not found`);
-                mainProducts.push(product);
-
-                const soldQty = product.decimal ? Helper.roundQty(p.soldQty) : p.soldQty;
-
-                p.soldQty = soldQty;
-
-                if (!product.manageStock) return;
-
-                if (!batch) throw new ApiError(404, `Batch not found`);
-
-                if (!variant) {
-                    throw new ApiError(404, `Batch not found`);
-                }
-                if (batch.remainingQty < soldQty) {
-                    throw new ApiError(400, `Insufficient stock for ${product.name}. Available: ${batch.remainingQty}`);
-                }
-
-            })
-        );
-
         await withTransaction(async (tx: QueryClient) => {
+
+            // stock checking before sale
+            await Promise.all(
+                products.map(async (p) => {
+                    const [product, batch, variant] = await Promise.all([
+                        ProductService.findById(p.productID),
+                        ProductService.findBatchByID(p.batchID as number),
+                        ProductService.findVariantByID(p.variantID),
+                    ]);
+
+                    if (!product) throw new ApiError(404, `Product not found`);
+                    mainProducts.push(product);
+
+                    const soldQty = product.decimal ? Helper.roundQty(p.soldQty) : p.soldQty;
+
+                    p.soldQty = soldQty;
+
+                    if (!product.manageStock) return;
+
+                    if (!batch) throw new ApiError(404, `Batch not found`);
+
+                    if (!variant) {
+                        throw new ApiError(404, `Batch not found`);
+                    }
+                    if (batch.remainingQty < soldQty) {
+                        throw new ApiError(400, `Insufficient stock for ${product.name}. Available: ${batch.remainingQty}`);
+                    }
+
+                })
+            );
+
+
 
             const salePayload = sale;
 
@@ -90,7 +83,7 @@ export default class SaleService {
             await Promise.all(
                 products.map(async (p) => {
 
-                    const batch = await ProductService.findBatchByID(p.batchID!, tx);
+                    const batch = await ProductService.findBatchByIDForSale(p.batchID!, tx);
                     if (!batch) return;
 
                     const newQty = batch.remainingQty - p.soldQty;
@@ -140,7 +133,7 @@ export default class SaleService {
                         variantID: p.variantID,
                         type: "out",
                         referenceType: "sale",
-                        referenceID: saleCreated.id,
+                        saleID: saleCreated.id,
                         qty: p.soldQty,
                         beforeQty: batch.remainingQty,
                         afterQty: batch.remainingQty - p.soldQty,
@@ -303,7 +296,7 @@ export default class SaleService {
         await withTransaction(async (tx) => {
 
             const saleItems = await SaleRepository.getSoldProductsBySaleID(id, tx)
-            
+
             await Promise.all(
                 saleItems
                     .map(async (p) => {
@@ -316,54 +309,50 @@ export default class SaleService {
                         );
                     })
             );
+
+            const allTransactions = await TransactionService.findBySourceID(sale.id, "sale");
             // account balance reverse
             const isPaymentHappened: boolean = sale.paid > 0
             if (isPaymentHappened) {
-                
-                const allTransactions = 
+
+                const accTrans = allTransactions.filter(a => a.type === "credit");
+
+                const accounts = accTrans.map(a => ({ accountID: a.accountID, amount: a.amount as number }));
 
                 await AccountService.decreaseBalance(
-                    sale.accounts.map((a) => ({
-                        ...a,
-                        accountID: a.accountID!.toString(),
-                    })),
-                    session
+                    accounts, tx
                 );
-
-                await TransactionService.deleteTransactions({ typeID: sale._id }, session);
             }
             const isExchangeHappened: boolean = sale.exchangeAmount > 0;
             if (isExchangeHappened) {
-                await AccountService.increaseBalance(sale.exchangeAccounts.map(a => ({ ...a, accountID: a.accountID.toString() })), session);
+
+                const accTrans = allTransactions.filter(a => a.type === "debit");
+
+                const exchangeAccounts = accTrans.map(a => ({ accountID: a.accountID, amount: a.amount as number }));
+                await AccountService.increaseBalance(exchangeAccounts, tx);
             }
 
             // customer balance restore
             if (sale.customerID) {
                 const rollbackAmount = -(sale.balanceAfter - sale.balanceBefore)
-                await ContactService.balanceUpdate(
-                    sale.customerID.toString(),
+                await ContactService.increaseBalance(
+                    sale.customerID,
                     rollbackAmount,
-                    session
+                    tx
                 );
             }
 
-            await WarrantyService.deleteManyBySaleID(sale._id.toString(), session);
+            await SaleRepository.delete(sale.id, tx);
 
-
-            await LedgerService.deleteLedger({ typeID: sale._id }, session);
-
-            await session.commitTransaction();
 
             await RedisReportService.updateSaleReport({
                 amount: -sale.totalAmount,
-                qty: -sale.products.reduce((sum, p) => sum + p.soldQty, 0),
+                qty: -saleItems.reduce((sum, p) => sum + p.soldQty, 0),
                 due: -(sale.totalAmount - sale.paid),
                 paid: -sale.paid,
                 discount: -(sale.discount ?? 0),
-                date: sale.SaleDate,
+                date: sale.saleDate,
             });
-
-
         })
 
 
@@ -394,9 +383,9 @@ export default class SaleService {
         let customer;
         let mainProducts: any = [];
 
-        if (sale.contactID) {
+        if (sale.customerID) {
             // const contactID = new Types.ObjectId(sale.contactID as string);
-            customer = await ContactService.findByID(sale.contactID);
+            customer = await ContactService.findByID(sale.customerID);
             if (!customer) throw new ApiError(404, "Customer not found");
 
             sale.balanceBefore = customer.balance ?? 0;
@@ -440,19 +429,7 @@ export default class SaleService {
             })
         );
 
-        // transaction শুরু - যেন partial create না হয়
-        const session = await mongoose.startSession();
-        session.startTransaction();
-
-        try {
-            const counter = await SaleCounter.findOneAndUpdate(
-                {},
-                { $inc: { counter: 1 } },
-                { new: true, upsert: true, session }
-            );
-            const invoiceNo: string = `INV-${counter!.counter}`;
-
-
+        await withTransaction(async (tx) => {
             const formattedProducts = products.map(p => ({
                 ...p,
                 productID: p.productID,
@@ -463,9 +440,9 @@ export default class SaleService {
             // purchase create
 
 
-            const salePayload = [{ ...sale, invoiceNo, accounts, products: formattedProducts, customerID: sale.contactID as string, exchangeAccounts: exchangeAccounts }];
 
-            const saleCreated = await SaleRepository.create(salePayload, session);
+
+            const saleCreated = await SaleRepository.create(sale, tx);
 
             //  update each batch by reducing thier remaining stock on PurchaseDate;
             await Promise.all(
@@ -479,11 +456,9 @@ export default class SaleService {
                         return;
                     }
 
-                    const batches = await ProductService.findBatches({
-                        productID: p.productID,
-                        isActive: true,
-                        remainingQty: { $gt: 0 }
-                    });
+                    const batches = await ProductService.findBatchesByVariantID(p.variantID);
+
+
 
                     if (batches.length === 0) {
                         throw new ApiError(400, "No active batches available at this moment");
@@ -496,33 +471,11 @@ export default class SaleService {
                     const newQty = selectedFifoBatch.remainingQty - p.soldQty;
                     const willBeEmpty = newQty <= 0;
 
-                    await ProductService.updateBatchDynamically(selectedFifoBatch._id!.toString(),
+                    await ProductService.updateBatchDynamically(selectedFifoBatch.id,
                         {
                             inc: { remainingQty: -p.soldQty, soldQty: p.soldQty },
                             ...(willBeEmpty && { set: { isActive: false } }),
                         }, session)
-
-                    if (willBeEmpty) {
-                        const nextBatch = await ProductService.findOneBatch({
-                            productID: p.productID,
-                            isActive: true,
-                            remainingQty: { $gt: 0 },
-                        }, session)
-                            .sort({ PurchaseDate: 1 })
-                        if (!!nextBatch) {
-                            await ProductService.updateProductFifoBatchAndStock(
-                                p.productID,
-                                { fifoBatchID: nextBatch._id.toString() ?? null },
-                                session
-                            );
-                        } else {
-                            await ProductService.updateProductFifoBatchAndStock(
-                                p.productID,
-                                { fifoBatchID: undefined },
-                                session
-                            );
-                        }
-                    }
 
 
                     await ProductService.updateProductFifoBatchAndStock(
@@ -588,11 +541,7 @@ export default class SaleService {
                 date: sale.saleDate
             });
             return saleCreated[0]
-        } catch (err) {
-            await session.abortTransaction();
-            throw err;
-        } finally {
-            session.endSession();
-        }
+        })
+
     }
 }

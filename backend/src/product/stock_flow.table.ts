@@ -9,7 +9,6 @@ import {
     index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-
 import { batchTable } from "./batch.table";
 import { productTable } from "./product.table";
 import { variantTable } from "./variant.table";
