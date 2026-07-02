@@ -1,11 +1,11 @@
 import { Document, HydratedDocument, Types } from "mongoose";
 import z from "zod";
-import { createPurchaseReturnSchema } from "./purchase_return.validator";
+import { purchaseReturnSchema, createPurchaseReturnSchema } from "./purchase_return.validator";
 import { purchaseReturnTable } from "./purchase_return.table";
 
 // supplier k ami koto due rakhlam, naki ami supplier k advance dilam,amr perspective theke supplier, 
 export type PurchaseReturn = typeof purchaseReturnTable.$inferSelect;
-export type OnlyPurchaseReturnPayload = z.infer<typeof createPurchaseReturnSchema>;
+export type OnlyPurchaseReturnPayload = z.infer<typeof purchaseReturnSchema>;
 export type CreatePurchaseReturnInput = z.infer<typeof createPurchaseReturnSchema>;
 // export type UpdatePurchaseInput = z.infer<typeof updatePurchaseSchema>;
 

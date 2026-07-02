@@ -32,13 +32,13 @@ export const purchaseReturnTable = pgTable(
 
     note: text("note"),
 
-    totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).default("0").notNull(),
-    paid: numeric("paid", { precision: 12, scale: 2 }).default("0").notNull(),
-    discount: numeric("discount", { precision: 12, scale: 2 }).default("0").notNull(),
+    totalAmount: numeric("total_amount", { precision: 12, scale: 2 , mode:"number" }).default(0).notNull(),
+    paid: numeric("paid", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
+    discount: numeric("discount", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
 
     // Snapshots
-    balanceBefore: numeric("balance_before", { precision: 12, scale: 2 }).default("0").notNull(),
-    balanceAfter: numeric("balance_after", { precision: 12, scale: 2 }).default("0").notNull(),
+    balanceBefore: numeric("balance_before", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
+    balanceAfter: numeric("balance_after", { precision: 12, scale: 2 , mode:"number" }).default(0).notNull(),
 
     date: timestamp("date", { withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

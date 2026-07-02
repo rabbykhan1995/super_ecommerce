@@ -1,9 +1,9 @@
 import mongoose, { Types } from "mongoose";
 import { ApiError } from "../../utils/ApiError";
 import PurchaseService from "../purchase/purchase.service";
-import { CreatePurchaseReturnInput, PurchaseReturnResponse } from "./purchase_return.type";
+import { CreatePurchaseReturnInput, PurchaseReturn } from "./purchase_return.type";
 import ContactService from "../contact/contact.service";
-import { BatchResponse } from "../product/product.type";
+import { Batch } from "../product/product.type";
 import ProductService from "../product/product.service";
 import PurchaseReturnRepository from "./purchase_return.repository";
 import { AccountService } from "../account/account.service";
@@ -11,22 +11,19 @@ import TransactionService from "../transaction/transaction.service";
 import PayloadBuilder from "../../utils/builder";
 import LedgerService from "../ledger/ledger.service";
 import { RedisReportService } from "../../utils/ReportServiceRedis";
+import { withTransaction } from "../../utils/withTransaction";
 
 export default class PurchaseReturnService {
     static async create(payload: CreatePurchaseReturnInput) {
-        const { purchaseID, batches, accounts, note, paid, discount, date } = payload;
+        const { purchaseReturn, accounts, exchangeAccounts, products} = payload;
         // batches = [{ batchID, returnQty, reason }]
         // accounts = [{ accountID, amount }]
-        const purchase = await PurchaseService.purchaseByID(purchaseID);
+        const purchase = await PurchaseService.purchaseByID(purchaseReturn.purchaseID);
 
         if (!purchase) throw new ApiError(404, "Purchase not found");
-        const session = await mongoose.startSession();
-        session.startTransaction();
-
-
-        try {
+        await withTransaction(async(tx)=>{
             // ২. Supplier আনো
-            const supplier = await ContactService.findByID(purchase.supplierID.toString());
+            const supplier = await ContactService.findByID(purchase.supplierID);
             if (!supplier) throw new ApiError(404, "Supplier not found");
 
             // ৩. Batches validate + stock reverse
@@ -34,7 +31,7 @@ export default class PurchaseReturnService {
 
             const batchDetails = await Promise.all(
                 batches.map(async (item: any) => {
-                    const batch: BatchResponse | null = await ProductService.findBatchByID(item._id, session);
+                    const batch: Batch | null = await ProductService.findBatchByID(item._id, session);
 
                     if (!batch) throw new ApiError(404, `Batch not found: ${item.batchID}`);
 
@@ -145,12 +142,7 @@ export default class PurchaseReturnService {
 
 
 
-        } catch (error) {
-            await session.abortTransaction();
-            throw error;
-        } finally {
-            session.endSession();
-        }
+        })
     }
 
     static async list(query: any) {
@@ -175,7 +167,7 @@ export default class PurchaseReturnService {
     }
 
     static async delete(id: string) {
-        const purchaseReturn: PurchaseReturnResponse | null = await PurchaseReturnRepository.purchaseReturnByID(id)
+        const purchaseReturn: PurchaseReturn | null = await PurchaseReturnRepository.purchaseReturnByID(id)
         if (!purchaseReturn) throw new ApiError(404, "Purchase return not found");
 
         const session = await mongoose.startSession();

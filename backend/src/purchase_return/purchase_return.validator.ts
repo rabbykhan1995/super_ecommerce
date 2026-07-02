@@ -11,6 +11,7 @@ export const purchaseReturnItemSchema = z.object({
 
 export const purchaseReturnSchema = z.object({
     purchaseID: z.number(),
+    supplierID:z.number(),
     note: z.string().optional(),
     discount: z.number().default(0),
     paid: z.number().min(0),
