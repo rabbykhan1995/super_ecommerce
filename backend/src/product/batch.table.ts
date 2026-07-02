@@ -13,6 +13,7 @@ import { variantTable } from "./variant.table";
 import { relations } from "drizzle-orm";
 import { purchaseTable } from "../purchase/purchase.table";
 import { stockFlowTable } from "./stock_flow.table";
+import { purchaseReturnItemsTable } from "../purchase_return/purchase_return.table";
 
 // export const batchTable = pgTable(
 //     "batches",
@@ -176,4 +177,6 @@ export const batchRelations = relations(batchTable, ({ one, many }) => ({
     references: [purchaseTable.id],
   }),
   stockFlows: many(stockFlowTable),
+
+  purchaseReturnItems:many(purchaseReturnItemsTable),
 }));

@@ -13,6 +13,7 @@ import * as saleSchema from "../src/sale/sale.table"
 import * as saleItemsSchema from "../src/sale/sale_items.table"
 import * as contactSchema from "../src/contact/contact.table"
 import * as purchaseSchema from "../src/purchase/purchase.table"
+import * as purchaseReturnSchema from "../src/purchase_return/purchase_return.table"
 // সব টেবিল এবং তাদের রিলেশন একসাথে কম্বাইন করা হলো
 export const dbSchema = {
   ...productSchema,
@@ -29,4 +30,5 @@ export const dbSchema = {
   ...saleSchema,
   ...saleItemsSchema,
   ...purchaseSchema,
+  ...purchaseReturnSchema,
 };

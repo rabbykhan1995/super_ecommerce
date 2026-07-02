@@ -248,11 +248,11 @@ export default class PurchaseService {
     return await PurchaseRepository.list(query);
   }
 
-  // static async purchaseUpdateDynamic(id: string,
-  //   payload: Partial<Purchase>,
-  //   session?: ClientSession) {
-  //   return await PurchaseRepository.purchaseUpdateDynamic(id,
-  //     payload,
-  //     session);
-  // }
+  static async purchaseUpdateDynamic(id: number,
+    payload: Partial<Purchase>,
+    tx?: QueryClient) {
+    return await PurchaseRepository.purchaseUpdateDynamic(id,
+      payload,
+      tx);
+  }
 }

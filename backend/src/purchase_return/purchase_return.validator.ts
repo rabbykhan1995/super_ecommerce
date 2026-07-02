@@ -1,22 +1,29 @@
 import { z } from "zod";
-import { Types } from "mongoose";
+import { paymentAccountSchema } from "../account/account.validator";
 
+export const purchaseReturnItemSchema = z.object({
+        productID: z.number(),
+        batchID: z.number(),
+        variantID: z.number(),
+        purchaseReturnQty: z.number().positive(),
+        reason: z.string().optional(),
+    })
 
-export const createPurchaseReturnSchema = z.object({
-    purchaseID: z.string().refine(val => Types.ObjectId.isValid(val)),
+export const purchaseReturnSchema = z.object({
+    purchaseID: z.number(),
     note: z.string().optional(),
     discount: z.number().default(0),
     paid: z.number().min(0),
-    batches: z.array(z.object({
-        batchID: z.string().refine(val => Types.ObjectId.isValid(val)),
-        purchaseReturnQty: z.number().positive(),
-        reason: z.string().optional(),
-    })).min(1),
-    accounts: z.array(z.object({
-        accountID: z.string().refine(val => Types.ObjectId.isValid(val)),
-        amount: z.number().positive(),
-    })).optional().default([]),
+    exchagneAmount: z.number().min(0),
     date: z
         .coerce
-        .date({ message: "Purchase date must be a valid date" })
+        .date({ message: "Purchase Return date must be a valid date" })
+})
+
+
+export const createPurchaseReturnSchema = z.object({
+    purchaseReturn:purchaseReturnSchema,
+    products: z.array(purchaseReturnItemSchema).min(1),
+    accounts: paymentAccountSchema,
+    exchangeAccounts: paymentAccountSchema,
 });

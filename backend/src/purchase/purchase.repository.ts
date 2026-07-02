@@ -11,7 +11,7 @@ export default class PurchaseRepository {
     ): Promise<Purchase> {
 
         const [purchase] = await client.insert(purchaseTable).values(payload).returning();
-            
+
         return purchase;
     }
 
@@ -28,14 +28,14 @@ export default class PurchaseRepository {
         return purchase
     }
 
-    static async deletePurchaseByID(purchaseID: number, client: QueryClient=db) {
+    static async deletePurchaseByID(purchaseID: number, client: QueryClient = db) {
         const deleted = await client.delete(purchaseTable).where(eq(purchaseTable.id, purchaseID))
 
         return deleted;
 
     }
 
-     static async list(query: {
+    static async list(query: {
         page?: number;
         limit?: number;
         search?: string;
@@ -50,6 +50,18 @@ export default class PurchaseRepository {
             search: query.search,
         });
     }
-    
- 
+
+    static async purchaseUpdateDynamic(
+        purchaseID: number,
+        data: Partial<typeof purchaseTable.$inferInsert>,
+        client: QueryClient = db
+    ) {
+        const [updated] = await client
+            .update(purchaseTable)
+            .set(data)
+            .where(eq(purchaseTable.id, purchaseID))
+            .returning();
+
+        return updated;
+    }
 }

@@ -8,13 +8,13 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-
 import { contactTable } from "../contact/contact.table";
 import { productTable } from "../product/product.table";
 import { batchTable } from "../product/batch.table";
 import { purchaseTable } from "../purchase/purchase.table";
 import { ledgerTable } from "../ledger/ledger.table";
 import { transactionTable } from "../transaction/transaction.table";
+import { variantTable } from "../product/variant.table";
 
 // --- ১. মূল পারচেজ রিটার্ন টেবিল ---
 export const purchaseReturnTable = pgTable(
@@ -69,6 +69,10 @@ export const purchaseReturnItemsTable = pgTable(
       .notNull()
       .references(() => productTable.id),
 
+        variantID: integer("variant_id")
+      .notNull()
+      .references(() => variantTable.id),
+
     purchaseReturnedQty: numeric("purchase_returned_qty", { precision: 10, scale: 2 }).default("0").notNull(),
     purchasePrice: numeric("purchase_price", { precision: 12, scale: 2 }).default("0").notNull(),
     reason: text("reason"),
@@ -76,6 +80,7 @@ export const purchaseReturnItemsTable = pgTable(
   (table) => [
     index("pr_items_return_id_idx").on(table.purchaseReturnID),
     index("pr_items_batch_id_idx").on(table.batchID),
+     index("pr_items_variant_id_idx").on(table.variantID),
   ]
 );
 
@@ -107,5 +112,9 @@ export const purchaseReturnItemsRelations = relations(purchaseReturnItemsTable, 
   product: one(productTable, {
     fields: [purchaseReturnItemsTable.productID],
     references: [productTable.id],
+  }),
+    variant: one(variantTable, {
+    fields: [purchaseReturnItemsTable.variantID],
+    references: [variantTable.id],
   }),
 }));
