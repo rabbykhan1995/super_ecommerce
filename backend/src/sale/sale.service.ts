@@ -409,7 +409,7 @@ export default class SaleService {
                         variantID: batch.variantID,
                         salePrice: p.salePrice,
                         soldQty: p.soldQty,
-                        warranty:0,
+                        warranty: 0,
                     }, tx)
 
                 }
@@ -468,7 +468,8 @@ export default class SaleService {
 
                 for (const item of allocations) {
 
-                    await ProductService.createStockFlow({
+                    await Promise.all([
+                        await ProductService.createStockFlow({
                         productID: p.productID,
                         batchID: item.batchID,
                         variantID: p.variantID,
@@ -478,7 +479,7 @@ export default class SaleService {
                         qty: item.qty,
                         beforeQty: item.beforeQty,
                         afterQty: item.afterQty,
-                    }, tx);
+                    }, tx),
 
                     await SaleRepository.createSaleItem({
                         saleID: saleCreated.id,
@@ -488,13 +489,18 @@ export default class SaleService {
                         salePrice: p.salePrice,
                         soldQty: item.qty,
                         warranty: 0,
-                    }, tx);
+                    }, tx),
 
                     await ProductService.decreaseBatchStock(
                         item.batchID,
                         item.qty,
                         tx
-                    );
+                    ),
+
+                    await ProductService.decreaseProductStock(p.productID, item.qty, tx),
+
+                    await ProductService.decreaseVariantStock(p.variantID, item.qty, tx)
+                ])
 
                 }
                 // __________________
@@ -503,7 +509,7 @@ export default class SaleService {
             }))
             // purchase create
             const saleCreated = await SaleRepository.create(sale, tx);
-            
+
             //  Accounts
             const isPaymentHappened: boolean = saleCreated.paid > 0;
             if (isPaymentHappened) {

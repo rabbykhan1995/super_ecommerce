@@ -1,12 +1,12 @@
 import {
-    pgTable,
-    timestamp,
-    serial,
-    boolean,
-    integer,
-    numeric,
-    index,
-    varchar,
+  pgTable,
+  timestamp,
+  serial,
+  boolean,
+  integer,
+  numeric,
+  index,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { productTable } from "./product.table";
 import { variantTable } from "./variant.table";
@@ -97,14 +97,14 @@ export const batchTable = pgTable(
       .references(() => variantTable.id),
 
     purchaseID: integer("purchase_id").references(
-      () => purchaseTable.id
+      () => purchaseTable.id, { onDelete: "cascade" }
     ),
 
     // Purchase snapshot
     cost: numeric("cost", {
       precision: 12,
       scale: 2,
-      mode:"number"
+      mode: "number"
     })
       .default(0)
       .notNull(),
@@ -113,7 +113,7 @@ export const batchTable = pgTable(
       precision: 12,
       scale: 2
       ,
-      mode:"number"
+      mode: "number"
     })
       .default(0)
       .notNull(),
@@ -122,7 +122,7 @@ export const batchTable = pgTable(
     remainingQty: numeric("remaining_qty", {
       precision: 12,
       scale: 2,
-      mode:"number"
+      mode: "number"
     })
       .default(0)
       .notNull(),
@@ -162,18 +162,18 @@ export const batchTable = pgTable(
 
 
 export const batchRelations = relations(batchTable, ({ one, many }) => ({
-    product: one(productTable, {
-        fields: [batchTable.productID],
-        references: [productTable.id],
-    }),
-    variant: one(variantTable, {
-        fields: [batchTable.variantID],
-        references: [variantTable.id],
-    }),
+  product: one(productTable, {
+    fields: [batchTable.productID],
+    references: [productTable.id],
+  }),
+  variant: one(variantTable, {
+    fields: [batchTable.variantID],
+    references: [variantTable.id],
+  }),
 
-    purchase: one(purchaseTable, {
-        fields: [batchTable.purchaseID],
-        references: [purchaseTable.id],
-    }),
-        stockFlows: many(stockFlowTable),
+  purchase: one(purchaseTable, {
+    fields: [batchTable.purchaseID],
+    references: [purchaseTable.id],
+  }),
+  stockFlows: many(stockFlowTable),
 }));

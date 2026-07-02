@@ -1,7 +1,7 @@
 import mongoose, { ClientSession } from "mongoose";
 import { ApiError } from "../../utils/ApiError";
 import ContactService from "../contact/contact.service";
-import { CreatePurchaseInput, IPurchase } from "./purchase.type";
+import { CreatePurchaseInput, Purchase } from "./purchase.type";
 import PurchaseRepository from "./purchase.repository";
 import PayloadBuilder from "../../utils/builder";
 import ProductService from "../product/product.service";
@@ -10,6 +10,7 @@ import TransactionService from "../transaction/transaction.service";
 import LedgerService from "../ledger/ledger.service";
 import { RedisReportService } from "../../utils/ReportServiceRedis";
 import { QueryClient } from "../../drizzle/src";
+import { withTransaction } from "../../utils/withTransaction";
 
 export default class PurchaseService {
   static async create(payload: CreatePurchaseInput) {
@@ -22,16 +23,12 @@ export default class PurchaseService {
 
     if (!supplier) throw new ApiError(404, "Supplier not found");
 
-    const balanceBefore = supplier.balance ?? 0;
-    const balanceAfter = purchase.totalAmount + balanceBefore - purchase.paid;
+    purchase.balanceBefore = supplier.balance ?? 0;
+    purchase.balanceAfter = purchase.totalAmount + purchase.balanceBefore - purchase.paid;
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    await withTransaction(async (tx) => {
 
-    try {
-      const invoiceNo = await PurchaseRepository.getPurchaseInvoiceNo(session);
-
-      const purchaseCreated = await PurchaseRepository.purchaseCreate({ ...purchase, PurchaseDate: purchase.purchaseDate, invoiceNo, balanceBefore, balanceAfter, accounts }, session)
+      const purchaseCreated:Purchase = await PurchaseRepository.purchaseCreate(purchase, tx)
 
       const batches =
         PayloadBuilder.batch(
@@ -42,7 +39,7 @@ export default class PurchaseService {
           }
         );
 
-      const batchesCreated = await ProductService.createBatches(batches, session);
+      const batchesCreated = await ProductService.createBatch(batches, session);
 
       // product stock and fifo batch update
       await Promise.all(
@@ -89,7 +86,7 @@ export default class PurchaseService {
         // transaction create
         await TransactionService.create(transactionPayload, session);
 
-        const isExchangeHappened:boolean = purchase.exchangeAmount>0;
+        const isExchangeHappened: boolean = purchase.exchangeAmount > 0;
 
         if (isExchangeHappened) {
           await AccountService.increaseBalance(exchangeAccounts, session);
@@ -151,12 +148,11 @@ export default class PurchaseService {
 
       return purchaseCreated[0];
 
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    })
+
+
+
+
   }
 
   static async delete(purchaseID: string) {
@@ -262,7 +258,7 @@ export default class PurchaseService {
     return purchase
   }
 
-  static async purchaseByID(id: number, tx?:QueryClient) {
+  static async purchaseByID(id: number, tx?: QueryClient) {
     return await PurchaseRepository.findByID(id, tx);
   }
 

@@ -12,12 +12,13 @@ import * as balanceTransferSchema from "../src/account/balance_transfer.table"
 import * as saleSchema from "../src/sale/sale.table"
 import * as saleItemsSchema from "../src/sale/sale_items.table"
 import * as contactSchema from "../src/contact/contact.table"
+import * as purchaseSchema from "../src/purchase/purchase.table"
 // সব টেবিল এবং তাদের রিলেশন একসাথে কম্বাইন করা হলো
 export const dbSchema = {
   ...productSchema,
   ...variantSchema,
   ...batchSchema,
-    ...stockFlowSchema,
+  ...stockFlowSchema,
   ...brandSchema,
   ...categorySchema,
   ...unitSchema,
@@ -27,4 +28,5 @@ export const dbSchema = {
   ...balanceTransferSchema,
   ...saleSchema,
   ...saleItemsSchema,
+  ...purchaseSchema,
 };

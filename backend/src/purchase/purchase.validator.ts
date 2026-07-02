@@ -4,9 +4,11 @@ import { paymentAccountSchema } from "../account/account.validator";
 
 export const purchaseProductSchema = z.object({
   productID: z
-    .string()
+    .number()
     .min(1, { message: "Product is required" }),
-
+  variantID: z
+    .number()
+    .min(1, { message: "Variant is required" }),
   serial: z.string().optional().nullable(),
 
   purchasedQty: z
@@ -52,10 +54,9 @@ export const purchaseProductSchema = z.object({
 });
 
 export const purchaseSchema = z.object({
-  invoiceNo: z.string().trim().optional(),
 
   supplierID: z
-    .string()
+    .number()
     .min(1, { message: "Supplier is required" }),
 
   note: z.string().optional().nullable(),
