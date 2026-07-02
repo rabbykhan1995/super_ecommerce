@@ -35,14 +35,14 @@ export default class PurchaseRepository {
        static async findByID(
         purchaseID: number,
         client: QueryClient = db
-    ): Promise<Purchase | null> {
+    ): Promise<Purchase> {
         const [purchase] = await client
             .select()
             .from(purchaseTable)
             .where(eq(purchaseTable.id, purchaseID))
             .limit(1);
 
-        return purchase ?? null;
+        return purchase
     }
 
     static async deletePurchaseByID(id: string, session?: ClientSession) {

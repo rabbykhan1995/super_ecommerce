@@ -246,10 +246,26 @@ export default class ProductRepository {
             .where(
                 and(
                     eq(batchTable.productID, productID),
-                    eq(batchTable.isActive, true),
                     gt(batchTable.remainingQty, 0)
                 )
             )
+            .orderBy(asc(batchTable.purchaseDate));
+    }
+
+       static async fifoBatchesByVariantID(
+        variantID: number,
+        client: QueryClient = db
+    ): Promise<Batch[]> {
+        return client
+            .select()
+            .from(batchTable)
+            .where(
+                and(
+                    eq(batchTable.variantID, variantID),
+                    gt(batchTable.remainingQty, 0)
+                )
+            )
+            .for("update")
             .orderBy(asc(batchTable.purchaseDate));
     }
 

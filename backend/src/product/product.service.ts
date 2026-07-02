@@ -328,6 +328,14 @@ export default class ProductService {
         return batches![0];
     }
 
+        static async getFifoBatchesByVariantID(variantID: number) {
+        const batches = await ProductRepository.fifoBatchesByVariantID(
+            variantID
+        );
+
+        return batches;
+    }
+
     static async countProduct(filters: CountProductFilters) {
         return await ProductRepository.countProduct(filters);
     }

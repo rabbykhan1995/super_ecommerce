@@ -2,9 +2,10 @@ import { ClientSession } from "mongoose";
 import Warranty from "./warranty.model";
 import { paginatedAggregate } from "../../utils/queryBuilder";
 import { IWarranty, WarrantyResponse } from "./warranty.type";
+import db, { QueryClient } from "../../drizzle/src";
 
 export default class WarrantyRepositoy {
-    static async create(payload: any, session?: ClientSession) {
+    static async create(payload: any, client: QueryClient = db) {
         return await Warranty.create([payload], { session });
     }
 

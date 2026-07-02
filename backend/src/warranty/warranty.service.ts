@@ -2,16 +2,17 @@ import mongoose, { ClientSession } from "mongoose";
 import { CreateWarrantyInput } from "./warranty.validator";
 import WarrantyRepositoy from "./warranty.repository";
 import { ApiError } from "../../utils/ApiError";
-import { IWarranty, WarrantyResponse, WarrantyStatus } from "./warranty.type";
+import { IWarranty, WarrantyPayload, WarrantyResponse, WarrantyStatus } from "./warranty.type";
 import { AccountService } from "../account/account.service";
 import { BatchResponse } from "../product/product.type";
 import ProductService from "../product/product.service";
 import PayloadBuilder, { BatchPayloadItem } from "../../utils/builder";
 import SaleService from "../sale/sale.service";
+import { QueryClient } from "../../drizzle/src";
 
 export default class WarrantyService {
-    static async create(payload: CreateWarrantyInput, session?: ClientSession) {
-        const warranty = await WarrantyRepositoy.create(payload, session);
+    static async create(payload: WarrantyPayload, tx?: QueryClient) {
+        const warranty = await WarrantyRepositoy.create(payload, tx);
         if (!warranty) {
             throw new ApiError(401, "Warranty not created");
         }
