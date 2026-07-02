@@ -262,14 +262,15 @@ export default class SaleService {
     }
 
     static async delete(id: number) {
+        
         const sale = await SaleRepository.getSaleByID(id);
+
         if (!sale) throw new ApiError(404, "Sale not found");
 
         if (!sale.deletable) {
+
             throw new ApiError(400, "Sale can not be deleted");
         }
-
-
 
         await withTransaction(async (tx) => {
 

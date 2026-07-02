@@ -1,7 +1,7 @@
 import { ApiError } from "../../utils/ApiError";
 import Helper from "../../utils/helper";
 import ProductRepository from "./product.repository";
-import { CreateProductInput, Batch, Product, UpdateProductInput, VariantPayload, stockFlowPayload } from "./product.type";
+import { CreateProductInput, Batch, Product, UpdateProductInput, VariantPayload, stockFlowPayload, BatchPayload } from "./product.type";
 import { QueryClient } from "../../drizzle/src";
 import { withTransaction } from "../../utils/withTransaction";
 
@@ -275,7 +275,7 @@ export default class ProductService {
         return ProductRepository.findBatchByID(id, tx);
     }
 
-      static async findBatchByIDForSale(
+    static async findBatchByIDForSale(
         id: number,
         tx?: QueryClient
     ): Promise<Batch | null> {
@@ -328,7 +328,7 @@ export default class ProductService {
         return batches![0];
     }
 
-        static async getFifoBatchesByVariantID(variantID: number) {
+    static async getFifoBatchesByVariantID(variantID: number) {
         const batches = await ProductRepository.fifoBatchesByVariantID(
             variantID
         );
@@ -371,5 +371,14 @@ export default class ProductService {
     static async findBatchesByVariantID(variantID: number, tx?: QueryClient) {
         return ProductRepository.findBatchesByVariantID(variantID, tx);
     }
+
+    static async createBatch(payload: BatchPayload, tx?: QueryClient) {
+        return ProductRepository.createBatch(payload, tx);
+    }
+
+    static async findBatchesByPurchaseID(purchaseID: number, tx?: QueryClient) {
+        return ProductRepository.findBatchesByPurchaseID(purchaseID, tx);
+    }
+
 
 }

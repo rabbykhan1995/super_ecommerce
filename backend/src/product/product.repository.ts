@@ -252,7 +252,7 @@ export default class ProductRepository {
             .orderBy(asc(batchTable.purchaseDate));
     }
 
-       static async fifoBatchesByVariantID(
+    static async fifoBatchesByVariantID(
         variantID: number,
         client: QueryClient = db
     ): Promise<Batch[]> {
@@ -648,5 +648,11 @@ export default class ProductRepository {
             ).orderBy(asc(batchTable.purchaseDate));
     }
 
+    static async findBatchesByPurchaseID(purchaseID: number, client: QueryClient = db) {
+        return client
+            .select()
+            .from(batchTable)
+            .where(eq(batchTable.purchaseID, purchaseID));
+    }
 }
 
