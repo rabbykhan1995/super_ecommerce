@@ -17,10 +17,7 @@ import LedgerService from "../ledger/ledger.service";
 import { RedisReportService } from "../../utils/ReportServiceRedis";
 import { withTransaction } from "../../utils/withTransaction";
 import { LedgerPayload } from "../ledger/ledger.type";
-import {
-  Transaction,
-  TransactionPayload,
-} from "../transaction/transaction.type";
+import { TransactionPayload } from "../transaction/transaction.type";
 
 export default class PurchaseReturnService {
   static async create(payload: CreatePurchaseReturnInput) {
@@ -202,21 +199,6 @@ export default class PurchaseReturnService {
 
   static async list(query: any) {
     return await PurchaseReturnRepository.list(query);
-  }
-
-  static async purchaseReturnInvoiceByID(id: string) {
-    const result = await PurchaseReturnRepository.purchaseReturnInvoiceByID(id);
-
-    if (!result) {
-      throw new ApiError(404, "Purchase Invoice generation failed");
-    }
-
-    return result;
-  }
-
-  static async getPurchaseReturnBatches(purchaseID: string) {
-    // এই purchaseID দিয়ে batch আছে কিনা
-    return await PurchaseReturnRepository.getPurchaseReturnBatches(purchaseID);
   }
 
   static async delete(purchaseReturnID: number) {

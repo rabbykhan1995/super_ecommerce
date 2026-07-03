@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1782137506812,
-      "tag": "0000_warm_nighthawk",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1782380702681,
-      "tag": "0001_lovely_ink",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1782380780265,
-      "tag": "0002_natural_callisto",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1782381639249,
-      "tag": "0003_smooth_doctor_doom",
+      "when": 1783081387481,
+      "tag": "0000_pale_rockslide",
       "breakpoints": true
     }
   ]

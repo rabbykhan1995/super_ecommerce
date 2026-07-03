@@ -10,6 +10,7 @@ import * as transactionSchema from "../src/transaction/transaction.table";
 import * as accountSchema from "../src/account/account.table";
 import * as balanceTransferSchema from "../src/account/balance_transfer.table"
 import * as saleSchema from "../src/sale/sale.table"
+import * as saleReturnSchema from "../src/sale_return/sale_return.table"
 import * as saleItemsSchema from "../src/sale/sale_items.table"
 import * as contactSchema from "../src/contact/contact.table"
 import * as purchaseSchema from "../src/purchase/purchase.table"
@@ -31,4 +32,5 @@ export const dbSchema = {
   ...saleItemsSchema,
   ...purchaseSchema,
   ...purchaseReturnSchema,
+  ...saleReturnSchema,
 };

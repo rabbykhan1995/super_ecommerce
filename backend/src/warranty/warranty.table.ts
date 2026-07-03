@@ -93,7 +93,7 @@ export const warrantyTable = pgTable(
     // accounts পার্টটি বাদ গিয়েছে, কারণ খরচ বা রিফান্ড হলে সেন্ট্রাল ট্রানজেকশনে হিট করবে
     refundAmount: numeric("refund_amount", { precision: 12, scale: 2, mode:'number' }).default(0).notNull(),
 
-    otherCost: numeric("other_cost", { precision: 12, scale: 2 }).default("0").notNull(),
+    otherCost: numeric("other_cost", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
 
     warranty: numeric("warranty", { precision: 4, scale: 2, mode:'number' }).default(0).notNull(),
 
