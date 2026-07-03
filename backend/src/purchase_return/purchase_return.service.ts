@@ -1,240 +1,313 @@
-import mongoose, { Types } from "mongoose";
 import { ApiError } from "../../utils/ApiError";
 import PurchaseService from "../purchase/purchase.service";
-import { CreatePurchaseReturnInput, PurchaseReturn } from "./purchase_return.type";
+import {
+  CreatePurchaseReturnInput,
+  OnlyPurchaseReturnPayload,
+  PurchaseReturn,
+  PurchaseReturnItem,
+  PurchaseReturnItemPayload,
+} from "./purchase_return.type";
 import ContactService from "../contact/contact.service";
-import { Batch } from "../product/product.type";
+import { Batch, stockFlowPayload } from "../product/product.type";
 import ProductService from "../product/product.service";
 import PurchaseReturnRepository from "./purchase_return.repository";
 import { AccountService } from "../account/account.service";
 import TransactionService from "../transaction/transaction.service";
-import PayloadBuilder from "../../utils/builder";
 import LedgerService from "../ledger/ledger.service";
 import { RedisReportService } from "../../utils/ReportServiceRedis";
 import { withTransaction } from "../../utils/withTransaction";
+import { LedgerPayload } from "../ledger/ledger.type";
+import {
+  Transaction,
+  TransactionPayload,
+} from "../transaction/transaction.type";
 
 export default class PurchaseReturnService {
-    static async create(payload: CreatePurchaseReturnInput) {
-        const { purchaseReturn, accounts, exchangeAccounts, products} = payload;
-        // batches = [{ batchID, returnQty, reason }]
-        // accounts = [{ accountID, amount }]
-        const purchase = await PurchaseService.purchaseByID(purchaseReturn.purchaseID);
+  static async create(payload: CreatePurchaseReturnInput) {
+    const { purchaseReturn, accounts, exchangeAccounts, products } = payload;
+    // batches = [{ batchID, returnQty, reason }]
+    // accounts = [{ accountID, amount }]
+    const purchase = await PurchaseService.purchaseByID(
+      purchaseReturn.purchaseID,
+    );
 
-        if (!purchase) throw new ApiError(404, "Purchase not found");
-        await withTransaction(async(tx)=>{
-            // ২. Supplier আনো
-            const supplier = await ContactService.findByID(purchase.supplierID);
-            if (!supplier) throw new ApiError(404, "Supplier not found");
+    if (!purchase) throw new ApiError(404, "Purchase not found");
+    await withTransaction(async (tx) => {
+      // ২. Supplier আনো
+      const supplier = await ContactService.findByID(purchase.supplierID);
+      if (!supplier) throw new ApiError(404, "Supplier not found");
 
-            // ৩. Batches validate + stock reverse
-            let totalReturnAmount = 0;
+      // ৩. Batches validate + stock reverse
+      let totalReturnAmount = products.reduce(
+        (acc, p) => acc + p.returnPrice,
+        0,
+      );
 
-            const batchDetails = await Promise.all(
-                batches.map(async (item: any) => {
-                    const batch: Batch | null = await ProductService.findBatchByID(item._id, session);
+      const purchaseReturnPayload: OnlyPurchaseReturnPayload = {
+        purchaseID: purchase.id,
+        supplierID: supplier.id,
+        note: purchaseReturn.note,
+        paid: purchaseReturn.paid,
+        balanceBefore: supplier.balance,
+        exchagneAmount: purchaseReturn.exchagneAmount,
+        balanceAfter: purchaseReturn.balanceAfter,
+        discount: purchaseReturn.discount ?? 0,
+        date: purchaseReturn.date,
+      };
+      const purchaseReturnCreated =
+        await PurchaseReturnRepository.purchaseReturnCreate(
+          purchaseReturnPayload,
+          tx,
+        );
+      await Promise.all(
+        products.map(async (p) => {
+          const batch: Batch | null = await ProductService.findBatchByID(
+            p.batchID,
+            tx,
+          );
 
-                    if (!batch) throw new ApiError(404, `Batch not found: ${item.batchID}`);
-
-                    const alreadyReturned = batch.purchaseReturnedQty ?? 0;
-                    const maxReturnable = batch.purchasedQty - alreadyReturned;
-
-                    if (item.purchaseReturnQty > maxReturnable) {
-                        throw new ApiError(400, `Max returnable qty is ${maxReturnable}`);
-                    }
-
-                    totalReturnAmount += item.purchaseReturnQty * batch.purchasePrice;
-
-                    // Batch returnedQty বাড়াও
-                    await ProductService.updateBatchDynamically(item.batchID, { inc: { purchaseReturnedQty: item.purchaseReturnQty, remainingQty: -item.purchaseReturnQty } }, session)
-
-                    // Product stock কমাও
-                    await ProductService.updateProductFifoBatchAndStock(batch.productID.toString(), { qty: -item.purchaseReturnQty }, session)
-
-                    return {
-                        batchID: batch._id,
-                        productID: batch.productID,
-                        purchaseReturnedQty: item.purchaseReturnQty,
-                        purchasePrice: batch.purchasePrice,
-                        reason: item.reason,
-                    };
-                })
+          if (!batch) throw new ApiError(404, `Batch not found: ${p.batchID}`);
+          const allPurchaseFlows =
+            await ProductService.findStockFlowDynamically(
+              p.batchID,
+              "purchaseID",
+              purchase.id,
             );
 
-            const totalPaid = accounts.reduce((s: number, a: any) => s + a.amount, 0);
-            const purchaseReturnPayload = {
-                purchaseID: purchase._id,
-                supplierID: supplier._id,
-                note,
-                totalAmount: totalReturnAmount,
-                paid: totalPaid,
-                balanceBefore: supplier.balance,
-                balanceAfter: supplier.balance,
-                discount: discount ?? 0,
-                accounts,
-                batches: batchDetails,
-                date: date,
+          const previousReturnedFlow = allPurchaseFlows.filter(
+            (f) => f.type === "out",
+          );
+          const alreadyReturned: number = previousReturnedFlow.reduce(
+            (acc, f) => f.qty + acc,
+            0,
+          );
 
-            }
-            const purchaseReturn = await PurchaseReturnRepository.createPurchaseReturn(purchaseReturnPayload, session);
+          const maxReturnable = batch.purchasedQty - alreadyReturned;
 
-            // ৪. Account balance বাড়াও (টাকা ফেরত দিচ্ছো)
+          if (p.purchaseReturnQty > maxReturnable) {
+            throw new ApiError(400, `Max returnable qty is ${maxReturnable}`);
+          }
 
-            if (totalPaid > 0 && accounts.length > 0) {
-                await AccountService.increaseBalance(accounts, session);
+          const stockFlowPayload: stockFlowPayload = {
+            batchID: p.batchID,
+            productID: p.productID,
+            type: "out",
+            referenceType: "purchase_return",
+            purchaseID: purchase.id,
+            purchaseReturnID: purchaseReturnCreated.id,
+          };
 
-                // Transaction create
-                const groupID = new Types.ObjectId();
+          const purchaseReturnItemPayload: PurchaseReturnItemPayload = {
+            batchID: p.batchID,
+            productID: p.productID,
+            variantID: p.variantID,
+            purchaseReturnID: purchaseReturnCreated.id,
+            purchasePrice: batch.cost,
+            purchaseReturnedQty: p.purchaseReturnQty,
+            reason: p.reason,
+          };
+          // batch stock decrease + product stock decrease + variantStock decrease + stock flow create + return item create
+          await Promise.all([
+            ProductService.decreaseBatchStock(p.batchID, totalReturnAmount, tx),
+            ProductService.decreaseVariantStock(
+              p.variantID,
+              totalReturnAmount,
+              tx,
+            ),
+            ProductService.decreaseProductStock(
+              p.productID,
+              totalReturnAmount,
+              tx,
+            ),
+            ProductService.createStockFlow(stockFlowPayload, tx),
+            PurchaseReturnRepository.purchaseReturnItemCreate(
+              purchaseReturnItemPayload,
+              tx,
+            ),
+          ]);
+        }),
+      );
 
-                const transactionPayloads = PayloadBuilder.transaction(accounts, {
-                    groupID,
-                    type: "purchase_return",
-                    typeID: purchaseReturn._id,
-                    typeModel: "PurchaseReturn",
-                    contactID: supplier._id,
-                    note,
-                    accountField: "toAccount",
-                    status: "completed",
-                    date: purchaseReturn.date,
-                })
+      const isPaymentHappened = purchaseReturn.paid > 0;
+      const isExchangeHappened = purchaseReturn.exchangeAmount > 0;
+      if (isPaymentHappened) {
+        await AccountService.increaseBalance(accounts, tx);
 
-                await TransactionService.create(transactionPayloads, session)
+        await Promise.all(
+          accounts.map(async (a) => {
+            const transactionPayload: TransactionPayload = {
+              source: "purchase_return",
+              purchaseReturnID: purchaseReturnCreated.id,
+              type: "credit",
+              date: purchaseReturnCreated.date,
+              accountID: a.accountID,
+              amount: a.amount,
+            };
+            await TransactionService.create(transactionPayload, tx);
+          }),
+        );
 
-                // ৫. Supplier balance update
-                const balanceBefore = supplier.balance ?? 0;
-                const balanceAfter = balanceBefore - totalReturnAmount + (totalReturnAmount - totalPaid);
+        if (isExchangeHappened) {
+          await AccountService.decreaseBalance(exchangeAccounts, tx);
 
-                await ContactService.balanceUpdate(supplier._id.toString(), -paid, session);
-
-
-                // ৬. Ledger create
-
-                const ledgerPayload = PayloadBuilder.ledger({
-                    typeID: purchaseReturn._id,
-                    type: "purchase_return",
-                    contactID: supplier._id,
-                    contactType: "supplier",
-                    amount: totalReturnAmount,
-                    paidAmount: totalPaid,
-                    dueAmount: totalReturnAmount - totalPaid,
-                    discount: discount ?? 0,
-                    note: note ?? "",
-                    date: purchaseReturn.date,
-                    balanceBefore,
-                    balanceAfter,
-                })
-                await LedgerService.create(ledgerPayload, session);
-            }
-
-            purchase.deletable = false;
-            await purchase.save({ session });
-
-            await PurchaseService.purchaseUpdateDynamic(purchaseID, { deletable: false }, session);
-            await session.commitTransaction();
-
-            // ৮. Report update
-            await RedisReportService.updatePurchaseReturnReport({
-                amount: totalReturnAmount,
-                qty: batches.reduce((s: any, b: any) => s + b.purchaseReturnQty, 0),
-                paid: totalPaid,
-                discount: discount ?? 0,
-                date: new Date(),
-            });
-
-
-
-        })
-    }
-
-    static async list(query: any) {
-        return await PurchaseReturnRepository.list(query);
-    }
-
-    static async purchaseReturnInvoiceByID(id: string) {
-        const result = await PurchaseReturnRepository.purchaseReturnInvoiceByID(id);
-
-        if (!result) {
-            throw new ApiError(404, "Purchase Invoice generation failed");
+          await Promise.all(
+            exchangeAccounts.map(async (a) => {
+              const transactionPayload: TransactionPayload = {
+                source: "purchase_return",
+                purchaseReturnID: purchaseReturnCreated.id,
+                type: "debit",
+                date: purchaseReturnCreated.date,
+                accountID: a.accountID,
+                amount: a.amount,
+              };
+              await TransactionService.create(transactionPayload, tx);
+            }),
+          );
         }
+      }
+      const amount =
+        purchaseReturnCreated.balanceAfter -
+        purchaseReturnCreated.balanceBefore;
 
-        return result;
+      ContactService.decreaseBalance(supplier.id, amount, tx);
+
+      const payableAmount: number =
+        purchase.totalAmount - (purchase.balanceBefore || 0);
+
+      const ledgerPayload: LedgerPayload = {
+        contactID: purchase.supplierID,
+        type: "purchase",
+        amount: payableAmount,
+        balanceAfter: purchase.balanceAfter,
+        balanceBefore: purchase.balanceBefore,
+        date: purchase.purchaseDate,
+        dueAmount: payableAmount - purchase.paid,
+        discount: purchase.discount,
+        purchaseReturnID: purchaseReturnCreated.id,
+        note: purchase.note,
+        paidAmount: purchase.paid,
+      };
+
+      await LedgerService.create(ledgerPayload, tx);
+      // ৮. Report update
+      await RedisReportService.updatePurchaseReturnReport({
+        amount: totalReturnAmount,
+        qty: products.reduce((s: any, b: any) => s + b.purchaseReturnQty, 0),
+        paid: purchaseReturn.paid,
+        discount: purchaseReturn.discount ?? 0,
+        date: purchaseReturnCreated.date,
+      });
+    });
+  }
+
+  static async list(query: any) {
+    return await PurchaseReturnRepository.list(query);
+  }
+
+  static async purchaseReturnInvoiceByID(id: string) {
+    const result = await PurchaseReturnRepository.purchaseReturnInvoiceByID(id);
+
+    if (!result) {
+      throw new ApiError(404, "Purchase Invoice generation failed");
     }
 
-    static async getPurchaseReturnBatches(purchaseID: string) {
-        // এই purchaseID দিয়ে batch আছে কিনা
-        return await PurchaseReturnRepository.getPurchaseReturnBatches(purchaseID)
+    return result;
+  }
 
+  static async getPurchaseReturnBatches(purchaseID: string) {
+    // এই purchaseID দিয়ে batch আছে কিনা
+    return await PurchaseReturnRepository.getPurchaseReturnBatches(purchaseID);
+  }
 
-    }
+  static async delete(purchaseReturnID: number) {
+    const purchaseReturn: PurchaseReturn | null =
+      await PurchaseReturnRepository.findByID(purchaseReturnID);
+    if (!purchaseReturn) throw new ApiError(404, "Purchase return not found");
 
-    static async delete(id: string) {
-        const purchaseReturn: PurchaseReturn | null = await PurchaseReturnRepository.purchaseReturnByID(id)
-        if (!purchaseReturn) throw new ApiError(404, "Purchase return not found");
+    await withTransaction(async (tx) => {
+      // ১. Supplier আনো
+      const supplier = await ContactService.findByID(purchaseReturn.supplierID);
 
-        const session = await mongoose.startSession();
-        session.startTransaction();
+      if (!supplier) throw new ApiError(404, "Supplier not found");
 
-        try {
-            // ১. Supplier আনো
-            const supplier = await ContactService.findByID(purchaseReturn.supplierID.toString());
+      const returnedItems: PurchaseReturnItem[] =
+        await PurchaseReturnRepository.itemsByPurchaseReturnID(
+          purchaseReturnID,
+          tx,
+        );
+      // ২. Batch reverse — returnedQty কমাও, remainingQty বাড়াও, stock বাড়াও
+      await Promise.all(
+        returnedItems.map(async (p: PurchaseReturnItem) => {
+          await Promise.all([
+            ProductService.increaseVariantStock(
+              p.productID,
+              p.purchaseReturnedQty,
+              tx,
+            ),
+            ProductService.increaseProductStock(
+              p.productID,
+              p.purchaseReturnedQty,
+              tx,
+            ),
+            ProductService.increaseBatchStock(
+              p.batchID,
+              p.purchaseReturnedQty,
+              tx,
+            ),
+          ]);
+        }),
+      );
+      const allTransactions = await TransactionService.findBySourceID(
+        purchaseReturnID,
+        "purchase_return",
+      );
+      // account balance reverse
+      const isPaymentHappened: boolean = purchaseReturn.paid > 0;
+      if (isPaymentHappened) {
+        const accTrans = allTransactions.filter((a) => a.type === "credit");
 
-            if (!supplier) throw new ApiError(404, "Supplier not found");
+        const accounts = accTrans.map((a) => ({
+          accountID: a.accountID,
+          amount: a.amount as number,
+        }));
 
-            // ২. Batch reverse — returnedQty কমাও, remainingQty বাড়াও, stock বাড়াও
-            await Promise.all(
-                purchaseReturn.batches.map(async (item: any) => {
-                    await ProductService.updateBatchDynamically(item.batchID, {
-                        inc: {
-                            purchaseReturnedQty: -item.purchaseReturnedQty,
-                            remainingQty: item.purchaseReturnedQty,
-                        }
-                    })
+        await AccountService.decreaseBalance(accounts, tx);
+      }
+      const isExchangeHappened: boolean = purchaseReturn.exchangeAmount > 0;
+      if (isExchangeHappened) {
+        const accTrans = allTransactions.filter((a) => a.type === "debit");
 
+        const exchangeAccounts = accTrans.map((a) => ({
+          accountID: a.accountID,
+          amount: a.amount as number,
+        }));
+        await AccountService.increaseBalance(exchangeAccounts, tx);
+      }
 
-                    await ProductService.updateProductFifoBatchAndStock(item.productID, { qty: item.purchaseReturnedQty }, session)
-                })
-            );
+      // customer balance restore
 
-            // ৩. Account balance reverse
-            if (purchaseReturn.paid > 0 && purchaseReturn.accounts.length > 0) {
-                await AccountService.increaseBalance(purchaseReturn.accounts.map(a => ({ ...a, accountID: a.accountID.toString() })), session)
+      const rollbackAmount = -(
+        purchaseReturn.balanceAfter - purchaseReturn.balanceBefore
+      );
 
-                // ৪. Transaction delete
-                if (purchaseReturn.paid > 0) {
-                    await TransactionService.deleteTransactions({ typeID: purchaseReturn._id }, session);
-                }
-                // ৬. Supplier balance reverse
-                await ContactService.balanceUpdate(supplier._id, purchaseReturn.paid, session);
-            }
-            // ৫. Ledger delete
-            await LedgerService.deleteLedger({ typeID: purchaseReturn._id }, session);
-            // ৭. Purchase deletable check — আর কোনো return নেই?
-            const otherReturns = await PurchaseReturnRepository.countOtherPurchaseReturns(
-                purchaseReturn.purchaseID.toString(),
-                purchaseReturn.purchaseID.toString(),
-                session
-            )
+      await ContactService.decreaseBalance(
+        purchaseReturn.supplierID,
+        rollbackAmount,
+        tx,
+      );
 
-            if (otherReturns === 0) {
-                await PurchaseService.purchaseUpdateDynamic(purchaseReturn.purchaseID.toString(), { deletable: true }, session)
-            }
+      await PurchaseReturnRepository.deletePurchaseReturnByID(
+        purchaseReturnID,
+        tx,
+      );
 
-            // ৮. PurchaseReturn delete
-            await PurchaseReturnRepository.deletePurchaseReturn(id, session);
-            await session.commitTransaction();
-
-            await RedisReportService.updatePurchaseReturnReport({
-                amount: -purchaseReturn.batches.reduce((acc, b) => acc + b.purchasePrice, 0),
-                qty: -purchaseReturn.batches.reduce((acc, b) => acc + b.purchaseReturnedQty, 0),
-                paid: -purchaseReturn.paid,
-                discount: -purchaseReturn.discount,
-                date: new Date()
-            });
-
-        } catch (error) {
-            await session.abortTransaction();
-            throw error;
-        } finally {
-            session.endSession();
-        }
-    }
+      await RedisReportService.updatePurchaseReturnReport({
+        amount: -returnedItems.reduce((acc, b) => acc + b.purchasePrice, 0),
+        qty: -returnedItems.reduce((acc, b) => acc + b.purchaseReturnedQty, 0),
+        paid: -purchaseReturn.paid,
+        discount: -purchaseReturn.discount,
+        date: new Date(),
+      });
+    });
+  }
 }
