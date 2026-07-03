@@ -1,13 +1,18 @@
 import {
-  pgTable,
-  uuid,
-  varchar,
   boolean,
+  pgTable,
   timestamp,
   uniqueIndex,
+  uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
-export const users = pgTable(
+/* ===========================
+   Users
+=========================== */
+
+export const userTable = pgTable(
   "users",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -20,6 +25,7 @@ export const users = pgTable(
 
     password: varchar("password", { length: 255 }),
 
+    // চাইলে এটা পরে remove করে isSuperAdmin রাখতে পারো
     admin: boolean("admin").default(false).notNull(),
 
     email: varchar("email", { length: 255 }),
@@ -48,3 +54,126 @@ export const users = pgTable(
     mobileUnique: uniqueIndex("users_mobile_unique").on(table.mobile),
   }),
 );
+
+/* ===========================
+   Staff Profiles
+=========================== */
+
+export const staffProfiles = pgTable("staff_profiles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  userId: uuid("user_id")
+    .notNull()
+    .unique()
+    .references(() => userTable.id, {
+      onDelete: "cascade",
+    }),
+
+  employeeCode: varchar("employee_code", { length: 50 })
+    .notNull()
+    .unique(),
+
+  designation: varchar("designation", { length: 100 }),
+
+  department: varchar("department", { length: 100 }),
+
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+});
+
+/* ===========================
+   Roles
+=========================== */
+
+export const roles = pgTable("roles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  name: varchar("name", { length: 100 })
+    .notNull()
+    .unique(),
+
+  description: varchar("description", { length: 255 }),
+});
+
+/* ===========================
+   User Roles
+=========================== */
+
+export const userRoles = pgTable(
+  "user_roles",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => userTable.id, {
+        onDelete: "cascade",
+      }),
+
+    roleId: uuid("role_id")
+      .notNull()
+      .references(() => roles.id, {
+        onDelete: "cascade",
+      }),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    uniqueUserRole: uniqueIndex("unique_user_role").on(
+      table.userId,
+      table.roleId,
+    ),
+  }),
+);
+
+/* ===========================
+   Relations
+=========================== */
+
+export const userRelations = relations(userTable, ({ one, many }) => ({
+  staffProfile: one(staffProfiles, {
+    fields: [userTable.id],
+    references: [staffProfiles.userId],
+  }),
+
+  userRoles: many(userRoles),
+}));
+
+export const staffProfileRelations = relations(
+  staffProfiles,
+  ({ one }) => ({
+    user: one(userTable, {
+      fields: [staffProfiles.userId],
+      references: [userTable.id],
+    }),
+  }),
+);
+
+export const roleRelations = relations(roles, ({ many }) => ({
+  userRoles: many(userRoles),
+}));
+
+export const userRoleRelations = relations(userRoles, ({ one }) => ({
+  user: one(userTable, {
+    fields: [userRoles.userId],
+    references: [userTable.id],
+  }),
+
+  role: one(roles, {
+    fields: [userRoles.roleId],
+    references: [roles.id],
+  }),
+}));

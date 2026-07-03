@@ -2,12 +2,12 @@ import {
   pgTable,
   serial,
   varchar,
-  integer,
   text,
   timestamp,
   pgEnum,
   index,
   numeric,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { purchaseTable } from "../purchase/purchase.table"; // আপনার পারচেজ টেবিল পাথ
@@ -15,6 +15,7 @@ import { purchaseReturnTable } from "../purchase_return/purchase_return.table";
 import { saleTable } from "../sale/sale.table";
 import { saleReturnTable } from "../sale_return/sale_return.table";
 import { ledgerTable } from "../ledger/ledger.table";
+import { userTable } from "../auth/user.table";
 
 // ১. টাইপের জন্য pgEnum ডিফাইন করা (Mongoose enum-এর বিকল্প)
 export const contactTypeEnum = pgEnum("contact_type", ["customer", "supplier", "both"]);
@@ -23,7 +24,9 @@ export const contactTable = pgTable(
   "contacts",
   {
     id: serial("id").primaryKey(),
-
+    userID: uuid('user_id').references(() => userTable.id, {
+      onDelete: "cascade",
+    }),
     name: varchar("name", { length: 150 }).notNull(),
 
     email: varchar("email", { length: 150 }), // lowercase করার জন্য আপনি ইনসার্ট করার সময় .toLowerCase() করে দেবেন
@@ -34,7 +37,7 @@ export const contactTable = pgTable(
     balance: numeric("balance", {
       precision: 12,
       scale: 2,
-      mode:"number"
+      mode: "number"
     })
       .default(0)
       .notNull(),
@@ -50,17 +53,22 @@ export const contactTable = pgTable(
   (table) => [
     // মঙ্গুসের মতো ইন্ডেক্সিং
     index("contacts_name_idx").on(table.name),
-
+    index("contacts_user_id_idx").on(table.userID),
     // কম্পাউন্ড ইন্ডেক্স (type + name একসাথে ফিল্টার ও সার্চ ফাস্ট করার জন্য)
     index("contacts_type_name_idx").on(table.type, table.name),
   ]
 );
 
 // ২. কন্টাক্ট টেবিলের সাথে পারচেজ বা অন্যান্য টেবিলের রিলেশন
-export const contactRelations = relations(contactTable, ({ many }) => ({
+export const contactRelations = relations(contactTable, ({ one,many }) => ({
+   user: one(userTable, {
+    fields: [contactTable.userID],
+    references: [userTable.id],
+  }),
   purchases: many(purchaseTable), // একজন সাপ্লায়ারের অনেকগুলো পারচেজ থাকতে পারে
   purchaseReturns: many(purchaseReturnTable),
   sales: many(saleTable),
   saleReturns: many(saleReturnTable),
   ledgers: many(ledgerTable),
+
 }));
