@@ -1,9 +1,8 @@
 import { Types } from "mongoose";
 import { CreateLedgerInput } from "../src/ledger/ledger.type";
 import { TxSource, TxType } from "../src/transaction/transaction.type";
-import Transaction from "../src/transaction/transaction.model";
 import { AccBalancePayload } from "../src/account/account.type";
-import { txSourceEnum, txTypeEnum } from "../src/transaction/transaction.table";
+
 
 
 export type BatchPayloadItem = {
@@ -40,6 +39,7 @@ export type trxConfig = {
     saleReturnID?: number;
     balanceTransferID?: number;
     warrantyID?: number;
+    expenseID?:number;
 }
 
 export default class PayloadBuilder {

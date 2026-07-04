@@ -14,7 +14,7 @@ import { transactionTable } from "../transaction/transaction.table";
 export const expenseTable = pgTable("expenses", {
   id: serial("id").primaryKey(),
 
-  expenseTypeId: integer("expense_type_id")
+  expenseTypeID: integer("expense_type_id")
     .notNull()
     .references(() => expenseTypeTable.id),
 
@@ -57,7 +57,7 @@ export const expenseRelations = relations(
   expenseTable,
   ({ one, many }) => ({
     expenseType: one(expenseTypeTable, {
-      fields: [expenseTable.expenseTypeId],
+      fields: [expenseTable.expenseTypeID],
       references: [expenseTypeTable.id],
     }),
 

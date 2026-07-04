@@ -1,16 +1,15 @@
-import mongoose, { ClientSession } from "mongoose";
 import { ApiError } from "../../utils/ApiError";
-import Helper from "../../utils/helper";
 import ExpenseRepository from "./expense.repository";
-import { SaleProduct, SaleResponse } from "../sale/sale.type";
-import { CreateExpenseInput } from "./expense.type";
+import { CreateExpenseInput, Expense, ExpensePayload } from "./expense.type";
 import { AccountService } from "../account/account.service";
 import TransactionService from "../transaction/transaction.service";
-import PayloadBuilder from "../../utils/builder";
 import { RedisReportService } from "../../utils/ReportServiceRedis";
+import { withTransaction } from "../../utils/withTransaction";
+import { TransactionPayload } from "../transaction/transaction.type";
 
 export default class ExpenseService {
   static async createExpenseType(payload: { name: string }) {
+
     const isExist = await ExpenseRepository.findExpenseType(payload.name);
 
     if (isExist) {
@@ -30,7 +29,7 @@ export default class ExpenseService {
     return await ExpenseRepository.allExpenseType();
   }
 
-  static async updateExpenseType(id: string, name: string) {
+  static async updateExpenseType(id: number, name: string) {
     const isExist = await ExpenseRepository.findExpenseType(name);
     if (isExist) {
       throw new ApiError(401, "Expense is already exist");
@@ -39,7 +38,7 @@ export default class ExpenseService {
     return await ExpenseRepository.updateExpenseType(id, name);
   }
 
-  static async deleteExpenseType(id: string) {
+  static async deleteExpenseType(id: number) {
     const isExist = await ExpenseRepository.expenseTypeExistOnAnyExpense(id);
 
     if (isExist) {
@@ -50,7 +49,7 @@ export default class ExpenseService {
   }
 
   static async createExpense(payload: CreateExpenseInput) {
-    const { accounts, paid, expenseTypeID, note, expenseDate } = payload;
+    const { accounts, paid, expenseTypeID, note, expenseDate, exchangeAccounts, exchangeAmount, documentImage } = payload;
     // 1. Validate expense type — via repository, not model
     const expenseType = await ExpenseRepository.findExpenseTypeById(expenseTypeID);
     if (!expenseType) {
@@ -66,77 +65,104 @@ export default class ExpenseService {
         throw new ApiError(400, "Sum of account amounts must equal paid amount");
       }
     }
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      // 3. Create expense — repository handles DB payload
-      const expense = await ExpenseRepository.createExpense(payload, session);
-      // 4. Payment — money goes OUT (same as purchase)
-      if (paid > 0 && accounts.length > 0) {
-        await AccountService.decreaseBalance(accounts, session);
-        const transactionPayload = PayloadBuilder.transaction(accounts, {
-          type: "expense",
-          typeID: expense._id.toString(),
-          typeModel: "Expense",
-          accountField: "fromAccount",
-          date: expenseDate,
-          note: note ?? "",
-          status: "completed",
-        });
-        await TransactionService.create(transactionPayload, session);
+    const expense = await withTransaction(async (tx) => {
+
+      const expensePayload: ExpensePayload = {
+        expenseTypeID,
+        documentImage,
+        exchangeAmount,
+        expenseDate,
+        note,
+        paid,
       }
-      await session.commitTransaction();
 
-      await RedisReportService.updateExpenseReport(
-        { paid: expense.paid, date: expense.expenseDate }
-      );
+      const expense = await ExpenseRepository.createExpense(expensePayload, tx);
+      // 4. Payment — money goes OUT (same as purchase)
+      if (paid > 0) {
+        await AccountService.decreaseBalance(accounts, tx);
 
+        await Promise.all(
+          accounts.map(async (account) => {
+            const transactionPayload: TransactionPayload = {
+              accountID: account.accountID,
+              amount: account.amount,
+              date: expenseDate,
+              source: "expense",
+              type: "debit",
+              expenseID: expense?.id,
+            }
+            await TransactionService.create(transactionPayload, tx);
+          })
+        );
+      }
+      if (exchangeAmount > 0) {
+        await AccountService.increaseBalance(exchangeAccounts, tx);
+
+        await Promise.all(
+          accounts.map(async (account) => {
+            const transactionPayload: TransactionPayload = {
+              accountID: account.accountID,
+              amount: account.amount,
+              date: expenseDate,
+              source: "expense",
+              type: "credit",
+              expenseID: expense?.id,
+            }
+            await TransactionService.create(transactionPayload, tx);
+          })
+        );
+      }
       return expense;
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    })
+
+
+    await RedisReportService.updateExpenseReport(
+      { paid: expense!.paid, date: expense!.expenseDate }
+    );
+
+
+
   }
 
   static async list(query: Record<string, any>) {
     return await ExpenseRepository.list(query);
   }
 
-  static async deleteExpense(id: string) {
+  static async deleteExpense(id: number) {
     const expense = await ExpenseRepository.findExpenseById(id);
     if (!expense) {
       throw new ApiError(404, "Expense not found");
     }
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
+
+    await withTransaction(async (tx) => {
       // Reverse payment — create used decreaseBalance, so delete uses increaseBalance
-      if (expense.paid > 0 && expense.accounts.length > 0) {
-        await AccountService.increaseBalance(
-          expense.accounts.map((a) => ({
-            accountID: a.accountID.toString(),
-            amount: a.amount,
-          })),
-          session,
-        );
-        await TransactionService.deleteTransactions(
-          { typeID: expense._id, typeModel: "Expense" },
-          session,
+      const allTransactions = await TransactionService.findBySourceID(expense.id, "expense");
+      // account balance reverse
+      const isPaymentHappened: boolean = expense.paid > 0
+      if (isPaymentHappened) {
+
+        const accTrans = allTransactions.filter(a => a.type === "debit");
+
+        const accounts = accTrans.map(a => ({ accountID: a.accountID, amount: a.amount as number }));
+
+        await AccountService.decreaseBalance(
+          accounts, tx
         );
       }
-      await ExpenseRepository.deleteExpense(expense._id.toString(), session);
-      await session.commitTransaction();
+      const isExchangeHappened: boolean = expense.exchangeAmount > 0;
+      if (isExchangeHappened) {
+
+        const accTrans = allTransactions.filter(a => a.type === "credit");
+
+        const exchangeAccounts = accTrans.map(a => ({ accountID: a.accountID, amount: a.amount as number }));
+        await AccountService.increaseBalance(exchangeAccounts, tx);
+      }
+      await ExpenseRepository.deleteExpense(expense.id, tx);
 
       await RedisReportService.updateExpenseReport(
         { paid: -expense.paid, date: expense.expenseDate }
       );
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    })
+
   }
 }

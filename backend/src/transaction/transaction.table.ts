@@ -16,6 +16,7 @@ import { warrantyTable } from "../warranty/warranty.table";
 import { accountTable } from "../account/account.table";
 import { balanceTransferTable } from "../account/balance_transfer.table";
 import { randomUUID } from "crypto";
+import { expenseTable } from "../expense/expense.table";
 
 // ১. ট্রানজেকশনের সোর্স মডিউল (কিসের মাধ্যমে জেনারেট হলো)
 export const txSourceEnum = pgEnum("tx_source", [
@@ -73,6 +74,10 @@ export const transactionTable = pgTable(
     warrantyID: integer("warranty_id").references(() => warrantyTable.id, {
       onDelete: "cascade",
     }),
+    
+      expenseID: integer("expense_id").references(() => expenseTable.id, {
+      onDelete: "cascade",
+    }),
 
     date: timestamp("date", { withTimezone: true }).defaultNow().notNull(),
 
@@ -84,6 +89,7 @@ export const transactionTable = pgTable(
     index("transactions_sale_id_idx").on(table.saleID),
     index("transactions_sale_return_id_idx").on(table.saleReturnID),
     index("transactions_warranty_id_idx").on(table.warrantyID),
+    index("transactions_expense_id_idx").on(table.expenseID),
   ]
 );
 
@@ -112,5 +118,9 @@ export const transactionRelations = relations(transactionTable, ({ one }) => ({
   warranty: one(warrantyTable, {
     fields: [transactionTable.warrantyID],
     references: [warrantyTable.id],
+  }),
+   expense: one(expenseTable, {
+    fields: [transactionTable.expenseID],
+    references: [expenseTable.id],
   }),
 }));

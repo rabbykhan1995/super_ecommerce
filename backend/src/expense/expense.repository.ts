@@ -6,6 +6,7 @@ import {
   Expense,
   ExpensePayload,
   ExpenseType,
+  ExpenseTypePayload,
 } from "./expense.type";
 import db, { QueryClient } from "../../drizzle/src";
 import { expenseTable, expenseTypeTable } from "./expense.table";
@@ -16,7 +17,7 @@ private static buildListFilter(query: Record<string, any>): SQL[] {
   const where: SQL[] = [];
 
   if (query.expenseTypeId) {
-    where.push(eq(expenseTable.expenseTypeId, query.expenseTypeId));
+    where.push(eq(expenseTable.expenseTypeID, query.expenseTypeID));
   }
 
   if (query.fromDate) {
@@ -35,15 +36,15 @@ private static buildListFilter(query: Record<string, any>): SQL[] {
 }
 
   static async createExpenseType(
-          payload: ExpensePayload,
+          payload: ExpenseTypePayload,
           client: QueryClient = db
-      ): Promise<Expense | null> {
-          const [expense] = await client
-              .insert(expenseTable)
+      ): Promise<ExpenseType | null> {
+          const [expenseType] = await client
+              .insert(expenseTypeTable)
               .values(payload)
               .returning();
   
-          return expense ?? null;
+          return expenseType ?? null;
       }
 
   static async findExpenseType(
@@ -94,13 +95,13 @@ static async updateExpenseType(
 }
 
 static async expenseTypeExistOnAnyExpense(
-  expenseTypeId: number,
+  expenseTypeID: number,
   client: QueryClient = db,
 ): Promise<boolean> {
   const [expense] = await client
     .select({ id: expenseTable.id })
     .from(expenseTable)
-    .where(eq(expenseTable.expenseTypeId, expenseTypeId))
+    .where(eq(expenseTable.expenseTypeID, expenseTypeID))
     .limit(1);
 
   return !!expense;

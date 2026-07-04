@@ -3,7 +3,7 @@ import { paymentAccountSchema } from "../account/account.validator";
 
 export const createExpenseSchema = z.object({
   note: z.string().optional(),
-  expenseTypeID: z.string().min(1, { message: "Expense Type is required" }),
+  expenseTypeID: z.number().min(1, { message: "Expense Type is required" }),
   manageWarranty: z.boolean().default(false),
   documentImage: z.string().nullable().optional(),
   paid: z.number("must be number").default(0),
@@ -11,6 +11,8 @@ export const createExpenseSchema = z.object({
     .coerce
     .date({ message: "Expense date must be a valid date" }),
   accounts: paymentAccountSchema,
+  exchangeAmount:z.number("must be number").default(0),
+  exchangeAccounts: paymentAccountSchema,
 });
 
 
