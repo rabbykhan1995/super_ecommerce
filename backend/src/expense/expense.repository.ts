@@ -1,112 +1,176 @@
-import { ClientSession, Types } from "mongoose";
-import { Expense, ExpenseType } from "./expense.model";
+import {
+  paginateQuery
+} from "../../utils/queryBuilder";
 
 import {
-  aggregateOne,
-  paginatedAggregate,
-} from "../../utils/queryBuilder";
-import { SaleProduct, SaleResponse } from "../sale/sale.type";
-import {
-  CreateExpenseInput,
-  ExpenseResponse,
-  ExpenseTypeResponse,
+  Expense,
+  ExpensePayload,
+  ExpenseType,
 } from "./expense.type";
-import { PaginatedResponse } from "../../types/training.type";
+import db, { QueryClient } from "../../drizzle/src";
+import { expenseTable, expenseTypeTable } from "./expense.table";
+import { eq, gte, lte, SQL } from "drizzle-orm";
 
 export default class ExpenseRepository {
-  private static buildListFilter(query: Record<string, any>) {
-    const filter: Record<string, any> = {};
-    if (query.expenseTypeID) {
-      filter.expenseTypeID = new Types.ObjectId(query.expenseTypeID as string);
-    }
-    if (query.fromDate || query.toDate) {
-      filter.expenseDate = {};
-      if (query.fromDate) {
-        filter.expenseDate.$gte = new Date(query.fromDate as string);
-      }
-      if (query.toDate) {
-        filter.expenseDate.$lte = new Date(query.toDate as string);
-      }
-    }
-    return filter;
+private static buildListFilter(query: Record<string, any>): SQL[] {
+  const where: SQL[] = [];
+
+  if (query.expenseTypeId) {
+    where.push(eq(expenseTable.expenseTypeId, query.expenseTypeId));
   }
 
-  static async createExpenseType(payload: { name: string }) {
-    return await ExpenseType.create(payload);
+  if (query.fromDate) {
+    where.push(
+      gte(expenseTable.expenseDate, new Date(query.fromDate))
+    );
   }
+
+  if (query.toDate) {
+    where.push(
+      lte(expenseTable.expenseDate, new Date(query.toDate))
+    );
+  }
+
+  return where;
+}
+
+  static async createExpenseType(
+          payload: ExpensePayload,
+          client: QueryClient = db
+      ): Promise<Expense | null> {
+          const [expense] = await client
+              .insert(expenseTable)
+              .values(payload)
+              .returning();
+  
+          return expense ?? null;
+      }
+
   static async findExpenseType(
     name: string,
-  ): Promise<ExpenseTypeResponse | null> {
-    return await ExpenseType.findOne({ name });
-  }
+    client:QueryClient = db,
+  ): Promise<ExpenseType | null> {
+          const [expenseType] = await client
+              .select()
+              .from(expenseTypeTable)
+              .where(eq(expenseTypeTable.name, name))
+  
+          return expenseType ?? null;
+      }
 
-  static async findExpenseTypeById(id: string, session?: ClientSession): Promise<ExpenseResponse | null> {
-    return await ExpenseType.findById(new Types.ObjectId(id), null, { session });
-  }
-  static async allExpenseType(): Promise<ExpenseTypeResponse[] | []> {
-    return await ExpenseType.find();
-  }
+static async findExpenseTypeById(
+  expenseTypeId: number,
+  client: QueryClient = db,
+): Promise<ExpenseType | null> {
+  const [expenseType] = await client
+    .select()
+    .from(expenseTypeTable)
+    .where(eq(expenseTypeTable.id, expenseTypeId));
 
-  static async updateExpenseType(id: string, name: string) {
-    return await ExpenseType.findByIdAndUpdate(id, { $set: { name } });
-  }
+  return expenseType ?? null;
+}
+  static async allExpenseType(): Promise<ExpenseType[] | []> {
+          const expenseTypes = await db
+              .select()
+              .from(expenseTypeTable)
+  
+          return expenseTypes;
+      }
 
-  static async expenseTypeExistOnAnyExpense(expenseID: string) {
-    return await Expense.exists({ expenseTypeID: expenseID });
-  }
+static async updateExpenseType(
+  id: number,
+  name: string,
+  client: QueryClient = db,
+): Promise<ExpenseType | null> {
+  const [expenseType] = await client
+    .update(expenseTypeTable)
+    .set({
+      name,
+    })
+    .where(eq(expenseTypeTable.id, id))
+    .returning();
 
-  static async deleteExpenseType(id: string) {
-    return await ExpenseType.findByIdAndDelete(id);
-  }
+  return expenseType ?? null;
+}
 
-  static async createExpense(
-    payload: any,
-    session?: ClientSession
-  ): Promise<ExpenseResponse> {
-    const [expense] = await Expense.create([payload], { session });
-    return expense;
-  }
+static async expenseTypeExistOnAnyExpense(
+  expenseTypeId: number,
+  client: QueryClient = db,
+): Promise<boolean> {
+  const [expense] = await client
+    .select({ id: expenseTable.id })
+    .from(expenseTable)
+    .where(eq(expenseTable.expenseTypeId, expenseTypeId))
+    .limit(1);
 
-  static async deleteExpense(id: string, session?: ClientSession) {
-    return Expense.findByIdAndDelete(id, { session });
-  }
+  return !!expense;
+}
+static async deleteExpenseType(
+  id: number,
+  client: QueryClient = db,
+): Promise<ExpenseType | null> {
+  const [expenseType] = await client
+    .delete(expenseTypeTable)
+    .where(eq(expenseTypeTable.id, id))
+    .returning();
 
-  static async list(
-    query: Record<string, any>,
-  ): Promise<PaginatedResponse<any>> {
-    return await paginatedAggregate({
-      model: Expense,
-      query,
-      filter: ExpenseRepository.buildListFilter(query),
-      postLookupSearch: true,
-      defaultSort: { expenseDate: -1 },
-      searchFields: [{ field: "note" }, { field: "expenseType.name" }],
-      lookups: [
-        {
-          from: "expensetypes", // Mongoose collection for ExpenseType model
-          localField: "expenseTypeID",
-          foreignField: "_id",
-          as: "expenseType",
-          preserveNull: true,
-        },
-      ],
-      projection: {
-        include: [
-          "expenseTypeID",
-          "paid",
-          "note",
-          "documentImage",
-          "expenseDate",
-          "createdAt",
-        ],
-        computed: {
-          expenseTypeName: "$expenseType.name",
-        },
-      },
-    });
-  }
+  return expenseType ?? null;
+}
+static async createExpense(
+  payload: ExpensePayload,
+  client: QueryClient = db,
+): Promise<Expense | null> {
+  const [expense] = await client
+    .insert(expenseTable)
+    .values(payload)
+    .returning();
 
-  static async findExpenseById(id: string): Promise<ExpenseResponse | null> {
-    return await Expense.findById(new Types.ObjectId(id));
-  }
+  return expense ?? null;
+}
+
+  static async deleteExpense(
+  id: number,
+  client: QueryClient = db,
+): Promise<Expense | null> {
+  const [expense] = await client
+    .delete(expenseTable)
+    .where(eq(expenseTable.id, id))
+    .returning();
+
+  return expense ?? null;
+}
+static async list(query: Record<string, any>) {
+  return paginateQuery({
+    page: Number(query.page) || 1,
+    limit: Number(query.limit) || 10,
+
+    query: db.query.expenseTable,
+
+    countTable: expenseTable,
+
+    where: this.buildListFilter(query),
+
+    search: query.search,
+
+    searchColumns: [
+      expenseTable.note,
+    ],
+
+    with: {
+      expenseType: true,
+    },
+  });
+}
+
+static async findExpenseById(
+  id: number,
+  client: QueryClient = db,
+): Promise<Expense | null> {
+  const [expense] = await client
+    .select()
+    .from(expenseTable)
+    .where(eq(expenseTable.id, id));
+
+  return expense ?? null;
+}
 }

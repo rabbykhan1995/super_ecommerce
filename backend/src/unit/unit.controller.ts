@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { UnitService } from "./unit.service";
 
-export class CategoryController {
+export class UnitController {
   static async create(req: Request, res: Response) {
     const brand = await UnitService.create(req.body);
     res.status(201).json({ success: true, data: brand, msg: "Created Successfully" });

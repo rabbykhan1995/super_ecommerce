@@ -16,6 +16,8 @@ import * as contactSchema from "../src/contact/contact.table"
 import * as purchaseSchema from "../src/purchase/purchase.table"
 import * as purchaseReturnSchema from "../src/purchase_return/purchase_return.table"
 import * as authSchema from "../src/auth/auth.table"
+import * as ledgerSchema from "../src/ledger/ledger.table"
+import * as expenseSchema from "../src/expense/expense.table"
 // সব টেবিল এবং তাদের রিলেশন একসাথে কম্বাইন করা হলো
 export const dbSchema = {
   ...productSchema,
@@ -26,6 +28,7 @@ export const dbSchema = {
   ...categorySchema,
   ...unitSchema,
   ...transactionSchema,
+  ...ledgerSchema,
   ...accountSchema,
   ...contactSchema,
   ...balanceTransferSchema,
@@ -35,4 +38,5 @@ export const dbSchema = {
   ...purchaseReturnSchema,
   ...saleReturnSchema,
   ...authSchema,
+  ...expenseSchema,
 };

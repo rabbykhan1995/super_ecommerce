@@ -2,8 +2,9 @@ import { ClientSession, Types } from "mongoose";
 import { ApiError } from "../../utils/ApiError";
 
 import LedgerRepository from "./ledger.repository";
-import { CreateLedgerInput, LedgerPayload, LedgerResponse } from "./ledger.type";
+import { CreateLedgerInput, LedgerPayload } from "./ledger.type";
 import { QueryClient } from "../../drizzle/src";
+import Ledger from "./ledger.model";
 
 export default class LedgerService {
   constructor() { }
@@ -15,74 +16,12 @@ export default class LedgerService {
 
     const ledger = await LedgerRepository.create(payload, tx);
 
-    if (!ledger || ledger.length === 0) {
-      throw new ApiError(500, "Ledger creation failed");
-    }
-
     return ledger;
   }
-  static async accountLedgerList(
-    query: any
-  ) {
-
-    const {
-      accountID,
-      type
-    } = query;
-
-    let filter: Record<string, any> = {};
-
-    // account filter
-    if (accountID) {
-
-      filter.$or = [
-        {
-          fromAccount:
-            new Types.ObjectId(
-              accountID as string
-            ),
-        },
-        {
-          toAccount:
-            new Types.ObjectId(
-              accountID as string
-            ),
-        },
-      ];
-    }
-
-    // type filter
-    if (type) {
-      filter.type = type;
-    }
-
-    return LedgerRepository.paginatedList(
-      query,
-      filter
-    );
+  static async list(query:any){
+    return await LedgerRepository.list(query);
   }
-  static async ledgerByID(
-    ledgerID: string,
-    groupID?: string,
-  ) {
-
-    // 1. fetch ledger(s)
-    const ledger = await LedgerRepository.findByLedgerOrGroup(
-      ledgerID,
-      groupID
-    );
-
-    if (!ledger || ledger.length === 0) {
-      throw new ApiError(404, "Ledger not found");
-    }
-
-    return ledger;
+  static async findByID(ledgerID:number, tx?:QueryClient){
+    return await LedgerRepository.findByID(ledgerID,tx)
   }
-
-  static async deleteLedger(
-          filter: Record<string, any>,
-          session?: ClientSession
-      ) {
-          return LedgerRepository.deleteLedger(filter, session);
-      }
 }

@@ -5,8 +5,9 @@ import {
   createUnitSchema,
   updateUnitSchema,
 } from "./unit.validator";
-import { UnitController } from "./unit.controller";
+
 import { authMiddleware } from "../../middlewares/auth.middleware";
+import { UnitController } from "./unit.controller";
 
 const router = express.Router();
 
