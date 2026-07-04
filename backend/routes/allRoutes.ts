@@ -36,7 +36,7 @@ router.use("/transaction", transactionRoute)
 router.use("/damage", damageRoute)
 router.use("/warranty", warrantyRoute)
 router.use("/report", reportRoute)
-// router.use("/expense", expenseRoute)
-router.use("/quotation", quotationRoute)
+router.use("/expense", expenseRoute)
+// router.use("/quotation", quotationRoute)
 
 export default router;

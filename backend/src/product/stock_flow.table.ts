@@ -16,6 +16,7 @@ import { saleTable } from "../sale/sale.table";
 import { purchaseTable } from "../purchase/purchase.table";
 import { saleReturnTable } from "../sale_return/sale_return.table";
 import { purchaseReturnTable } from "../purchase_return/purchase_return.table";
+import { damageTable } from "../damage/damage.table";
 
 export const stockFlowTypeEnum = pgEnum("stock_flow_type", [
     "in",
@@ -72,6 +73,10 @@ export const stockFlowTable = pgTable(
         purchaseReturnID: integer("purchase_return_id").references(() => purchaseReturnTable.id, {
             onDelete: "cascade",
         }),
+        damageID: integer("damage_id").references(() => damageTable.id, {
+            onDelete: "cascade",
+        }),
+
 
         qty: numeric("qty", {
             precision: 12,
@@ -107,48 +112,52 @@ export const stockFlowTable = pgTable(
         index("stock_flows_purchase_idx").on(table.purchaseID),
         index("stock_flows_sale_return_idx").on(table.saleReturnID),
         index("stock_flows_purchase_return_idx").on(table.purchaseReturnID),
+        index("stock_flows_damage_idx").on(table.damageID),
     ]
 );
 
 
 export const stockFlowRelations = relations(
-  stockFlowTable,
-  ({ one }) => ({
-    batch: one(batchTable, {
-      fields: [stockFlowTable.batchID],
-      references: [batchTable.id],
-    }),
+    stockFlowTable,
+    ({ one }) => ({
+        batch: one(batchTable, {
+            fields: [stockFlowTable.batchID],
+            references: [batchTable.id],
+        }),
 
-    product: one(productTable, {
-      fields: [stockFlowTable.productID],
-      references: [productTable.id],
-    }),
+        product: one(productTable, {
+            fields: [stockFlowTable.productID],
+            references: [productTable.id],
+        }),
 
-    variant: one(variantTable, {
-      fields: [stockFlowTable.variantID],
-      references: [variantTable.id],
-    }),
+        variant: one(variantTable, {
+            fields: [stockFlowTable.variantID],
+            references: [variantTable.id],
+        }),
 
-    sale: one(saleTable, {
-      fields: [stockFlowTable.saleID],
-      references: [saleTable.id],
-    }),
+        sale: one(saleTable, {
+            fields: [stockFlowTable.saleID],
+            references: [saleTable.id],
+        }),
 
-    purchase: one(purchaseTable, {
-      fields: [stockFlowTable.purchaseID],
-      references: [purchaseTable.id],
-    }),
+        purchase: one(purchaseTable, {
+            fields: [stockFlowTable.purchaseID],
+            references: [purchaseTable.id],
+        }),
 
-    saleReturn: one(saleReturnTable, {
-      fields: [stockFlowTable.saleReturnID],
-      references: [saleReturnTable.id],
-    }),
+        saleReturn: one(saleReturnTable, {
+            fields: [stockFlowTable.saleReturnID],
+            references: [saleReturnTable.id],
+        }),
 
-    purchaseReturn: one(purchaseReturnTable, {
-      fields: [stockFlowTable.purchaseReturnID],
-      references: [purchaseReturnTable.id],
-    }),
+        purchaseReturn: one(purchaseReturnTable, {
+            fields: [stockFlowTable.purchaseReturnID],
+            references: [purchaseReturnTable.id],
+        }),
+        damage: one(damageTable, {
+            fields: [stockFlowTable.damageID],
+            references: [damageTable.id],
+        }),
 
-
-  })
+    })
 );

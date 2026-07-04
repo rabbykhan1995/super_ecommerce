@@ -1,21 +1,19 @@
-import mongoose from "mongoose";
-import { CreateDamageInput } from "./damage.type";
+import { CreateDamageInput, DamagePayload } from "./damage.type";
 import ProductService from "../product/product.service";
 import { ApiError } from "../../utils/ApiError";
 import DamageRepository from "./damage.repository";
+import { withTransaction } from "../../utils/withTransaction";
+import { text } from "drizzle-orm/mysql-core";
+import { stockFlowPayload } from "../product/product.type";
+import { RedisReportService } from "../../utils/ReportServiceRedis";
 
 export default class DamageService {
     static async create(payload: CreateDamageInput) {
-        const session = await mongoose.startSession();
-        try {
-            session.startTransaction();
-
-            const damageDocsData = [];
-
+        await withTransaction(async (tx) => {
             for (const item of payload.items) {
                 const product = await ProductService.findById(
                     item.productID,
-                    session
+                    tx
                 );
 
                 if (!product) {
@@ -23,91 +21,48 @@ export default class DamageService {
                 }
 
                 const batch = await ProductService.findBatchByID(
-                    item.batchID as string,
-                    session
+                    item.batchID!,
                 );
-
-                if (!batch) {
-                    throw new ApiError(404, "Batch not found");
-                }
 
                 // stock validation
-                if (batch.remainingQty < item.damageQty) {
+                if (batch!.remainingQty < item.damagedQty) {
                     throw new ApiError(
                         400,
-                        `Not enough stock in batch ${batch._id}`
+                        `Not enough stock in batch ${batch!.id}`
                     );
                 }
 
-                // prepare damage doc
-                damageDocsData.push({
-                    batchID: item.batchID,
+                const [, , , damage] = await Promise.all([
+                    ProductService.decreaseBatchStock(batch!.id, item.damagedQty, tx),
+                    ProductService.decreaseVariantStock(item.variantID, item.damagedQty, tx),
+                    ProductService.decreaseProductStock(item.productID, item.damagedQty, tx),
+                    DamageRepository.create(item, tx),
+                ]);
+
+                const stockFlowPayload: stockFlowPayload = {
+                    batchID: item.batchID!,
                     productID: item.productID,
-                    damagedQty: item.damageQty,
-                    purchasePrice: batch.purchasePrice,
-                    reason: payload.reason,
-                    note: payload.note,
-                    DamageDate: payload.DamageDate,
-                });
-
-                // update batch
-                const updatedBatch =
-                    await ProductService.updateBatchDynamically(
-                        item.batchID as string,
-                        {
-                            inc: {
-                                remainingQty: -item.damageQty,
-                                damagedQty: item.damageQty,
-                            },
-                        },
-                        session
-                    );
-
-                // deactivate batch if empty
-                if (updatedBatch && updatedBatch.remainingQty <= 0) {
-                    await ProductService.updateBatchDynamically(
-                        item.batchID as string,
-                        {
-                            set: {
-                                isActive: false,
-                            },
-                        },
-                        session
-                    );
+                    variantID: item.variantID,
+                    referenceType: "damage",
+                    damageID: damage.id,
+                    type: "out",
+                    beforeQty: batch!.remainingQty,
+                    afterQty: batch!.remainingQty - item.damagedQty,
+                    qty: item.damagedQty,
                 }
 
-                // update product stock
-                await ProductService.updateProductFifoBatchAndStock(
-                    item.productID?.toString(),
-                    {
-                        qty: -item.damageQty,
-                    },
-                    session
-                );
+                await ProductService.createStockFlow(stockFlowPayload);
             }
 
-            // create damage records
-            const damages = await DamageRepository.insertMany(
-                damageDocsData,
-                session
-            );
+        })
 
-            await session.commitTransaction();
-
-            return damages;
-        } catch (err) {
-            await session.abortTransaction();
-            throw err;
-        } finally {
-            session.endSession();
-        }
     }
 
     static async list(query: any) {
         return await DamageRepository.list(query);
     }
 
-    static async delete(id: string) {
+    static async delete(id: number) {
         const damage = await DamageRepository.findByID(id);
         if (!damage) {
             throw new ApiError(404, "no damage found");
@@ -117,51 +72,19 @@ export default class DamageService {
             throw new ApiError(403, "This damage record is locked and cannot be deleted");
         }
 
-        const session = await mongoose.startSession();
-        session.startTransaction();
+        await withTransaction(async (tx) => {
 
-        try {
-            const batch = await ProductService.findBatchByID(damage.batchID!.toString(), session);
-            const product = await ProductService.findById(damage.productID.toString(), session);
-
-            if (!batch || !product) {
-                throw new ApiError(404, "Batch or Product not found");
-            }
-
-            await ProductService.updateBatchDynamically(
-                damage.batchID!.toString(),
-                {
-                    inc: {
-                        remainingQty: damage.damagedQty,
-                        damagedQty: -damage.damagedQty,
-                    },
-                    set:{
-                        isActive:true
-                    }
-                },
-                session
-            );
-
-            // 2. rollback product stock (if global stock maintained)
-            await ProductService.updateProductFifoBatchAndStock(
-                batch.productID?.toString(),
-                {
-                    qty: damage.damagedQty,
-                },
-                session
-            );
-            // 4. delete damage record
+            await Promise.all([
+                ProductService.increaseBatchStock(damage.batchID!, damage.damagedQty, tx),
+                ProductService.increaseVariantStock(damage.variantID!, damage.damagedQty, tx),
+                ProductService.increaseProductStock(damage.productID!, damage.damagedQty, tx)
+            ]);
 
 
-            await session.commitTransaction();
-            return await DamageRepository.delete(damage._id.toString(), session);
+            return await DamageRepository.delete(damage.id, tx);
 
-        } catch (err) {
-            await session.abortTransaction();
-            throw err;
-        } finally {
-            session.endSession();
-        }
+        })
+
 
 
     }

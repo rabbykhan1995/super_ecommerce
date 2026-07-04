@@ -29,7 +29,7 @@ export class DamageController {
 
   static async delete(req: Request, res: Response) {
     const { id } = req.params;
-    await DamageService.delete(id.toString());
+    await DamageService.delete(Number(id));
 
     res.status(200).json({
       success: true,

@@ -1,13 +1,20 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { connectDB } from "./config/db.config";
 import app from "./app";
+import db from "./drizzle/src";
+import { sql } from "drizzle-orm";
 
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
-connectDB();
+
+
+try {
+  await db.execute(sql`SELECT 1`);
+  console.log("✅ Database connected");
+} catch (error) {
+  console.error("❌ Database connection failed", error);
+}
 
 // Start server
 app.listen(PORT, () => {

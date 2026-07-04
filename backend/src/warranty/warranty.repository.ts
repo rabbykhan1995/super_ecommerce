@@ -1,7 +1,5 @@
 import { ClientSession } from "mongoose";
 import Warranty from "./warranty.model";
-import { paginatedAggregate } from "../../utils/queryBuilder";
-import { IWarranty, WarrantyResponse } from "./warranty.type";
 import db, { QueryClient } from "../../drizzle/src";
 
 export default class WarrantyRepositoy {
@@ -34,73 +32,73 @@ export default class WarrantyRepositoy {
     }
 
     static async list(query: any) {
-        return await paginatedAggregate({
-            model: Warranty,
-            query,
-            postLookupSearch: true,
-            searchFields: [
-                { field: "serial" },
-            ],
-            lookups: [
-                {
-                    from: "contacts",
-                    localField: "customerID",
-                    foreignField: "_id",
-                    as: "customer",
-                    preserveNull: true,
-                },
-                {
-                    from: "contacts",
-                    localField: "supplierID",
-                    foreignField: "_id",
-                    as: "supplier",
-                    preserveNull: true,
-                },
-                {
-                    from: "products",
-                    localField: "productID",
-                    foreignField: "_id",
-                    as: "product",
-                    preserveNull: true,
-                },
-            ],
-            projection: {
-                include: [
-                    "customerID",
-                    "supplierID",
-                    "saleID",
-                    "productID",
-                    "batchID",
+        // return await paginatedAggregate({
+        //     model: Warranty,
+        //     query,
+        //     postLookupSearch: true,
+        //     searchFields: [
+        //         { field: "serial" },
+        //     ],
+        //     lookups: [
+        //         {
+        //             from: "contacts",
+        //             localField: "customerID",
+        //             foreignField: "_id",
+        //             as: "customer",
+        //             preserveNull: true,
+        //         },
+        //         {
+        //             from: "contacts",
+        //             localField: "supplierID",
+        //             foreignField: "_id",
+        //             as: "supplier",
+        //             preserveNull: true,
+        //         },
+        //         {
+        //             from: "products",
+        //             localField: "productID",
+        //             foreignField: "_id",
+        //             as: "product",
+        //             preserveNull: true,
+        //         },
+        //     ],
+        //     projection: {
+        //         include: [
+        //             "customerID",
+        //             "supplierID",
+        //             "saleID",
+        //             "productID",
+        //             "batchID",
                     
-                    "serial",
-                    "salePrice",
-                    "warranty",
-                    "status",
-                    "supplierAction",
-                    "active",
+        //             "serial",
+        //             "salePrice",
+        //             "warranty",
+        //             "status",
+        //             "supplierAction",
+        //             "active",
 
-                    "expireDate",
-                    "claimDate",
-                    "saleDate",
-                    "sentDate",
-                    "receivedDate",
-                    "resolvedDate",
+        //             "expireDate",
+        //             "claimDate",
+        //             "saleDate",
+        //             "sentDate",
+        //             "receivedDate",
+        //             "resolvedDate",
 
-                    "replacedSerial",
-                    "replacedBatchID",
+        //             "replacedSerial",
+        //             "replacedBatchID",
 
-                    "refundAmount",
-                    "otherCost",
+        //             "refundAmount",
+        //             "otherCost",
 
-                    "createdAt",
-                    "updatedAt",
-                ],
-                computed: {
-                    customerName: "$customer.name",
-                    supplierName: "$supplier.name",
-                     productName: "$product.name",
-                },
-            },
-        });
+        //             "createdAt",
+        //             "updatedAt",
+        //         ],
+        //         computed: {
+        //             customerName: "$customer.name",
+        //             supplierName: "$supplier.name",
+        //              productName: "$product.name",
+        //         },
+        //     },
+        // });
     }
 }
