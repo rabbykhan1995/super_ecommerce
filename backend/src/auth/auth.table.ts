@@ -1,5 +1,4 @@
 import {
-  boolean,
   pgTable,
   timestamp,
   uniqueIndex,
@@ -25,9 +24,6 @@ export const userTable = pgTable(
 
     password: varchar("password", { length: 255 }),
 
-    // চাইলে এটা পরে remove করে isSuperAdmin রাখতে পারো
-    admin: boolean("admin").default(false).notNull(),
-
     email: varchar("email", { length: 255 }),
 
     mobile: varchar("mobile", { length: 20 }),
@@ -46,13 +42,11 @@ export const userTable = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    openIDUnique: uniqueIndex("users_open_id_unique").on(table.openID),
-
-    emailUnique: uniqueIndex("users_email_unique").on(table.email),
-
-    mobileUnique: uniqueIndex("users_mobile_unique").on(table.mobile),
-  }),
+  (table) => [
+    uniqueIndex("users_open_id_unique").on(table.openID),
+    uniqueIndex("users_email_unique").on(table.email),
+    uniqueIndex("users_mobile_unique").on(table.mobile),
+  ]
 );
 
 /* ===========================
@@ -131,12 +125,12 @@ export const userRoles = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => ({
-    uniqueUserRole: uniqueIndex("unique_user_role").on(
-      table.userId,
-      table.roleId,
-    ),
-  }),
+(table) => [
+  uniqueIndex("unique_user_role").on(
+    table.userId,
+    table.roleId,
+  ),
+]
 );
 
 /* ===========================

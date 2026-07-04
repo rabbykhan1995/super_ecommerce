@@ -1,0 +1,317 @@
+import axios from "axios";
+import { sendEmail } from "../../config/mailSender.config";
+import { ApiError } from "../../utils/ApiError";
+import { generateEmailTemplate } from "../../utils/emailTemplate";
+import Helper from "../../utils/helper";
+import { AuthRepository } from "./auth.repository";
+import { CreateUserInput, PasswordResetInput, User, UserLoginInput } from "./auth.type";
+
+export class AuthService {
+  static async registerManually(payload: CreateUserInput) {
+
+    const otp: string = payload.otp;
+    const redisOTP = await Helper.getOTPFromRedis(payload.email as string, "email");
+
+    if (!redisOTP) {
+      // OTP expired বা send করা হয়নি
+      throw new ApiError(400, "OTP expired or not found");
+    }
+
+    if (otp !== redisOTP) {
+      // OTP mismatch
+      throw new ApiError(400, "Invalid OTP");
+    }
+
+
+    await Helper.deleteOTPFromRedis(payload.email, "email");
+
+    if (payload.mobile) {
+      const existedMobile = await AuthRepository.findByMobile(payload.mobile);
+
+      if (existedMobile) {
+        throw new ApiError(409, "Mobile already exists");
+      }
+    }
+
+    const hashedPassword: string = await Helper.hashPassword(
+      payload.password as string,
+    );
+    const user: User = await AuthRepository.createUser({
+      ...payload,
+      password: hashedPassword,
+    });
+
+    if (!user) {
+      throw new ApiError(500, "User registration failed");
+    }
+
+    const token: string = Helper.generateToken(user);
+
+    return { token, user }
+
+  }
+
+  static async getProfileData(userID: string) {
+
+    const user = await AuthRepository.findByID(userID);
+
+    if (!user) {
+      throw new ApiError(404, "User Not Found");
+    }
+    return user;
+
+  }
+
+
+  static async sendEmailVerifyOTP(email: string) {
+
+    const emailExist = await AuthRepository.findByEmail(email);
+
+    if (emailExist) {
+
+      throw new ApiError(400, "Email already registered, try with new one");
+
+    }
+
+
+    if (!email) {
+
+      throw new ApiError(400, "Email is required");
+
+    }
+
+
+    // check Redis if OTP already exists
+    const existingOTP = await Helper.getOTPFromRedis(email, "email");
+
+    if (existingOTP) {
+
+      throw new ApiError(429, "OTP already sent. Please wait before requesting again.");
+
+    }
+
+    // generate new OTP
+    const otp: number | string = Helper.generateOTP();
+
+    // save to Redis with 120 seconds TTL
+    try {
+
+      await Helper.setOTPIntoRedis(email, otp, "email");
+
+    } catch (err) {
+
+      throw new ApiError(500, "Redis save failed");
+
+    }
+    // prepare email template
+    const html = generateEmailTemplate(otp, "verify");
+
+    // send email
+    const emailSended = await sendEmail({
+      to: email,
+      subject: "Your OTP Code",
+      html,
+    });
+
+    if (!emailSended) {
+      throw new ApiError(500, "Internal Server Error")
+    }
+
+  }
+
+  static async sendForgetPasswordOTP(email: string) {
+
+    const user = await AuthRepository.findByEmail(email);
+
+    if (!user) {
+      throw new ApiError(404, "User not found")
+    }
+
+    // check Redis if OTP already exists
+    const existingOTP = await Helper.getOTPFromRedis(email, "email");
+    if (existingOTP) {
+
+      throw new ApiError(429, "OTP already sent. Please wait before requesting again.")
+    }
+
+    // generate new OTP
+    const otp: number | string = Helper.generateOTP();
+
+    // save to Redis with 120 seconds TTL
+    try {
+      await Helper.setOTPIntoRedis(email, otp, "email");
+    } catch (err) {
+      throw new ApiError(500, "Redis save failed");
+    }
+    // prepare email template
+    const html = generateEmailTemplate(otp, "reset");
+
+    // send email
+    const emailSended = await sendEmail({
+      to: email,
+      subject: "Your OTP Code",
+      html,
+    });
+    if (!emailSended) {
+      throw new ApiError(500, "Internal Server Error")
+    }
+
+  }
+
+  static async resetPassword(payload: PasswordResetInput) {
+
+    const otp: string = payload.otp;
+    const redisOTP = await Helper.getOTPFromRedis(payload.email as string, "email");
+
+    if (!redisOTP) {
+      // OTP expired বা send করা হয়নি
+      throw new ApiError(400, "OTP expired or not found");
+    }
+
+    if (otp !== redisOTP) {
+      // OTP mismatch
+      throw new ApiError(400, "Invalid OTP");
+    }
+
+    await Helper.deleteOTPFromRedis(payload.email, "email");
+
+    const hashedPassword: string = await Helper.hashPassword(
+      payload.password as string,
+    );
+    let user = await AuthRepository.findByEmail(payload.email);
+
+    if (!user) {
+      throw new ApiError(500, "User registration failed");
+    }
+    const updatedUser = await AuthRepository.updateUser(user.id, { password: hashedPassword });
+
+    const userObj = updatedUser;
+
+    const token: string = Helper.generateToken(userObj);
+
+    const userData = { ...user, password: null }
+
+    return { token, user: userData }
+  }
+
+  static async manualLogin(payload: UserLoginInput) {
+    // check if identifier is email or phone
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.identifier);
+
+    // find user
+    const user = isEmail
+      ? await AuthRepository.findByEmail(payload.identifier)
+      : await AuthRepository.findByMobile(payload.identifier);
+
+    if (!user) {
+      throw new ApiError(404, "Wrong Credential")
+    }
+
+    if (user && !user.password && user.openID) {
+      throw new ApiError(400, "Wrong Login Method, Login with Google")
+    }
+
+    const passwordMatched = Helper.comparePassword(user.password as string, payload.password as string);
+
+    if (!passwordMatched) {
+      throw new ApiError(404, "Wrong Credential")
+    }
+
+
+    const token: string = Helper.generateToken(user);
+
+    return { token, user }
+
+  }
+
+  static getGoogleAuthAPI() {
+    const redirectURL =
+      "https://accounts.google.com/o/oauth2/v2/auth?" +
+      new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        redirect_uri: `${process.env.GOOGLE_REDIRECT_URL}`,
+        response_type: "code",
+        scope: "openid email profile",
+        state: "google_private_random_string_you_can_give_anything",
+      });
+
+    return redirectURL;
+
+  }
+
+  static async googleAuthCallbackAPI(query: any) {
+    const code = query.code
+
+    if (!code) {
+      throw new ApiError(400, "Authorization code missing");
+    }
+
+    const tokenResponse = await axios.post(
+      "https://oauth2.googleapis.com/token",
+      new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: `${process.env.GOOGLE_REDIRECT_URL}`,
+        grant_type: "authorization_code",
+      }),
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      },
+    );
+
+    const { access_token } = tokenResponse.data;
+
+    const userInfoResponse = await axios.get(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      },
+    );
+
+    const googleUser: any = userInfoResponse.data;
+
+    let user = await AuthRepository.findByEmail(googleUser.email);
+
+
+
+    if (!user) {
+      user = await AuthRepository.createUser({
+        name: googleUser.name,
+        email: googleUser.email,
+        openID: googleUser.id,
+        image: googleUser.picture,
+      })
+    }
+
+    if (user && !user.openID) {
+      user.openID = googleUser.id;
+      await AuthRepository.updateUser(user.id, { openID: googleUser.id })
+    }
+
+    const token = Helper.generateToken({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+    });
+    // 5️⃣ Store user session in Redis (🔥 NEW PART)
+    // const redisRes = await redis.set(
+    //   `session:${user._id}`,
+    //   JSON.stringify({
+    //     _id: user._id,
+    //     name: user.name,
+    //     email: user.email,
+    //     admin: user.admin,
+    //   }),
+    //   "EX",
+    //   60 * 60 * 24 // 1 day expire
+    // );
+
+    const clientRedirectURL = process.env.ECOM_CLIENT_URL;
+    return { token, clientRedirectURL }
+
+  }
+}

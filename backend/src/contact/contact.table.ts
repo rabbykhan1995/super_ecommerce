@@ -15,7 +15,7 @@ import { purchaseReturnTable } from "../purchase_return/purchase_return.table";
 import { saleTable } from "../sale/sale.table";
 import { saleReturnTable } from "../sale_return/sale_return.table";
 import { ledgerTable } from "../ledger/ledger.table";
-import { userTable } from "../auth/user.table";
+import { userTable } from "../auth/auth.table";
 
 // ১. টাইপের জন্য pgEnum ডিফাইন করা (Mongoose enum-এর বিকল্প)
 export const contactTypeEnum = pgEnum("contact_type", ["customer", "supplier", "both"]);

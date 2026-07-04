@@ -1,5 +1,5 @@
 import express from "express";
-import { passwordResetSchema, userLoginSchema } from "./user.validator";
+import { passwordResetSchema, userLoginSchema } from "./auth.validator";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { AuthController } from "./auth.controller";
 import { validate } from "../../middlewares/validation.middleware";
