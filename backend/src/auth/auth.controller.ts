@@ -85,13 +85,13 @@ export class AuthController {
   }
 
   static async googleAuthCallbackAPI(req: Request, res: Response) {
-    const {token, clientRedirectURL} = await AuthService.googleAuthCallbackAPI(req.query);
+    const { token, clientRedirectURL } = await AuthService.googleAuthCallbackAPI(req.query);
 
     res.cookie("token", token, { httpOnly: true });
 
     res.redirect(`${clientRedirectURL}`);
   }
-  
+
   static async logout(req: Request, res: Response) {
 
     res.clearCookie("token");
@@ -99,5 +99,17 @@ export class AuthController {
     return res
       .status(200)
       .json({ msg: "user logged out successfully", success: true });
+  }
+
+  static async checkOutMobile(req: Request, res: Response) {
+    const userID = req.user.id;
+    const mobile = req.body.mobile;
+    const address = req.body.address;
+
+    await AuthService.checkOutMobile(userID, mobile, address);
+
+    return res
+      .status(200)
+      .json({ msg: "Checkout successfully", success: true });
   }
 }

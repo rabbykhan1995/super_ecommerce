@@ -4,6 +4,7 @@ import { Contact, CreateContactInput, UpdateContactInput } from "./contact.type"
 import { ApiError } from "../../utils/ApiError";
 import { ClientSession } from "mongoose";
 import { QueryClient } from "../../drizzle/src";
+import { contactTable } from "./contact.table";
 
 export default class ContactService {
     // NOTE:this will not be return any error res from here findByID
@@ -13,6 +14,17 @@ export default class ContactService {
 
         return contact;
     }
+
+  static async findOne(
+    where: Partial<{
+      id: string;
+      userID: string;
+      email: string;
+      mobile: string;
+    }>,
+  ) {
+    return ContactRepository.findOne(where);
+  }
 
     static async findByMobile(mobile: string): Promise<Contact> {
 
@@ -69,10 +81,10 @@ export default class ContactService {
         );
     }
 
-    static async increaseBalance(contactID:number, amount:number, tx?:QueryClient){
+    static async increaseBalance(contactID: number, amount: number, tx?: QueryClient) {
         return await ContactRepository.increaseBalance(contactID, amount, tx);
     }
-     static async decreaseBalance(contactID:number, amount:number, tx?:QueryClient){
+    static async decreaseBalance(contactID: number, amount: number, tx?: QueryClient) {
         return await ContactRepository.decreaseBalance(contactID, amount, tx);
     }
 

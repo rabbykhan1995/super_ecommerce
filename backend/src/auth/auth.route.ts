@@ -1,5 +1,5 @@
 import express from "express";
-import { passwordResetSchema, userLoginSchema } from "./auth.validator";
+import { checkoutMobileSchema, passwordResetSchema, userLoginSchema } from "./auth.validator";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { AuthController } from "./auth.controller";
 import { validate } from "../../middlewares/validation.middleware";
@@ -19,5 +19,6 @@ router
   .post("/manual-login", validate(userLoginSchema), asyncHandler(AuthController.manualLogin))
   .post("/send-forget-password-otp", asyncHandler(AuthController.sendForgetPasswordOTP))
   .post("/reset-password", validate(passwordResetSchema), asyncHandler(AuthController.resetPassword))
+  .post("/checkout-mobile", validate(checkoutMobileSchema), asyncHandler(AuthController.checkOutMobile))
 
 export default router;

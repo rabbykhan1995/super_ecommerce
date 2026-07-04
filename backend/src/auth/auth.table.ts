@@ -6,6 +6,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { contactTable } from "../contact/contact.table";
 
 /* ===========================
    Users
@@ -142,7 +143,7 @@ export const userRelations = relations(userTable, ({ one, many }) => ({
     fields: [userTable.id],
     references: [staffProfiles.userId],
   }),
-
+  contact:one(contactTable),
   userRoles: many(userRoles),
 }));
 

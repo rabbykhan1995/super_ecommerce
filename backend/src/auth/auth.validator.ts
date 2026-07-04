@@ -1,3 +1,4 @@
+import { max } from "drizzle-orm";
 import { z } from "zod";
 
 export const createUserSchema = z.object({
@@ -17,7 +18,7 @@ export const createUserSchema = z.object({
     .optional(),
   email: z.string().email("Invalid email address"),
   addresss: z.string().nullable().optional(),
-  mobile: z.string().nullable().optional(),
+  mobile: z.string().max(18).min(10),
     otp: z
     .string()
     .length(6, "OTP must be 6 digits")       // exactly 6 characters
@@ -57,6 +58,26 @@ export const userLoginSchema = z.object({
 
       return emailRegex.test(val) || mobileRegex.test(val);
     }, "Identifier must be a valid email or mobile number"),
+});
+
+export const checkoutMobileSchema = z.object({
+  address: z
+    .string()
+    .min(6, "address must be at least 6 characters").nonempty(),
+  mobile: z
+    .string()
+    .min(1, "mobile is required")
+    .refine((val) => {
+      // email regex
+      const emailRegex =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      // mobile regex (Bangladesh 01XXXXXXXXX)
+      const mobileRegex =
+        /^(?:\+88)?01[3-9]\d{8}$/;
+
+      return emailRegex.test(val) || mobileRegex.test(val);
+    }, "mobile must be a valid number"),
 });
 
 export const passwordResetSchema = z.object({

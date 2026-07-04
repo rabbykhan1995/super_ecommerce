@@ -5,6 +5,8 @@ import { generateEmailTemplate } from "../../utils/emailTemplate";
 import Helper from "../../utils/helper";
 import { AuthRepository } from "./auth.repository";
 import { CreateUserInput, PasswordResetInput, User, UserLoginInput } from "./auth.type";
+import ContactService from "../contact/contact.service";
+import { withTransaction } from "../../utils/withTransaction";
 
 export class AuthService {
   static async registerManually(payload: CreateUserInput) {
@@ -25,27 +27,62 @@ export class AuthService {
 
     await Helper.deleteOTPFromRedis(payload.email, "email");
 
-    if (payload.mobile) {
-      const existedMobile = await AuthRepository.findByMobile(payload.mobile);
+    let user: User | null = null;
 
-      if (existedMobile) {
-        throw new ApiError(409, "Mobile already exists");
-      }
+    const existedMobile = await AuthRepository.findByMobile(payload.mobile);
+
+    if (existedMobile) {
+      throw new ApiError(409, "Mobile already exists");
     }
+
 
     const hashedPassword: string = await Helper.hashPassword(
       payload.password as string,
     );
-    const user: User = await AuthRepository.createUser({
-      ...payload,
-      password: hashedPassword,
+
+    let token;
+
+    await withTransaction(async (tx) => {
+
+      user = await AuthRepository.createUser({
+        ...payload,
+        password: hashedPassword,
+      }, tx);
+
+      if (!user) {
+
+        throw new ApiError(500, "User registration failed");
+
+      }
+      // _______________________________________-_______
+      // 
+      // ____________Contact Registration_________________
+      // _______________________________________-_______
+      token = Helper.generateToken(user);
+
+      const contactExist = await ContactService.findOne({mobile:user.mobile!});
+
+      if (contactExist) {
+
+        await ContactService.update(contactExist.id, { userID: user.id, email: user.email! })
+
+      }
+      // jodi mobile number diye khola na thake tokhon mobile number lagbe,
+      if (!contactExist) {
+
+        await ContactService.create({
+          balance: 0,
+          type: "customer",
+          mobile: user.mobile!,
+          name: user.name,
+          address: user.address!,
+          email: user.email!,
+          userID: user.id,
+        })
+
+      }
+
     });
-
-    if (!user) {
-      throw new ApiError(500, "User registration failed");
-    }
-
-    const token: string = Helper.generateToken(user);
 
     return { token, user }
 
@@ -54,11 +91,19 @@ export class AuthService {
   static async getProfileData(userID: string) {
 
     const user = await AuthRepository.findByID(userID);
+    let checkOut = false;
 
     if (!user) {
       throw new ApiError(404, "User Not Found");
     }
-    return user;
+
+    if (user.openID && !user.mobile) {
+      checkOut = true
+    }
+
+    const contact = await ContactService.findOne({mobile:user.mobile!});
+
+    return { ...user, ...(checkOut ? { checkoutMobile: true } :{ ...contact }) };
 
   }
 
@@ -275,8 +320,6 @@ export class AuthService {
 
     let user = await AuthRepository.findByEmail(googleUser.email);
 
-
-
     if (!user) {
       user = await AuthRepository.createUser({
         name: googleUser.name,
@@ -311,7 +354,45 @@ export class AuthService {
     // );
 
     const clientRedirectURL = process.env.ECOM_CLIENT_URL;
+
     return { token, clientRedirectURL }
+
+  }
+
+  static async checkOutMobile(userID: string, mobile: string, address?: string) {
+
+    const targetUser = await AuthRepository.findByID(userID);
+
+    const user = await AuthRepository.findByMobile(mobile);
+
+    if (user) {
+
+      throw new ApiError(400, "try with different mobile number");
+
+    }
+
+    const contact = await ContactService.findOne({mobile});
+
+    if (contact) {
+
+      throw new ApiError(400, "try with different mobile number");
+
+    }
+
+    if (!user && !contact) {
+
+      await AuthRepository.updateUser(userID, { mobile });
+
+      await ContactService.create({
+        userID,
+        balance: 0,
+        mobile,
+        name: targetUser!.name,
+        type: "customer",
+        address: targetUser!.address ?? address,
+      })
+    }
+
 
   }
 }
