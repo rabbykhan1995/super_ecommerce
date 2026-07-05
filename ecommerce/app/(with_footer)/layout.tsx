@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "../../app/globals.css";
+
 import NavbarDestop from "@/components/Head&Foot/NavbarDestop";
 import NavbarMobile from "@/components/Head&Foot/NavbarMobile";
 import Footer from "@/components/Head&Foot/Footer";
@@ -27,12 +27,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <>
-      <NavbarDestop />
-      <NavbarMobile />
-      <CartSlider/>
-      <main className=" pb-5"> {children}</main>
+    <div className="w-full flex items-center flex-col">
+      <main className="w-full lg:w-250 xl:w-7xl px-2 xl:px-4"> {children}</main>
       <Footer />
-    </>
+    </div>
   );
 }

@@ -194,3 +194,22 @@ body {
   }
 
 }
+
+
+
+.swiper-pagination {
+  bottom: 20px !important;
+}
+
+.swiper-pagination-bullet {
+  width: 10px !important;
+  height: 10px !important;
+  background: #0968f8 !important;
+  opacity: 1 !important;
+}
+
+.swiper-pagination-bullet-active {
+  width: 28px !important;
+  border-radius: 9999px !important;
+  background: #3185FC !important;
+}

@@ -5,6 +5,8 @@ import CartSlider from "../Sliders/CartSlider";
 import { useState } from "react";
 import MenuSlider from "../Sliders/MenuSliders";
 import { cartStore } from "@/zustand/cart.store";
+import { shadowsIntoLight } from "@/lib/font";
+import BrandLogo from "../Logos/BrandLogo";
 const NavbarMobile = () => {
   const [cartSlider, setCartSlider] = useState(false);
   const [menuSlider, setMenuSlider] = useState(false);
@@ -20,7 +22,7 @@ const NavbarMobile = () => {
             </button>
             <Search size={20} color="#242424" />
           </div>
-          <div>Logo & Name</div>
+                   <BrandLogo />
 
           {/* Right Cart & Search */}
           <button

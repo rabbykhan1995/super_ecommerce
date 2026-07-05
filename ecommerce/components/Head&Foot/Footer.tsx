@@ -1,16 +1,20 @@
-import { Facebook, Instagram, Twitter, X, Youtube } from "lucide-react";
+import { shadowsIntoLight } from "@/lib/font";
+import { Facebook, Instagram, LocateOffIcon, Twitter, X, Youtube } from "lucide-react";
 import Link from "next/link";
+import BrandLogo from "../Logos/BrandLogo";
 
 const Footer = () => {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 px-5 lg:px-20 text-sm">
+  <div className="flex justify-center w-full bg-[#353636] text-[#d3d3d3] py-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 lg:px-20 text-sm w-full lg:w-250 xl:w-7xl px-2 xl:px-4">
       <div className="flex flex-col gap-5 capitalize col-span-1">
-        <h1 className="uppercase font-bold">Programs</h1>
-        <h1>Training programs</h1>
+        <BrandLogo />
+        <h1 className="uppercase font-bold">Our products are ensured directly from brands or authorized distributors. They’re stored and shipped directly from our climate-controlled, GMP-certified warehouses.!</h1>
+        <h1 className="flex gap-1"><LocateOffIcon size={30} className="bg-white rounded-full p-1 text-black"/><span>House# 44, Rd No. 2/A, Dhanmondi, Dhaka 1209</span></h1>
         <h1>Nutrition Plans</h1>
       </div>
       <div className="flex flex-col gap-5 capitalize col-span-1">
-        <h1 className="uppercase font-bold">SPONSORS</h1>
+        <h1 className="uppercase font-bold"></h1>
         <h1>MacroFactor Diet App</h1>
         <h1>Mass Research Review</h1> <h1>Neck Flex</h1>
       </div>
@@ -57,6 +61,7 @@ const Footer = () => {
         </div>
       </div>
     </div>
+  </div>
   );
 };
 

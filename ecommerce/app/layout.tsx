@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { Inter } from "next/font/google";
+// @ts-ignore
+import "./globals.css"
 import FetchInitialData from "@/components/FetchInitialData/FetchInitialData";
 import FullScreenLoader from "@/utils/globalLoader";
 import { Toaster } from "react-hot-toast";
 import AnalyticsHandler from "@/components/AnalyticsHandler/AnalyticsHandler";
+import NavbarDestop from "@/components/Head&Foot/NavbarDestop";
+import NavbarMobile from "@/components/Head&Foot/NavbarMobile";
+import CartSlider from "@/components/Sliders/CartSlider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -49,29 +48,36 @@ export default function RootLayout({
         />
       </head> */}
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} antialiased`}
         suppressHydrationWarning={true}
       >
+        <NavbarDestop />
+        <NavbarMobile />
+        <CartSlider />
         {/* eta click ba spa event check korar jonno, mane kon route a beshi jacche egula */}
         {/* <AnalyticsHandler />{" "} */}
-        <main className="">
-          {" "}
-          {/* ২. Toaster যোগ করুন (Global notifications এর জন্য) */}
-          <Toaster
-            position="top-center"
-            reverseOrder={false}
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: "#333",
-                color: "#fff",
-              },
-            }}
-          />
-          <FullScreenLoader />
-          <FetchInitialData />
+
+        {" "}
+        {/* ২. Toaster যোগ করুন (Global notifications এর জন্য) */}
+        <Toaster
+          position="top-center"
+          reverseOrder={false}
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: "#333",
+              color: "#fff",
+            },
+          }}
+        />
+        <FullScreenLoader />
+        <FetchInitialData />
+        <div >
           {children}
-        </main>
+        </div>
+
+
+
       </body>
     </html>
   );
