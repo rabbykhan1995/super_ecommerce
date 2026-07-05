@@ -27,7 +27,6 @@ router
   .delete(
     "/delete/:id",
     authMiddleware,
-
     asyncHandler(UnitController.delete),
   )
   .get("/list", asyncHandler(UnitController.list))

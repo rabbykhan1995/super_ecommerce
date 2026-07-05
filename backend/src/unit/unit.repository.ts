@@ -21,55 +21,18 @@ export default class UnitRepository {
         return result;
     }
 
-    static async delete(unitID: any) {
+    static async delete(unitID: number) {
         return await db.delete(unitTable).where(eq(unitTable.id, unitID));
     }
 
-    static async update(unitID: any, payload: CreateUnitInput) {
+    static async update(unitID: number, payload: CreateUnitInput) {
         return await db.update(unitTable).set(payload).where(eq(unitTable.id, unitID)).returning();
     }
 
-    static async list(
-        search = "",
-        page = 1,
-        limit = 10
-    ) {
-        const offset = (page - 1) * limit;
-
-        // Search condition
-        const whereClause = search.trim()
-            ? ilike(unitTable.name, `%${search.trim()}%`)
-            : undefined;
-
-        const [items, totalResult] = await Promise.all([
-            db
-                .select({
-                    id: unitTable.id,
-                    name: unitTable.name,
-                    createdAt: unitTable.createdAt,
-                })
-                .from(unitTable)
-                .where(whereClause)
-                .orderBy(desc(unitTable.createdAt))
-                .limit(limit)
-                .offset(offset),
-
-            db
-                .select({
-                    total: count(),
-                })
-                .from(unitTable)
-                .where(whereClause),
-        ]);
-
-        return {
-            items,
-            total: Number(totalResult[0].total),
-            page,
-            limit,
-            totalPages: Math.ceil(
-                Number(totalResult[0].total) / limit
-            ),
-        };
-    }
+static async list() {
+  return await db
+    .select()
+    .from(unitTable)
+    .orderBy(desc(unitTable.createdAt));
+}
 }

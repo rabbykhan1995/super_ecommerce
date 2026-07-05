@@ -191,15 +191,6 @@ export default class ProductService {
     return product;
   }
 
-  static async productByBarcode(query: any) {
-    const product = await ProductRepository.productByBarcode(query);
-
-    if (!product) {
-      throw new ApiError(404, "Product not found");
-    }
-
-    return product;
-  }
 
   static async batchByProduct(id: number) {
     const batch = await ProductRepository.batchByProductID(id);
@@ -265,8 +256,8 @@ export default class ProductService {
     return await ProductRepository.updateBatchDynamically(batchID, options, tx);
   }
 
-  static async deleteBatches(filter: Record<string, any>, tx?: QueryClient) {
-    await ProductRepository.deleteBatches(filter, tx);
+  static async deleteBatches(batchIDs:number[], tx?: QueryClient) {
+    await ProductRepository.deleteBatches(batchIDs, tx);
   }
 
   static async findBatchByID(
@@ -282,8 +273,8 @@ export default class ProductService {
   ): Promise<Batch | null> {
     return ProductRepository.findBatchByIDForSale(id, tx);
   }
-  static findOneBatch(filter: Record<string, any>, tx?: QueryClient) {
-    return ProductRepository.findOneBatch(filter, tx);
+  static findOneBatch(fieldName: any, fieldVal:any, tx?: QueryClient) {
+    return ProductRepository.findOneBatch(fieldName,fieldVal, tx);
   }
 
   static async getSaleReturnBatches() {}
@@ -301,7 +292,7 @@ export default class ProductService {
     }
 
     return ProductRepository.updateProduct(id, {
-      posEnabled: !product.posEnabled,
+      inPosList: !product.inPosList,
     });
   }
 
@@ -321,8 +312,8 @@ export default class ProductService {
     return batches;
   }
 
-  static async countProduct(filters: CountProductFilters) {
-    return await ProductRepository.countProduct(filters);
+  static async countProduct(fieldName:any, fieldVal:any,tx?:QueryClient) {
+    return await ProductRepository.countProduct(fieldName, fieldVal, tx);
   }
   static async decreaseProductStock(
     productID: number,

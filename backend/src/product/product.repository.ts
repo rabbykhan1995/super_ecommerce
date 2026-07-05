@@ -14,6 +14,7 @@ import db, { QueryClient } from "../../drizzle/src";
 import {
   and,
   asc,
+  count,
   eq,
   gt,
   inArray,
@@ -120,6 +121,21 @@ export default class ProductRepository {
 
     return batch ?? null;
   }
+
+static async countProduct<K extends keyof Product>(
+  fieldName: K,
+  fieldVal: Product[K],
+  client: QueryClient = db,
+): Promise<number> {
+  const [result] = await client
+    .select({
+      total: count(),
+    })
+    .from(productTable)
+    .where(eq(productTable[fieldName] as any, fieldVal as any));
+
+  return Number(result.total);
+}
   static async createProduct(
     payload: ProductPayload,
     client: QueryClient = db,
@@ -340,50 +356,6 @@ export default class ProductRepository {
       );
   }
 
-  // static async findSaleReturnBatches(
-  //     batchIDs: SaleProduct[],
-  //     sale: Sale
-  // ) {
-  //     const ids = batchIDs.map(x => x.batchID);
-
-  //     const batches = await db.query.batchTable.findMany({
-  //         where: and(
-  //             inArray(batchTable.id, ids)
-  //         ),
-  //         with: {
-  //             product: {
-  //                 with: {
-  //                     unit: true,
-  //                     brand: true,
-  //                     category: true,
-  //                 },
-  //             },
-  //         },
-  //     });
-
-  //     return batches.map((batch) => {
-  //         const soldInfo = sale.products.find(
-  //             (p) => p.batchID === batch.id
-  //         );
-
-  //         return {
-  //             id: batch.id,
-  //             name: batch.product.name,
-  //             unitName: batch.product.unit?.name,
-  //             brandName: batch.product.brand?.name,
-  //             categoryName: batch.product.category?.name,
-  //             salePrice: soldInfo?.salePrice ?? 0,
-  //             saleReturnedQty: batch.saleReturnedQty,
-  //             soldQty: soldInfo?.soldQty ?? 0,
-  //             remainingQty: batch.remainingQty,
-  //             purchasedQty: batch.purchasedQty,
-  //             warranty: batch.warranty,
-  //             manageWarranty: (batch.warranty ?? 0) > 0,
-  //             serial: batch.serial,
-  //         };
-  //     });
-  // }
-
   static async findSaleSerials(
     productID: number,
     client: QueryClient = db,
@@ -558,40 +530,6 @@ export default class ProductRepository {
     return batch ?? null;
   }
 
-  // static async deductStockFromBatch(
-  //     batchID: number,
-  //     qty: number,
-  //     client: QueryClient = db
-  // ): Promise<Batch | null> {
-  //     const [batch] = await client
-  //         .update(batchTable)
-  //         .set({
-  //             remainingQty: sql`${batchTable.remainingQty} - ${qty}`,
-  //             soldQty: sql`${batchTable.soldQty} + ${qty}`,
-  //         })
-  //         .where(eq(batchTable.id, batchID))
-  //         .returning();
-
-  //     return batch ?? null;
-  // }
-
-  // static async returnStockToBatch(
-  //     batchID: number,
-  //     qty: number,
-  //     client: QueryClient = db
-  // ): Promise<Batch | null> {
-  //     const [batch] = await client
-  //         .update(batchTable)
-  //         .set({
-  //             remainingQty: sql`${batchTable.remainingQty} + ${qty}`,
-  //             soldQty: sql`${batchTable.soldQty} - ${qty}`,
-  //             isActive: true,
-  //         })
-  //         .where(eq(batchTable.id, batchID))
-  //         .returning();
-
-  //     return batch ?? null;
-  // }
 
   static async findBatches<K extends keyof Batch>(
     fieldName: K,
@@ -683,4 +621,5 @@ export default class ProductRepository {
         ),
       );
   }
+
 }

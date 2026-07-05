@@ -17,7 +17,7 @@ export class UnitController {
 
   static async delete(req: Request, res: Response) {
     const { id } = req.params;
-
+    console.log(id)
     await UnitService.delete(Number(id));
 
     res.status(201).json({ success: true, message: " deleted successfully" });
@@ -25,7 +25,7 @@ export class UnitController {
 
   static async list(req: Request, res: Response) {
     // ম্যানুয়ালি সার্চ প্যারামিটার নিন
-    const list = await UnitService.list(req.query);
+    const list = await UnitService.list();
 
     return res.status(200).json({
       success: true,

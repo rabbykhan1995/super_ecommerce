@@ -25,7 +25,7 @@ export class CategoryController {
 
   static async list(req: Request, res: Response) {
     // ম্যানুয়ালি সার্চ প্যারামিটার নিন
-    const list = await CategoryService.list(req.query);
+    const list = await CategoryService.list();
 
     return res.status(200).json({
       success: true,

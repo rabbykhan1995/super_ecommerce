@@ -9,6 +9,62 @@ import ContactService from "../contact/contact.service";
 import { withTransaction } from "../../utils/withTransaction";
 
 export class AuthService {
+    static async sendEmailVerifyOTP(email: string) {
+
+    const emailExist = await AuthRepository.findByEmail(email);
+
+    if (emailExist) {
+
+      throw new ApiError(400, "Email already registered, try with new one");
+
+    }
+
+
+    if (!email) {
+
+      throw new ApiError(400, "Email is required");
+
+    }
+
+
+    // check Redis if OTP already exists
+    const existingOTP = await Helper.getOTPFromRedis(email, "email");
+
+    if (existingOTP) {
+
+      throw new ApiError(429, "OTP already sent. Please wait before requesting again.");
+
+    }
+
+    // generate new OTP
+    const otp: number | string = Helper.generateOTP();
+
+    // save to Redis with 120 seconds TTL
+    try {
+
+      await Helper.setOTPIntoRedis(email, otp, "email");
+
+    } catch (err) {
+
+      throw new ApiError(500, "Redis save failed");
+
+    }
+    // prepare email template
+    const html = generateEmailTemplate(otp, "verify");
+
+    // send email
+    const emailSended = await sendEmail({
+      to: email,
+      subject: "Your OTP Code",
+      html,
+    });
+
+    if (!emailSended) {
+      throw new ApiError(500, "Internal Server Error")
+    }
+
+  }
+
   static async registerManually(payload: CreateUserInput) {
 
     const otp: string = payload.otp;
@@ -64,7 +120,7 @@ export class AuthService {
 
       if (contactExist) {
 
-        await ContactService.update(contactExist.id, { userID: user.id, email: user.email! })
+        await ContactService.update(contactExist.id, { userID: user.id, email: user.email! }, tx)
 
       }
       // jodi mobile number diye khola na thake tokhon mobile number lagbe,
@@ -78,7 +134,7 @@ export class AuthService {
           address: user.address!,
           email: user.email!,
           userID: user.id,
-        })
+        },tx)
 
       }
 
@@ -108,61 +164,6 @@ export class AuthService {
   }
 
 
-  static async sendEmailVerifyOTP(email: string) {
-
-    const emailExist = await AuthRepository.findByEmail(email);
-
-    if (emailExist) {
-
-      throw new ApiError(400, "Email already registered, try with new one");
-
-    }
-
-
-    if (!email) {
-
-      throw new ApiError(400, "Email is required");
-
-    }
-
-
-    // check Redis if OTP already exists
-    const existingOTP = await Helper.getOTPFromRedis(email, "email");
-
-    if (existingOTP) {
-
-      throw new ApiError(429, "OTP already sent. Please wait before requesting again.");
-
-    }
-
-    // generate new OTP
-    const otp: number | string = Helper.generateOTP();
-
-    // save to Redis with 120 seconds TTL
-    try {
-
-      await Helper.setOTPIntoRedis(email, otp, "email");
-
-    } catch (err) {
-
-      throw new ApiError(500, "Redis save failed");
-
-    }
-    // prepare email template
-    const html = generateEmailTemplate(otp, "verify");
-
-    // send email
-    const emailSended = await sendEmail({
-      to: email,
-      subject: "Your OTP Code",
-      html,
-    });
-
-    if (!emailSended) {
-      throw new ApiError(500, "Internal Server Error")
-    }
-
-  }
 
   static async sendForgetPasswordOTP(email: string) {
 

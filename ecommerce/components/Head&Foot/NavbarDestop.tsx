@@ -45,7 +45,7 @@ const NavbarDestop = () => {
             </div>
             {/* Right Cart & Search */}
             <div className="flex gap-5">
-              <Search size={20} color="#242424" />
+  
               <button
                 onClick={() => {
                   setOpenCartSlider(!openCartSlider);

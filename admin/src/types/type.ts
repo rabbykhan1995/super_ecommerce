@@ -4,7 +4,7 @@ export type Brand = {
 };
 
 export type Unit = {
-  _id: string;
+  id: number;
   name: string;
 };
 
@@ -174,7 +174,7 @@ export type DamageProduct = {
 };
 
 export type Contact = {
-  _id: string;
+  id: number;
   name: string;
   mobile: string;
   email?: string;

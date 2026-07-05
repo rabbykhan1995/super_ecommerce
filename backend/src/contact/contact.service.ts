@@ -36,14 +36,14 @@ export default class ContactService {
         return contact;
     }
 
-    static async create(payload: CreateContactInput): Promise<Contact> {
+    static async create(payload: CreateContactInput, tx?:QueryClient): Promise<Contact> {
         const exists = await ContactRepository.findByMobile(payload.mobile);
 
         if (exists) {
             throw new ApiError(401, "Contact already exist with this number");
         }
 
-        const contact = await ContactRepository.create(payload);
+        const contact = await ContactRepository.create(payload,tx);
 
         if (!contact) {
             throw new ApiError(401, "Contact Creation failed");
@@ -53,7 +53,7 @@ export default class ContactService {
 
     }
 
-    static async update(contactID: number, payload: UpdateContactInput): Promise<Contact> {
+    static async update(contactID: number, payload: UpdateContactInput, tx?:QueryClient): Promise<Contact> {
 
 
         const contact: Contact | null = await ContactRepository.findByID(contactID);
@@ -62,7 +62,7 @@ export default class ContactService {
             throw new ApiError(404, "Contact not found");
         }
 
-        const updated: Contact | null = await ContactRepository.findByIDAndUpdate(contactID, payload);
+        const updated: Contact | null = await ContactRepository.findByIDAndUpdate(contactID, payload, tx);
 
 
 

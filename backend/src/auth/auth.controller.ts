@@ -3,7 +3,16 @@ import { Request, Response } from "express";
 import { AuthService } from "./auth.service";
 
 export class AuthController {
+  static async sendEmailVerifyOTP(req: Request, res: Response) {
+    const email: string = req.body.email;
 
+    await AuthService.sendEmailVerifyOTP(email);
+
+    return res
+      .status(200)
+      .json({ msg: "OTP sent successfully", success: true });
+
+  }
   static async registerManually(req: Request, res: Response) {
     const { token, user } = await AuthService.registerManually(req.body);
     // Cookie সেট
@@ -28,16 +37,7 @@ export class AuthController {
       .json({ msg: "user fetched successfully", data: user, success: true });
   }
 
-  static async sendEmailVerifyOTP(req: Request, res: Response) {
-    const email: string = req.body.email;
 
-    await AuthService.sendEmailVerifyOTP(email);
-
-    return res
-      .status(200)
-      .json({ msg: "OTP sent successfully", success: true });
-
-  }
 
   static async sendForgetPasswordOTP(req: Request, res: Response) {
     const email: string = req.body.email;

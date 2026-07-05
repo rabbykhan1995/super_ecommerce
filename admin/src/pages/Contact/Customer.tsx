@@ -46,7 +46,7 @@ export default function Customer() {
   })
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
   const [form, setForm] = useState<FormType>(defaultForm);
-  const [editID, setEditID] = useState<string | null>(null);
+  const [editID, setEditID] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [openTransactionModal, setOpenTransactionModal] = useState<boolean>(false);
 
@@ -77,7 +77,7 @@ export default function Customer() {
   };
 
   const handleEdit = (contact: Contact) => {
-    setEditID(contact._id);
+    setEditID(contact.id);
     setForm({
       name: contact.name,
       mobile: contact.mobile,
@@ -94,7 +94,7 @@ export default function Customer() {
     setForm(defaultForm);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: number) => {
     sonnerToast("Are you sure?", {
       action: {
         label: "Delete",
@@ -240,7 +240,7 @@ export default function Customer() {
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           {
             header: "#",
@@ -286,10 +286,10 @@ export default function Customer() {
                 <button onClick={() => handleEdit(row)} className="global_button">
                   <Edit size={18} />
                 </button>
-                <button onClick={() => handleDelete(row._id)} className="global_button_red">
+                <button onClick={() => handleDelete(row.id)} className="global_button_red">
                   <Delete size={18} />
                 </button>
-                <Link to={`/contact/customer-ledger/${row._id}`} className="global_button bg-green-400">
+                <Link to={`/contact/customer-ledger/${row.id}`} className="global_button bg-green-400">
                   <History size={18} />
                 </Link>
               </div>

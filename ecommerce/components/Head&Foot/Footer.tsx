@@ -1,67 +1,145 @@
+"use client";
+
 import { shadowsIntoLight } from "@/lib/font";
-import { Facebook, Instagram, LocateOffIcon, Twitter, X, Youtube } from "lucide-react";
+import {
+  Facebook,
+  Instagram,
+  Twitter,
+  Youtube,
+  MapPin,
+  Mail,
+  Phone,
+  Send,
+} from "lucide-react";
 import Link from "next/link";
 import BrandLogo from "../Logos/BrandLogo";
 
 const Footer = () => {
   return (
-  <div className="flex justify-center w-full bg-[#353636] text-[#d3d3d3] py-5">
-      <div className="grid grid-cols-2 lg:grid-cols-4 lg:px-20 text-sm w-full lg:w-250 xl:w-7xl px-2 xl:px-4">
-      <div className="flex flex-col gap-5 capitalize col-span-1">
-        <BrandLogo />
-        <h1 className="uppercase font-bold">Our products are ensured directly from brands or authorized distributors. They’re stored and shipped directly from our climate-controlled, GMP-certified warehouses.!</h1>
-        <h1 className="flex gap-1"><LocateOffIcon size={30} className="bg-white rounded-full p-1 text-black"/><span>House# 44, Rd No. 2/A, Dhanmondi, Dhaka 1209</span></h1>
-        <h1>Nutrition Plans</h1>
-      </div>
-      <div className="flex flex-col gap-5 capitalize col-span-1">
-        <h1 className="uppercase font-bold"></h1>
-        <h1>MacroFactor Diet App</h1>
-        <h1>Mass Research Review</h1> <h1>Neck Flex</h1>
-      </div>
-      {/* Subscription */}
-      <div className="flex flex-col gap-5 capitalize col-span-2 py-10 lg:py-0">
-        <h1 className="uppercase font-bold">
-          Get my zero fluff, 1 paragraph weekly newsletter. For FREE!
-        </h1>
-        <div className="flex gap-4 ">
-          <input
-            type="text"
-            name=""
-            id=""
-            placeholder="Your Email Address"
-            className="border border-gray-400 px-3 py-3 rounded-sm w-4/5"
-          />
-          <button className="bg-[#000000] text-white px-3 rounded-md font-bold text-nowrap">
-            SIGN UP
-          </button>
+    <div className="flex justify-center w-full bg-[#1a1c1e] text-[#c9cbcc] py-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 lg:px-20 text-sm w-full lg:w-250 xl:w-7xl px-2 xl:px-4 gap-y-10">
+        {/* Brand & About */}
+        <div className="flex flex-col gap-4 col-span-2 lg:col-span-1">
+          <BrandLogo />
+          <p className="text-[13px] leading-relaxed text-gray-400">
+            Our products are sourced directly from brands or authorized
+            distributors and shipped from our climate-controlled,
+            GMP-certified warehouses.
+          </p>
+          <div className="flex items-start gap-2 text-[13px]">
+            <MapPin size={16} className="text-[#F7311E] mt-[2px] shrink-0" />
+            <span>House# 44, Rd No. 2/A, Dhanmondi, Dhaka 1209</span>
+          </div>
+          <div className="flex items-center gap-2 text-[13px]">
+            <Phone size={16} className="text-[#F7311E] shrink-0" />
+            <span>+880 1234-567890</span>
+          </div>
+          <div className="flex items-center gap-2 text-[13px]">
+            <Mail size={16} className="text-[#F7311E] shrink-0" />
+            <span>support@example.com</span>
+          </div>
         </div>
-      </div>
-      <div className="flex justify-end col-span-full py-10">
-        <div className="flex justify-between w-sm">
-          <a href="#">
-            <Youtube size={20} />
-          </a>
-          <a href="#">
-            <Facebook size={20} />
-          </a>
-          <a href="#">
-            <Instagram size={20} />
-          </a>
-          <a href="#">
-            <Instagram size={20} />
-          </a>
+
+        {/* Quick Links */}
+        <div className="flex flex-col gap-3 col-span-1">
+          <h1 className="uppercase font-bold text-white tracking-wide text-[13px] mb-1">
+            Quick Links
+          </h1>
+          <Link href="#" className="hover:text-white transition-colors">
+            About Us
+          </Link>
+          <Link href="#" className="hover:text-white transition-colors">
+            All Products
+          </Link>
+          <Link href="#" className="hover:text-white transition-colors">
+            Nutrition Plans
+          </Link>
+          <Link href="#" className="hover:text-white transition-colors">
+            Track Order
+          </Link>
+          <Link href="#" className="hover:text-white transition-colors">
+            FAQ
+          </Link>
         </div>
-      </div>
-      <div className="flex flex-col items-center col-span-full py-5">
-        <h1>© 2026 Jeff Nippard Fitness. All Rights Reserved.</h1>
-        <div className="py-5">
-          <Link href={"#"}>PRIVACY POLICY</Link>
-          <span className="px-5">|</span>
-          <Link href={"#"}>TERMS OF SERVICE</Link>
+
+        {/* Customer Service */}
+        <div className="flex flex-col gap-3 col-span-1">
+          <h1 className="uppercase font-bold text-white tracking-wide text-[13px] mb-1">
+            Customer Service
+          </h1>
+          <Link href="#" className="hover:text-white transition-colors">
+            Contact Us
+          </Link>
+          <Link href="#" className="hover:text-white transition-colors">
+            Shipping Policy
+          </Link>
+          <Link href="#" className="hover:text-white transition-colors">
+            Return &amp; Refund
+          </Link>
+          <Link href="#" className="hover:text-white transition-colors">
+            Warranty
+          </Link>
+          <Link href="#" className="hover:text-white transition-colors">
+            Support Center
+          </Link>
+        </div>
+
+        {/* Newsletter */}
+        <div className="flex flex-col gap-4 col-span-2 lg:col-span-1">
+          <h1 className="uppercase font-bold text-white tracking-wide text-[13px]">
+            Stay Updated
+          </h1>
+          <p className="text-[13px] text-gray-400">
+            Subscribe for exclusive offers, new arrivals, and updates. No spam,
+            ever.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="email"
+              placeholder="Your email address"
+              className="border border-gray-600 bg-transparent px-3 py-2 rounded-md w-full text-[13px] placeholder:text-gray-500 focus:outline-none focus:border-[#F7311E] transition-colors"
+            />
+            <button className="bg-[#F7311E] hover:bg-[#d81e0f] transition-colors text-white px-3 rounded-md flex items-center justify-center shrink-0">
+              <Send size={16} />
+            </button>
+          </div>
+
+          {/* Social icons */}
+          <div className="flex items-center gap-3 mt-2">
+            {[Youtube, Facebook, Instagram, Twitter].map((Icon, i) => (
+              <a
+                key={i}
+                href="#"
+                className="p-2 rounded-full border border-gray-600 hover:bg-[#F7311E] hover:border-[#F7311E] transition-colors"
+              >
+                <Icon size={15} />
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="col-span-full border-t border-gray-700 mt-4"></div>
+
+        {/* Bottom bar */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3 col-span-full py-5 text-[12px] text-gray-400">
+          <h1>© 2026 Jeff Nippard Fitness. All Rights Reserved.</h1>
+          <div className="flex items-center gap-4">
+            <Link href="#" className="hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <span className="text-gray-600">|</span>
+            <Link href="#" className="hover:text-white transition-colors">
+              Terms of Service
+            </Link>
+            <span className="text-gray-600">|</span>
+            <Link href="#" className="hover:text-white transition-colors">
+              Sitemap
+            </Link>
+          </div>
         </div>
       </div>
     </div>
-  </div>
   );
 };
 

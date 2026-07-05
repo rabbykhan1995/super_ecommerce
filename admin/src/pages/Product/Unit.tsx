@@ -7,7 +7,7 @@ import { Delete, Edit } from "lucide-react";
 
 export default function Unit() {
   const [units, setUnits] = useState<Unit[]>([]);
-  const [editID, setEditID] = useState<string | null>(null);
+  const [editID, setEditID] = useState<number | null>(null);
   const [name, setName] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -34,12 +34,12 @@ export default function Unit() {
   };
 
   const handleEdit = (unit: Unit) => {
-    setEditID(unit._id);
+    setEditID(unit.id);
     setName(unit.name);
   };
 
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     toast("Are you sure?", {
       action: {
         label: "Delete",
@@ -90,9 +90,9 @@ export default function Unit() {
       </div>
 
       {/* Table */}
-      <Table
+    <Table
         data={units}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           { header: "#", accessor: (_, i) => i as number + 1, className: "w-10 text-center" },
           {
@@ -102,10 +102,10 @@ export default function Unit() {
             header: "Action", className: "text-right", headerClassName: "text-right",
             accessor: (row) => (
               <div className="flex gap-2 justify-end">
-          <button onClick={() => handleEdit(row)} className="global_edit">
+                <button onClick={() => handleEdit(row)} className="global_edit">
                   <Edit size={18} />
                 </button>
-                <button onClick={() => handleDelete(row._id)} className="global_button_red">
+                <button onClick={() => handleDelete(row.id)} className="global_button_red">
                   <Delete size={18} />
                 </button>
               </div>

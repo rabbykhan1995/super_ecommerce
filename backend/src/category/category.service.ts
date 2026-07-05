@@ -2,6 +2,9 @@ import { CreateCategoryInput, UpdateCategoryInput } from "./category.type";
 import { ApiError } from "../../utils/ApiError";
 import CategoryRepository from "./category.repository";
 import ProductService from "../product/product.service";
+import db from "../../drizzle/src";
+import { categoryTable } from "./category.table";
+import { desc } from "drizzle-orm";
 
 export class CategoryService {
     static async create(payload:CreateCategoryInput) {
@@ -40,25 +43,17 @@ export class CategoryService {
         const category = await CategoryRepository.findByID(categoryID);
         if (!category) throw new ApiError(404, "category not found");
 
-        const isUsed = await ProductService.countProduct({ categoryID });
+        const isUsed = await ProductService.countProduct("categoryID " ,categoryID );
         if (isUsed > 0) throw new ApiError(400, "category is used in products, cannot delete");
 
         return await CategoryRepository.delete(categoryID);
 
     }
 
-    static async list(query: any) {
-        // ম্যানুয়ালি সার্চ প্যারামিটার নিন
-        const search = query.search as string || "";
-        const page = parseInt(query.page as string) || 1;
-        const limit = parseInt(query.limit as string) || 10;
-
-        const result = await CategoryRepository.list(
-            search,
-            page,
-            limit
-        );
-
-        return result;
-    }
+static async list() {
+  return await db
+    .select()
+    .from(categoryTable)
+    .orderBy(desc(categoryTable.createdAt));
+}
 }
