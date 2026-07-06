@@ -25,6 +25,7 @@ router
     asyncHandler(ProductController.update),
   )
   .get("/list", authMiddleware, asyncHandler(ProductController.list))
+    .get("/variant-list", authMiddleware, asyncHandler(ProductController.variantList))
   .get("/productByID/:id", authMiddleware, asyncHandler(ProductController.productByID))
   .get("/productByBarcode", authMiddleware, asyncHandler(ProductController.productByBarcode))
   .get("/batchByProduct/:id", authMiddleware, asyncHandler(ProductController.batchByProduct))

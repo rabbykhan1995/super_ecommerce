@@ -17,10 +17,13 @@ import {
   count,
   eq,
   gt,
+  ilike,
   inArray,
   isNotNull,
   isNull,
   ne,
+  or,
+  SQL,
   sql,
 } from "drizzle-orm";
 import { batchTable } from "./batch.table";
@@ -122,20 +125,20 @@ export default class ProductRepository {
     return batch ?? null;
   }
 
-static async countProduct<K extends keyof Product>(
-  fieldName: K,
-  fieldVal: Product[K],
-  client: QueryClient = db,
-): Promise<number> {
-  const [result] = await client
-    .select({
-      total: count(),
-    })
-    .from(productTable)
-    .where(eq(productTable[fieldName] as any, fieldVal as any));
+  static async countProduct<K extends keyof Product>(
+    fieldName: K,
+    fieldVal: Product[K],
+    client: QueryClient = db,
+  ): Promise<number> {
+    const [result] = await client
+      .select({
+        total: count(),
+      })
+      .from(productTable)
+      .where(eq(productTable[fieldName] as any, fieldVal as any));
 
-  return Number(result.total);
-}
+    return Number(result.total);
+  }
   static async createProduct(
     payload: ProductPayload,
     client: QueryClient = db,
@@ -249,6 +252,7 @@ static async countProduct<K extends keyof Product>(
         brand: true,
         unit: true,
         category: true,
+        variants: true,
       },
     });
   }
@@ -335,6 +339,62 @@ static async countProduct<K extends keyof Product>(
         brand: true,
         unit: true,
         category: true,
+      },
+    });
+  }
+
+  static async variantList(query: { page?: number; limit?: number; search?: string }) {
+    let searchCondition: SQL | undefined = undefined;
+
+    if (query.search) {
+      const searchTerm = `%${query.search}%`;
+
+      // barcode দিয়ে variant এ search
+      const barcodeCondition = ilike(variantTable.barcode, searchTerm);
+
+      // product name দিয়ে product এ search (সাবকোয়েরি ব্যবহার করে)
+      const productCondition = sql`${variantTable.productID} IN (
+      SELECT id FROM ${productTable} WHERE ${ilike(productTable.name, searchTerm)}
+    )`;
+
+      searchCondition = or(barcodeCondition, productCondition);
+    }
+
+    return paginateQuery({
+      db,
+      query: db.query.variantTable,
+      countTable: variantTable,
+      page: query.page,
+      limit: query.limit,
+      where: searchCondition ? [searchCondition] : undefined,
+      with: {
+        product: {
+          columns: {
+            id: true,
+            name: true,
+            thumbnail: true,
+            manageStock:true,
+            manageWarranty:true,
+          },
+          with: {
+            brand: {
+              columns: {
+                name: true,
+              },
+            },
+            unit: {
+              columns: {
+                name: true,
+              },
+            },
+            category: {
+              columns: {
+
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
   }

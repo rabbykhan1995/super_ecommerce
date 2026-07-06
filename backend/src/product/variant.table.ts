@@ -67,3 +67,4 @@ export const variantRelations = relations(variantTable, ({ one, many }) => ({
   saleItems:many(saleItemsTable)
 }));
 
+

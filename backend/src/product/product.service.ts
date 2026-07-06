@@ -114,10 +114,11 @@ export default class ProductService {
 
         if (haveToCreateNewVariant) {
           const newVariants: VariantPayload[] = variants.filter((v) => !v.id);
-
+       
           await Promise.all(
             newVariants.map(async (v) => {
               if (v.barcode) {
+                console.log(v.barcode)
                 const exist = await ProductRepository.findVariantByBarcode(
                   v.barcode,
                 );
@@ -178,6 +179,10 @@ export default class ProductService {
 
   static async list(query: any) {
     const result = await ProductRepository.list(query);
+    return result;
+  }
+    static async variantList(query: any) {
+    const result = await ProductRepository.variantList(query);
     return result;
   }
 

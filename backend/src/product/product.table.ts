@@ -35,11 +35,11 @@ export const productTable = pgTable(
 
     keywords: text("keywords").array().default([]),
 
-    brandID: integer("brand_id"),
+    brandID: integer("brand_id").references(()=> brandTable.id),
 
-    unitID: integer("unit_id").notNull(),
+    unitID: integer("unit_id").notNull().references(()=> unitTable.id),
 
-    categoryID: integer("category_id"),
+    categoryID: integer("category_id").references(()=>categoryTable.id),
 
     manageStock: boolean("manage_stock").default(true).notNull(),
 

@@ -38,10 +38,17 @@ export class ProductController {
     //  I want to send response with the unitname, categoryname and brandname including..
     return res.status(200).json({ success: true, data: result });
   }
+
+    static async variantList(req: Request, res: Response) {
+
+    const result = await ProductService.variantList(req.query);
+    //  I want to send response with the unitname, categoryname and brandname including..
+    return res.status(200).json({ success: true, data: result });
+  }
   static async productByID(req: Request, res: Response) {
     const { id } = req.params;
 
-    const product = await ProductService.structuredProductByID(id as string);
+    const product = await ProductService.structuredProductByID(Number(id));
 
     res.status(200).json({ success: true, data: product });
   }
