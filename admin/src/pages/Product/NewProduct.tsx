@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/axios";
-import type { Brand, Category, PaginatedResult, SearchParams, SelectOption, Unit } from "../../types/type";
+import type { Brand, Category, PaginatedResult, SearchParams, SelectOption, Unit, Variant, VariantPayload } from "../../types/type";
 import Select from "react-select";
 import { getReactSelectStyles } from "../../utils/reactSelectStyles";
 import ToggleSwitch from "../../components/buttons/ToggleSwitch";
 import { createProductSchema } from "../../validators/product.validator";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
+import Table from "../../components/tables/Table";
+import Helper from "../../utils/helper";
+import AttributeCell from "../../components/modals/AttributeCell";
 
 export default function NewProduct() {
   const navigate = useNavigate();
@@ -24,7 +27,7 @@ export default function NewProduct() {
   const [stock, setStock] = useState<number | "">("");
   const [purchasePrice, setPurchasePrice] = useState<number | "">("");
   const [salePrice, setSalePrice] = useState<number | "">("");
-
+  const [variants, setVariants] = useState<VariantPayload[]>([{ salePrice: 0, barcode: "", weight: 0, attributes: [{ name: "base", value: "none" }] }]);
   const [brandParams, setBrandParams] = useState<SearchParams>({
     search: "",
     page: 1,
@@ -35,7 +38,7 @@ export default function NewProduct() {
     const res = await api("/category/list");
     if (res.data.success)
       setCategories(
-        res.data.data.map((c: Category) => ({ value: c._id, label: c.name, ...c }))
+        res.data.data.map((c: Category) => ({ value: c.id, label: c.name, ...c }))
       );
   };
 
@@ -50,7 +53,7 @@ export default function NewProduct() {
     if (res.data.success) {
       setBrands(
         res.data.data.items.map((b: Brand) => ({
-          value: b._id,
+          value: b.id,
           label: b.name,
           ...b
         }))
@@ -63,7 +66,7 @@ export default function NewProduct() {
     const res = await api("/unit/list");
     if (res.data.success)
       setUnits(
-        res.data.data.map((u: Unit) => ({ value: u._id, label: u.name, ...u }))
+        res.data.data.map((u: Unit) => ({ value: u.id, label: u.name, ...u }))
       );
   };
 
@@ -90,17 +93,17 @@ export default function NewProduct() {
       return;
     }
 
-     if (!manageStock && stock) {
+    if (!manageStock && stock) {
       toast.error("You can't provide intial stock after disable manage stock");
       return;
     }
 
-        if (!!manageWarranty && !!stock ) {
+    if (!!manageWarranty && !!stock) {
       toast.error("Disable manage warranty or remove all the initial stock");
       return;
     }
 
-      if (!!manageWarranty && !!decimal ) {
+    if (!!manageWarranty && !!decimal) {
       toast.error("Disable manage warranty or decimal");
       return;
     }
@@ -110,14 +113,14 @@ export default function NewProduct() {
       barcode,
       alertQty: alertQty === "" ? 0 : alertQty,
       manageStock,
-      ...(selectedBrand && { brandID: selectedBrand._id }),
+      ...(selectedBrand && { brandID: selectedBrand.id }),
       unitID: selectedUnit.value,
-      ...(selectedCategory && { categoryID: selectedCategory._id }),
+      ...(selectedCategory && { categoryID: selectedCategory.id }),
       decimal,
       salePrice: salePrice === "" ? 0 : Number(salePrice),
       purchasePrice: purchasePrice === "" ? 0 : Number(purchasePrice),
       manageWarranty,
-        ...(stock && !!manageStock && { stock }),
+      ...(stock && !!manageStock && { stock }),
     };
     const result = createProductSchema.safeParse(payload);
     if (!result.success) {
@@ -130,13 +133,31 @@ export default function NewProduct() {
       return navigate('/product/list')
     }
   };
-  
-  useEffect(()=>{if(manageWarranty){
-    setStock("");
-  }},[manageWarranty])
+
+  useEffect(() => {
+    if (manageWarranty) {
+      setStock("");
+    }
+  }, [manageWarranty])
+
+
+  const handleAddVariant = () => {
+    const newVariant: VariantPayload = {
+      salePrice: 0,
+      barcode: "",
+      weight: 0,
+      attributes: [] // ফাঁকা অ্যারে
+    }
+
+    setVariants(prev => [...prev, newVariant]);
+  };
+
+  const handleRemoveVariant = (indexToRemove: number) => {
+    setVariants(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
 
   return (
-    <form onSubmit={createProduct} className="grid lg:grid-cols-3 grid-cols-1 gap-2 space-y-4">
+    <div className="grid lg:grid-cols-3 grid-cols-1 gap-2 space-y-4">
       <h2 className="global_heading">New Product</h2>
 
       {/* Name */}
@@ -221,20 +242,7 @@ export default function NewProduct() {
             disabled={!!manageWarranty}
           />
         </div>
-        {/* Barcode */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Barcode</label>
-          <input
-            type="string"
-            value={barcode}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.preventDefault();
-            }}
-            onChange={(e) => setBarcode(e.target.value)}
-            placeholder="Barcode"
-            className="global_input"
-          />
-        </div>
+
         {/* Purchase Price */}
         <div>
           <label className="block text-sm font-medium mb-1">Purchase Price</label>
@@ -281,7 +289,85 @@ export default function NewProduct() {
         />
       </div>
 
-      <button type="submit" className="global_button">Create Product</button>
-    </form>
+
+
+      {/* Variants */}
+      <div className="w-full col-span-3">
+        <Table data={variants}
+          keyExtractor={(_, i) => i} columns={[
+            { header: "#", accessor: (_, i) => (i ?? 0) + 1, className: "w-10 text-center", headerClassName: "text-center", },
+            {
+              header: "attribute*", accessor: (row, i) =>
+                <>
+                  <h1 className="flex flex-wrap">
+                    {row.attributes.map(a => (<span>({a.name} : {a.value})</span>))}
+                  </h1>
+                  <AttributeCell
+                    variant={row}
+                    index={i as number}
+                    variants={variants}
+                    setVariants={setVariants}
+                  /></>
+
+              , className: "text-center"
+            },
+
+            {
+              header: "barcode", accessor: (row) =>
+                <input
+                  type="string"
+                  value={row.barcode}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.preventDefault();
+                  }}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  placeholder="Barcode"
+                  className="global_input"
+                />
+
+              , className: "text-center"
+            },
+            {
+              header: "weight", accessor: (row) =>
+                <input
+                  type="string"
+                  value={row.weight}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  placeholder="weight"
+                  className="global_input"
+                />
+
+              , className: "text-center"
+            },
+            {
+              header: "sale price", accessor: (row) =>
+                <input
+                  type="string"
+                  value={row.weight}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  placeholder="weight"
+                  className="global_input"
+                />
+
+              , className: "text-center"
+            },
+
+            {
+              header: "Action", accessor: (_, i) =>
+                variants.length > 1 && <button onClick={() => handleRemoveVariant(i as number)}>Remove</button>
+
+              , className: "text-center"
+            },
+
+          ]} />
+        <button className="global_button my-2" onClick={() => handleAddVariant()}>Add Variant</button>
+      </div>
+
+
+
+      <button onClick={createProduct} className="global_button">Create Product</button>
+    </div>
   );
 }
+
+

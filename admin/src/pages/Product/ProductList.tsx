@@ -58,7 +58,7 @@ export default function ProductList() {
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           { header: "#", accessor: (_, i) => (i ?? 0) + 1, className: "w-10 text-center", headerClassName: "text-center", },
           { header: "Name", accessor: "name", headerClassName: "min-w-[200px]" },
@@ -100,7 +100,7 @@ export default function ProductList() {
                 }} className="global_button bg-blue-400">
                   <Clipboard size={18} />
                 </button>}
-                <Link to={`/product/edit/${row._id}`}
+                <Link to={`/product/edit/${row.id}`}
                   className="global_button"
                 >
                   <Edit size={18} />

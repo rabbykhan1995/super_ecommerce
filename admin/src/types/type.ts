@@ -1,5 +1,5 @@
 export type Brand = {
-  _id: string;
+  id: number;
   name: string;
 };
 
@@ -9,12 +9,12 @@ export type Unit = {
 };
 
 export type ExpenseType = {
-  _id: string;
+  id: number;
   name: string;
 };
 
 export type Category = {
-  _id: string;
+  id: number;
   name: string;
 };
 
@@ -30,7 +30,7 @@ export type SearchParams = {
 };
 
 export type Product = {
-  _id: string;
+  id: number;
   name: string;
   barcode?: string;
   stock: number;
@@ -48,7 +48,7 @@ export type Product = {
 };
 
 export type PurchaseProduct = {
-  _id: string;
+  id: number;
   name: string;
   barcode?: string;
   stock: number;
@@ -67,7 +67,7 @@ export type PurchaseProduct = {
 };
 
 export type PurchaseReturnProduct = {
-  _id: string;
+  id: number;
   name: string;
   serial?: string;
   stock: number;
@@ -88,7 +88,7 @@ export type PurchaseReturnProduct = {
 };
 
 export type SaleReturnProduct = {
-  _id: string;
+  id: number;
   name: string;
   serial?: string;
   stock: number;
@@ -109,7 +109,7 @@ export type SaleReturnProduct = {
 };
 
 export type SaleProduct = {
-  _id: string;
+  id: number;
   purchaseID?: string;
   name: string;
   barcode?: string;
@@ -132,7 +132,7 @@ export type SaleProduct = {
 };
 
 export type PosProduct = {
-  _id: string;
+  id: number;
   name: string;
   barcode?: string;
   stock: number;
@@ -149,7 +149,7 @@ export type PosProduct = {
 };
 
 export type DamageProduct = {
-  _id: string;
+  id: number;
   purchaseID?: string;
   name: string;
   barcode?: string;
@@ -192,7 +192,7 @@ export type PaginatedResult<T> = {
 };
 
 export type Account = {
-  _id: string;
+  id: number;
   name: string;
   branch?: string;
   number: string;
@@ -208,7 +208,7 @@ export type AccountOption = SelectOption<Account> & {
 };
 
 export type PurchaseListItem = {
-  _id: string;
+  id: number;
   invoiceNo: string;
   totalAmount: number;
   balanceAfter: number;
@@ -224,7 +224,7 @@ export type PurchaseListItem = {
 };
 
 export type PurchaseReturnListItem = {
-  _id: string;
+  id: number;
   invoiceNo: string;
   totalAmount: number;
   balanceAfter: number;
@@ -242,7 +242,7 @@ export type PurchaseReturnListItem = {
 
 
 export type SaleListItem = {
-  _id: string;
+  id: number;
   invoiceNo: string;
   totalAmount: number;
   balanceAfter: number;
@@ -269,7 +269,7 @@ export type WarrantyStatus =
   | "refunded";
 
 export type WarrantyListItem = {
-  _id: string;
+  id: number;
   saleID: string;
   customerID: string | null;
   productID: string;
@@ -299,7 +299,7 @@ export type WarrantyListItem = {
 };
 
 export type DamageListItem = {
-  _id: string;
+  id: number;
   invoiceNo: string;
   totalAmount: number;
   balanceAfter: number;
@@ -315,7 +315,7 @@ export type DamageListItem = {
 };
 
 export type SaleReturnListItem = {
-  _id: string;
+  id: number;
   invoiceNo: string;
   totalAmount: number;
   balanceAfter: number;
@@ -331,7 +331,7 @@ export type SaleReturnListItem = {
 };
 
 export type LedgerListItem = {
-  _id: string;
+  id: number;
   type: string;
   typeID: string;
   amount: number;
@@ -368,7 +368,7 @@ export const Transaction_TYPE_MODELS = [
   "Expense",
 ] as const;
 export type TransactionListItem = {
-  _id: string;
+  id: number;
   type: (typeof TRANSACTION_TYPES)[number];
   amount?: number;
   fromAccount?: string;
@@ -388,7 +388,7 @@ export type TransactionListItem = {
 
 
 export type Batch = {
-  _id: string;
+  id: number;
   purchaseID: string;
   productID: string;
   serial?: string;
@@ -403,7 +403,7 @@ export type Batch = {
 };
 
 export type ExpenseListItem = {
-  _id: string;
+  id: number;
   expenseTypeID: string;
   expenseTypeName?: string | null;
   paid: number;
@@ -416,7 +416,7 @@ export type ExpenseListItem = {
 export type QuotationStatus = "approved" | "pending" | "cancelled";
 
 export type QuotationListItem = {
-  _id: string;
+  id: number;
   totalAmount: number;
   balanceAfter: number;
   paid: number;
@@ -431,3 +431,29 @@ export type QuotationListItem = {
   discount: number;
   balanceBefore: number;
 };
+
+export type Variant = {
+    id: number;
+    stock: number | null;
+    salePrice: number | null;
+    createdAt?: Date;
+    updatedAt?: Date;
+    productID: number;
+    barcode: string;
+    weight: number | null;
+    attributes: {
+        name: string;
+        value: string;
+    }[];
+}
+
+export type VariantPayload = {
+    salePrice: number | null;
+    productID?:number;
+    barcode?: string;
+    weight: number;
+    attributes: {
+        name: string;
+        value: string;
+    }[];
+}
