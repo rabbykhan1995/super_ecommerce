@@ -25,7 +25,7 @@ export class ProductController {
     const id = req.params.id;
     const payload: UpdateProductInput = req.body;
 
-    const product = await ProductService.update(id as string, payload);
+    const product = await ProductService.update(Number(id), payload);
     res.status(201).json({
       success: true,
       data: product,

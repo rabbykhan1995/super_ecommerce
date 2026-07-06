@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import api from "../../lib/axios";
-import type { Brand, Category, SearchParams, SelectOption, Unit } from "../../types/type";
+import type { Brand, Category, SearchParams, SelectOption, Unit, Variant, VariantPayload } from "../../types/type";
 import Select from "react-select";
 import { getReactSelectStyles } from "../../utils/reactSelectStyles";
 import ToggleSwitch from "../../components/buttons/ToggleSwitch";
 import { updateProductSchema } from "../../validators/product.validator";
 import toast from "react-hot-toast";
+import AttributeCell from "../../components/modals/AttributeCell";
+import Table from "../../components/tables/Table";
 
 export default function EditProduct() {
   const { id } = useParams();
@@ -15,7 +17,7 @@ export default function EditProduct() {
   const [units, setUnits] = useState<SelectOption<Unit>[]>([]);
   const [brands, setBrands] = useState<SelectOption<Brand>[]>([]);
   const [categories, setCategories] = useState<SelectOption<Category>[]>([]);
-
+  const [oldData, setOldData] = useState(null);
   const [name, setName] = useState("");
   const [barcode, setBarcode] = useState("");
   const [alertQty, setAlertQty] = useState<number | "">("");
@@ -28,6 +30,7 @@ export default function EditProduct() {
   // const [loading, setLoading] = useState(true);
   const [purchasePrice, setPurchasePrice] = useState<number | "">("");
   const [salePrice, setSalePrice] = useState<number | "">("");
+  const [variants, setVariants] = useState<Variant[] | VariantPayload[] | []>([]);
   const [brandParams, setBrandParams] = useState<SearchParams>({
     search: "",
     page: 1,
@@ -41,9 +44,9 @@ export default function EditProduct() {
     ]);
     
     if (categoriesRes.data.success)
-      setCategories(categoriesRes.data.data.map((c: Category) => ({ value: c._id, label: c.name, ...c })));
+      setCategories(categoriesRes.data.data.map((c: Category) => ({ value: c.id, label: c.name, ...c })));
     if (unitsRes.data.success)
-      setUnits(unitsRes.data.data.map((u: Unit) => ({ value: u._id, label: u.name, ...u })));
+      setUnits(unitsRes.data.data.map((u: Unit) => ({ value: u.id, label: u.name, ...u })));
   };
 
 
@@ -58,7 +61,7 @@ export default function EditProduct() {
     if (res.data.success) {
       setBrands(
         res.data.data.items.map((b: Brand) => ({
-          value: b._id,
+          value: b.id,
           label: b.name,
           ...b
         }))
@@ -80,30 +83,55 @@ export default function EditProduct() {
     setPurchasePrice(p.purchasePrice);
     setSalePrice(p.salePrice);
     // Select values set হবে options load হওয়ার পরে
-    if (p.brand) setSelectedBrand({ value: p.brand._id, label: p.brand.name, _id: p.brand._id, name: p.brand.name });
-    if (p.unit) setSelectedUnit({ value: p.unit._id, label: p.unit.name, _id: p.unit._id, name: p.unit.name });
-    if (p.category) setSelectedCategory({ value: p.category._id, label: p.category.name, _id: p.category._id, name: p.category.name });
+    if (p.brand) setSelectedBrand({ value: p.brand.id, label: p.brand.name, id: p.brand.id, name: p.brand.name });
+    if (p.unit) setSelectedUnit({ value: p.unit.id, label: p.unit.name, id: p.unit.id, name: p.unit.name });
+    if (p.category) setSelectedCategory({ value: p.category.id, label: p.category.name, id: p.category.id, name: p.category.name });
+    
+    setVariants(p.variants);
+    setOldData(p)
+
   };
 
   useEffect(() => {
     Promise.all([fetchOptions(), fetchProduct()])
   }, [id]);
 
-  const updateProduct = async (e: React.SubmitEvent) => {
-    e.preventDefault();
+  const updateProduct = async () => {
+ 
+ const oldVariantMap = new Map(oldData!.variants!.map(v => [v.id, v]));
 
-    const payload = {
-      name,
-      barcode: barcode || undefined,
-      alertQty: alertQty === "" ? 0 : alertQty,
-      manageStock,
-      manageWarranty,
-      decimal,
-      unitID: selectedUnit?.value,
-      brandID: selectedBrand?.value ?? null,
-      categoryID: selectedCategory?.value ?? null,
-      ...(!manageStock ? { salePrice, purchasePrice } : {}),
-    };
+  // শুধু পরিবর্তিত ভ্যারিয়েন্ট ফিল্টার
+  const updatedVariants = variants.filter(v => {
+    const old = oldVariantMap.get(v.id);
+    if (!old) return false;
+    return JSON.stringify(old) !== JSON.stringify(v);
+  });
+
+  // নতুন ভ্যারিয়েন্ট (যাদের id নেই)
+  const newVariants = variants.filter(v => !v.id);
+
+  // সব পরিবর্তিত ভ্যারিয়েন্ট একত্রিত
+  const changedVariants = [...updatedVariants, ...newVariants];
+
+  // payload এর জন্য ফরম্যাট
+  const formattedVariant = changedVariants.map(v => ({
+    ...v,
+    barcode: v.barcode || undefined
+  }));
+
+  const payload = {
+    name,
+    barcode: barcode || undefined,
+    alertQty: alertQty === "" ? 0 : alertQty,
+    manageStock,
+    manageWarranty,
+    decimal,
+    unitID: selectedUnit?.value,
+    brandID: selectedBrand?.value ?? null,
+    categoryID: selectedCategory?.value ?? null,
+    ...(!manageStock ? { salePrice, purchasePrice } : {}),
+    variants: formattedVariant // শুধু পরিবর্তিত + নতুন
+  };
 
     const result = updateProductSchema.safeParse(payload);
     if (!result.success) {
@@ -111,7 +139,7 @@ export default function EditProduct() {
       return;
     }
 
-    const res = await api.put(`/product/update/${id}`, result.data);
+    const res = await api.put(`/product/update2/${id}`, result.data);
     if (res.data.success) navigate("/product/list");
   };
   useEffect(() => {
@@ -119,9 +147,33 @@ export default function EditProduct() {
     return () => clearTimeout(timer);
   }, [brandParams.search]);
   // if (loading) return <div className="global_container">Loading...</div>;
+  const handleAddVariant = () => {
+    const newVariant: VariantPayload = {
+      salePrice: 0,
+      barcode: "",
+      weight: 0,
+      attributes: [] // ফাঁকা অ্যারে
+    }
 
+    setVariants(prev => [...prev, newVariant]);
+  };
+
+  const changeVariant = (index: number, field: keyof VariantPayload, value: any) => {
+  setVariants(prev => {
+    const updated = [...prev];
+    updated[index] = {
+      ...updated[index],
+      [field]: value
+    };
+    return updated;
+  });
+};
+
+  const handleRemoveVariant = (indexToRemove: number) => {
+    setVariants(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
   return (
-    <form onSubmit={updateProduct} className="grid lg:grid-cols-3 grid-cols-1 gap-2 space-y-4">
+    <div className="grid lg:grid-cols-3 grid-cols-1 gap-2 space-y-4">
       <h2 className="global_heading col-span-3">Edit Product</h2>
 
       {/* Name */}
@@ -231,10 +283,81 @@ export default function EditProduct() {
         <ToggleSwitch disabled={true} label="Decimal" value={decimal} onChange={setDecimal} />
       </div>
 
+            <div className="col-span-3">
+   <Table data={variants}
+          keyExtractor={(_, i) => i} columns={[
+            { header: "#", accessor: (_, i) => (i ?? 0) + 1, className: "w-10 text-center", headerClassName: "text-center", },
+            {
+              header: "attribute*", accessor: (row, i) =>
+                <>
+                  <h1 className="flex flex-wrap">
+                    {row.attributes.map(a => (<span>({a.name} : {a.value})</span>))}
+                  </h1>
+                  <AttributeCell
+                    variant={row}
+                    index={i as number}
+                    variants={variants}
+                    setVariants={setVariants}
+                  /></>
+
+              , className: "text-center"
+            },
+
+            {
+              header: "barcode", accessor: (row,i) =>
+                <input
+                  type="string"
+                  value={row.barcode}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.preventDefault();
+                  }}
+                  onChange={(e) => changeVariant(i as number,"barcode",e.target.value,)}
+                  placeholder="Barcode"
+                  className="global_input"
+                />
+
+              , className: "text-center"
+            },
+            {
+              header: "weight", accessor: (row,i) =>
+                <input
+                  type="number"
+                  value={row.weight}
+                  onChange={(e) => changeVariant(i as number,"weight" ,e.target.value)}
+                  placeholder="weight"
+                  className="global_input"
+                />
+
+              , className: "text-center"
+            },
+            {
+              header: "sale price", accessor: (row,i) =>
+                <input
+                  type="number"
+                  value={row.salePrice || 0}
+                  onChange={(e) => changeVariant(i as number,"salePrice" ,e.target.value)}
+                  placeholder="sale price"
+                  className="global_input"
+                />
+
+              , className: "text-center"
+            },
+
+            {
+              header: "Action", accessor: (row, i) =>
+                variants.length > 1 && !row.id && <button onClick={() => handleRemoveVariant(i as number)}>Remove</button>
+
+              , className: "text-center"
+            },
+
+          ]} />
+           <button className="global_button my-2" onClick={() => handleAddVariant()}>Add Variant</button>
+            </div>
+
       <div className="col-span-3 flex gap-3">
-        <button type="submit" className="global_button">Update Product</button>
+        <button onClick={updateProduct} className="global_button">Update Product</button>
         <button type="button" onClick={() => navigate("/product/list")} className="global_button_red">Cancel</button>
       </div>
-    </form>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/axios";
-import type { Brand, Category, PaginatedResult, SearchParams, SelectOption, Unit, Variant, VariantPayload } from "../../types/type";
+import type { Brand, Category, SearchParams, SelectOption, Unit, VariantPayload } from "../../types/type";
 import Select from "react-select";
 import { getReactSelectStyles } from "../../utils/reactSelectStyles";
 import ToggleSwitch from "../../components/buttons/ToggleSwitch";
@@ -8,7 +8,7 @@ import { createProductSchema } from "../../validators/product.validator";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import Table from "../../components/tables/Table";
-import Helper from "../../utils/helper";
+
 import AttributeCell from "../../components/modals/AttributeCell";
 
 export default function NewProduct() {
@@ -23,7 +23,6 @@ export default function NewProduct() {
   const [manageStock, setManageStock] = useState<boolean>(true);
   const [manageWarranty, setManageWarranty] = useState<boolean>(false);
   const [decimal, setDecimal] = useState<boolean>(false);
-  const [barcode, setBarcode] = useState<string>("");
   const [stock, setStock] = useState<number | "">("");
   const [purchasePrice, setPurchasePrice] = useState<number | "">("");
   const [salePrice, setSalePrice] = useState<number | "">("");
@@ -82,8 +81,8 @@ export default function NewProduct() {
   }, [brandParams.search]);
 
 
-  const createProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const createProduct = async () => {
+  
     if (!selectedUnit) {
       toast.error("Unit is required");
       return;
@@ -107,10 +106,12 @@ export default function NewProduct() {
       toast.error("Disable manage warranty or decimal");
       return;
     }
+    
+
+    const formattedVariant = variants.map(v=>v.barcode ==="" ? delete v.barcode : v);
 
     const payload = {
       name,
-      barcode,
       alertQty: alertQty === "" ? 0 : alertQty,
       manageStock,
       ...(selectedBrand && { brandID: selectedBrand.id }),
@@ -121,6 +122,7 @@ export default function NewProduct() {
       purchasePrice: purchasePrice === "" ? 0 : Number(purchasePrice),
       manageWarranty,
       ...(stock && !!manageStock && { stock }),
+      variants:formattedVariant,
     };
     const result = createProductSchema.safeParse(payload);
     if (!result.success) {
@@ -151,6 +153,17 @@ export default function NewProduct() {
 
     setVariants(prev => [...prev, newVariant]);
   };
+
+  const changeVariant = (index: number, field: keyof VariantPayload, value: any) => {
+  setVariants(prev => {
+    const updated = [...prev];
+    updated[index] = {
+      ...updated[index],
+      [field]: value
+    };
+    return updated;
+  });
+};
 
   const handleRemoveVariant = (indexToRemove: number) => {
     setVariants(prev => prev.filter((_, index) => index !== indexToRemove));
@@ -313,14 +326,14 @@ export default function NewProduct() {
             },
 
             {
-              header: "barcode", accessor: (row) =>
+              header: "barcode", accessor: (row,i) =>
                 <input
                   type="string"
                   value={row.barcode}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") e.preventDefault();
                   }}
-                  onChange={(e) => setBarcode(e.target.value)}
+                  onChange={(e) => changeVariant(i as number,"barcode",e.target.value,)}
                   placeholder="Barcode"
                   className="global_input"
                 />
@@ -328,11 +341,11 @@ export default function NewProduct() {
               , className: "text-center"
             },
             {
-              header: "weight", accessor: (row) =>
+              header: "weight", accessor: (row,i) =>
                 <input
-                  type="string"
+                  type="number"
                   value={row.weight}
-                  onChange={(e) => setBarcode(e.target.value)}
+                  onChange={(e) => changeVariant(i as number,"weight" ,e.target.value)}
                   placeholder="weight"
                   className="global_input"
                 />
@@ -340,12 +353,12 @@ export default function NewProduct() {
               , className: "text-center"
             },
             {
-              header: "sale price", accessor: (row) =>
+              header: "sale price", accessor: (row,i) =>
                 <input
-                  type="string"
-                  value={row.weight}
-                  onChange={(e) => setBarcode(e.target.value)}
-                  placeholder="weight"
+                  type="number"
+                  value={row.salePrice || 0}
+                  onChange={(e) => changeVariant(i as number,"salePrice" ,e.target.value)}
+                  placeholder="sale price"
                   className="global_input"
                 />
 

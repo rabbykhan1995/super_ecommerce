@@ -457,3 +457,71 @@ export type VariantPayload = {
         value: string;
     }[];
 }
+
+
+export interface VariantListItem {
+  id: number;
+  productID: number;
+  salePrice: number;
+  stock: number;
+  barcode: string;
+  createdAt: string;
+  weight: number;
+  attributes: {
+    name: string;
+    value: string;
+  }[];
+  updatedAt: string;
+  product: {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    shortDescription: string | null;
+    metaTitle: string | null;
+    metaDescription: string | null;
+    keywords: string[];
+    brandID: number;
+    unitID: number;
+    categoryID: number;
+    manageStock: boolean;
+    manageWarranty: boolean;
+    thumbnail: string | null;
+    video: string | null;
+    stock: number;
+    totalSold: string;
+    alertQty: number;
+    decimal: boolean;
+    purchasePrice: number;
+    salePrice: number;
+    isPublished: boolean;
+    inPosList: boolean;
+    createdAt: string;
+    updatedAt: string;
+    sku: string | null;
+    status: string;
+    featured: boolean;
+    showStock: boolean;
+    sortOrder: number;
+    averageRating: string;
+    totalReviews: number;
+    brand: {
+      id: number;
+      name: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+    unit: {
+      id: number;
+      name: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+    category: {
+      id: number;
+      name: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+  };
+}
