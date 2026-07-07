@@ -257,8 +257,8 @@ export default class ProductRepository {
     });
   }
 
-  static async batchByProductID(
-    productID: number,
+  static async batchByVariantID(
+    variantID: number,
     client: QueryClient = db,
   ): Promise<Batch[]> {
     return client
@@ -266,7 +266,7 @@ export default class ProductRepository {
       .from(batchTable)
       .where(
         and(
-          eq(batchTable.productID, productID),
+          eq(batchTable.variantID, variantID),
           gt(batchTable.remainingQty, 0),
         ),
       )

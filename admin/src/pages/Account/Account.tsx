@@ -10,7 +10,7 @@ import { History,ArrowLeftRight, Edit, Delete } from "lucide-react";
 
 export default function Account() {
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [editID, setEditID] = useState<string | null>(null);
+  const [editID, setEditID] = useState<number | null>(null);
   const [name, setName] = useState<string>("");
   const [number, setNumber] = useState<string>("");
   const [branch, setBranch] = useState<string>("");
@@ -44,14 +44,14 @@ export default function Account() {
   };
 
   const handleEdit = (account: Account) => {
-    setEditID(account._id);
+    setEditID(account.id);
     setName(account.name);
     setNumber(account.number ?? "");
     setBranch(account.branch ?? "");
     setIsDefault(account.default);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     toast("Are you sure?", {
       action: {
         label: "Delete",
@@ -122,7 +122,7 @@ export default function Account() {
       {/* Table */}
       <Table
         data={accounts}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           { header: "#", accessor: (_, i) => (i as number) + 1, className: "w-10 text-center" },
           {
@@ -161,11 +161,11 @@ export default function Account() {
                 <button onClick={() => handleEdit(row)} className="global_button">
                   <Edit size={18} />
                 </button>
-                <button onClick={() => handleDelete(row._id)} className="global_button_red">
+                <button onClick={() => handleDelete(row.id)} className="global_button_red">
                    <Delete size={18} />
                 </button>
 
-                <Link to={`/account/transaction/${row._id}`} className="global_button">
+                <Link to={`/account/transaction/${row.id}`} className="global_button">
                 <History size={18} /></Link>
               </div>
             ),

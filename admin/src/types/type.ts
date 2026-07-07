@@ -49,6 +49,7 @@ export type Product = {
 
 export type PurchaseProduct = {
   id: number;
+  variantID:number;
   name: string;
   barcode?: string;
   stock: number;

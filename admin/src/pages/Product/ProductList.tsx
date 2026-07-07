@@ -130,7 +130,7 @@ export default function ProductList() {
         limit={limit}
         onPageChange={setPage}
       />
-      <InventoryListModal close={() => setInventoryModal(false)} isOpen={invenotoryModal} product={modalProduct!} />
+      <InventoryListModal close={() => setInventoryModal(false)} isOpen={invenotoryModal} variant={modalProduct!} />
     </div>
   );
 }

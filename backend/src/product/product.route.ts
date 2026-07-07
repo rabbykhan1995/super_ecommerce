@@ -28,7 +28,7 @@ router
     .get("/variant-list", authMiddleware, asyncHandler(ProductController.variantList))
   .get("/productByID/:id", authMiddleware, asyncHandler(ProductController.productByID))
   .get("/productByBarcode", authMiddleware, asyncHandler(ProductController.productByBarcode))
-  .get("/batchByProduct/:id", authMiddleware, asyncHandler(ProductController.batchByProduct))
+  .get("/batchByVariant/:id", authMiddleware, asyncHandler(ProductController.batchByVariant))
   .get("/batchBySerial", authMiddleware, asyncHandler(ProductController.findBatchBySerial))
   .get("/serialByProduct/:id", authMiddleware, asyncHandler(ProductController.serialByProduct))
   .get("/getSaleProduct/:id", authMiddleware, asyncHandler(ProductController.getSaleProduct))

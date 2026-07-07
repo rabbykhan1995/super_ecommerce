@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/axios";
-import type { Account, Contact, PurchaseProduct, SelectOption } from "../../types/type";
+import type { Account, Contact, PurchaseProduct, SelectOption, VariantListItem } from "../../types/type";
 import Select from "react-select";
 import { getReactSelectStyles } from "../../utils/reactSelectStyles";
 
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
-import type { Product, SearchParams, AccountOption } from "../../types/type";
+import type { SearchParams, AccountOption } from "../../types/type";
 import { Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import { createPortal } from "react-dom";
@@ -32,7 +32,7 @@ export default function NewPurchase() {
         limit: 50,
     });
     const [barcode, setBarcode] = useState<string>("");
-    const [products, setProducts] = useState<SelectOption<Product>[]>([]);
+    const [variants, setVariants] = useState<SelectOption<VariantListItem>[]>([]);
     const [suppliers, setSuppliers] = useState<SelectOption<Contact>[]>([]);
     const [selectedSupplier, setSelectedSupplier] = useState<SelectOption<Contact> | null>(null);
     const [purchaseDate, setPurchaseDate] = useState<Date>(new Date());
@@ -50,13 +50,13 @@ export default function NewPurchase() {
     const [exchangeAccounts, setExchangeAccounts] = useState<AccountOption[]>([]);
     const [selectedExchangeAccounts, setSelectedExchangeAccounts] = useState<AccountOption[]>([]);
 
-    const fetchProducts = async () => {
-        const res = await api("/product/list", {
+    const fetchVariants = async () => {
+        const res = await api("/product/variant-list", {
             params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
         });
         if (res.data.success)
-            setProducts(
-                res.data.data.items.map((u: Product) => ({ value: u._id, label: u.name, ...u }))
+            setVariants(
+                res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name}(${u.attributes.map(a=> `${a.name}-${a.value}`)})`, ...u }))
             );
     };
     const fetchContacts = async () => {
@@ -64,7 +64,7 @@ export default function NewPurchase() {
             params: { search: contactParams.search, limit: contactParams.limit, page: contactParams.page, type: "supplier" },
         });
         if (res.data.success) setSuppliers(
-            res.data.data.items.map((u: Contact) => ({ value: u._id, label: `${u.name} balance(${u.balance})`, ...u }))
+            res.data.data.items.map((u: Contact) => ({ value: u.id, label: `${u.name} balance(${u.balance})`, ...u }))
         );;
     };
     const fetchAccount = async () => {
@@ -73,7 +73,7 @@ export default function NewPurchase() {
             const formatted: AccountOption[] = res.data.data.map((a: Account) => ({
                 ...a,
                 label: a.name,
-                value: a._id,
+                value: a.id,
                 amount: 0,
                 type: "Debit"
             }));
@@ -97,46 +97,80 @@ export default function NewPurchase() {
         if (res.data.success) {
             const p = res.data.data;
 
-            const product = { value: p._id, label: p.name, ...p };
+            const product = { value: p.id, label: p.name, ...p };
             return handleAddProduct(product)
         } else {
             return toast.error("No Product Found with This barcode")
         }
 
     };
-    const handleAddProduct = (p: SelectOption<Product>) => {
+   const handleAddProduct = (p: SelectOption<VariantListItem>) => {
+    // if product's manage stock is disabled, means manageStock === false;
+    if (!p.product.manageStock) {
+        return toast.error("No need to buy, manage stock is disabled");
+    }
 
-        // if product's manage stock is disabled, means manageStock === false;
-        if (!p.manageStock) {
-            return toast.error("No need to buy, manage stock is disabled");
-        }
-
-        // if product's warranty is enabled, then enable the serail field...and enable the warranty date...
-        if (p.manageWarranty) {
-            const already = selectedProducts.value.find((item) => item._id === p._id);
-            if (already) {
-                return toast.error("Please Add serials now");
-            }
-
-            selectedProducts.value = [...selectedProducts.value, { ...p, purchaseQty: 0, warranty: 0, expireDate: null }];
-            return;
-        }
-
-
-        const already = selectedProducts.value.find((item) => item._id === p._id);
+    // if product's warranty is enabled, then enable the serial field...and enable the warranty date...
+    if (p.product.manageWarranty) {
+        const already = selectedProducts.value.find((item) => item.id === p.id);
         if (already) {
-            selectedProducts.value = selectedProducts.value.map((item) =>
-                item._id === p._id ? { ...item, purchaseQty: item.purchaseQty + 1 } : item
-            );
-            return;
+            return toast.error("Please Add serials now");
         }
-        selectedProducts.value = [...selectedProducts.value, { ...p, purchaseQty: 1, warranty: 0, manageWarranty: p.manageWarranty ?? false, expireDate: null }];
-    };
 
+        selectedProducts.value = [...selectedProducts.value, {
+            id: p.id,
+            variantID: p.id,
+            name: p.label, // or p.label if you prefer
+            barcode: p.barcode,
+            stock: p.stock,
+            unitName: p.product.unit?.name, // adjust based on your actual structure
+            brandName: p.product.brand?.name, // adjust based on your actual structure
+            categoryName: p.product.category?.name, // adjust based on your actual structure
+            manageStock: p.product.manageStock,
+            createdAt: p.createdAt,
+            purchasePrice: p.product.purchasePrice, // or p.salePrice depending on your logic
+            salePrice: p.salePrice,
+            purchaseQty: 0,
+            warranty: 0,
+            manageWarranty: p.product.manageWarranty,
+            serials: [],
+            expireDate: null
+        }];
+        return;
+    }
+
+    const already = selectedProducts.value.find((item) => item.id === p.id);
+    if (already) {
+        selectedProducts.value = selectedProducts.value.map((item) =>
+            item.id === p.id ? { ...item, purchaseQty: item.purchaseQty + 1 } : item
+        );
+        return;
+    }
+
+    selectedProducts.value = [...selectedProducts.value, {
+        id: p.id,
+        variantID: p.id,
+        name: p.label, // or p.label
+        barcode: p.barcode,
+        stock: p.stock,
+        unitName: p.product.unit?.name, // adjust based on your actual structure
+        brandName: p.product.brand?.name, // adjust based on your actual structure
+        categoryName: p.product.category?.name, // adjust based on your actual structure
+        manageStock: p.product.manageStock,
+        createdAt: p.createdAt,
+        purchasePrice: p.product.purchasePrice, // or p.salePrice depending on your logic
+        salePrice: p.salePrice,
+        purchaseQty: 1,
+        warranty: 0,
+        manageWarranty: p.product.manageWarranty,
+        serials: [],
+        expireDate: null
+    }];
+};
 
 
     useEffect(() => {
-        Promise.all([fetchProducts(), fetchContacts(), fetchAccount()]);
+        Promise.all([fetchVariants(), fetchContacts(), fetchAccount()]);
     }, []);
 
 
@@ -146,13 +180,13 @@ export default function NewPurchase() {
     }, [contactParams.search]);
 
     useEffect(() => {
-        const timer = setTimeout(() => fetchProducts(), 400);
+        const timer = setTimeout(() => fetchVariants(), 400);
         return () => clearTimeout(timer);
     }, [productParams.search]);
 
-    const handleProductChange = (id: string, field: string, value: number | Date | null) => {
+    const handleProductChange = (id: number, field: string, value: number | Date | null) => {
         selectedProducts.value = selectedProducts.value.map((p) =>
-            p._id === id ? { ...p, [field]: value } : p
+            p.id === id ? { ...p, [field]: value } : p
         );
     };
 
@@ -251,7 +285,7 @@ export default function NewPurchase() {
 
                 if (!defaultAccount) return prev;
 
-                const updated = prev.some((a) => a._id === defaultAccount._id)
+                const updated = prev.some((a) => a.id === defaultAccount.id)
                     ? prev
                     : [
                         {
@@ -295,12 +329,13 @@ export default function NewPurchase() {
             amount: a.amount,
         }));
 
-        const products = selectedProducts.value.flatMap(p => {
+        const variants = selectedProducts.value.flatMap(p => {
             if (p.serials && p.serials.length > 0) {
                 return p.serials.map((serial: string) => ({
-                    productID: p._id,
+                    productID: p.id,
                     serial: serial as string | null,
                     purchasedQty: 1,
+                       variantID:p.variantID,
                     purchasePrice: p.purchasePrice,
                     salePrice: p.salePrice,
                     warranty: p.warranty,
@@ -308,7 +343,8 @@ export default function NewPurchase() {
                 }));
             }
             return [{
-                productID: p._id,
+                productID: p.id,
+                variantID:p.variantID,
                 serial: null as string | null,
                 purchasedQty: p.purchaseQty,
                 purchasePrice: p.purchasePrice,
@@ -316,8 +352,8 @@ export default function NewPurchase() {
                 expireDate: p.expireDate ?? null, // ✅
             }];
         });
-
-        const purchaseResult = createPurchaseSchema.safeParse({ purchase, products, accounts, exchangeAccounts });
+        console.log(variants)
+        const purchaseResult = createPurchaseSchema.safeParse({ purchase, variants, accounts, exchangeAccounts });
         if (!purchaseResult.success) {
             const firstError = purchaseResult.error.issues[0];
             toast.error(firstError.message);
@@ -326,7 +362,7 @@ export default function NewPurchase() {
 
         const res = await api.post('/purchase/create', purchaseResult.data);
         if (res.data.success === true) {
-            navigate(`/purchase/invoice/${res.data.data._id}`);
+            navigate(`/purchase/invoice/${res.data.data.id}`);
             return;
         }
 
@@ -355,13 +391,13 @@ export default function NewPurchase() {
                 <div className="flex flex-col">
                     <label className="block text-sm font-medium mb-1">Products</label>
                     <Select
-                        options={products}
+                        options={variants}
                         value={null}
-                        onChange={(val) => handleAddProduct(val as SelectOption<Product>)}
+                        onChange={(val) => handleAddProduct(val as SelectOption<VariantListItem>)}
                         onInputChange={(e) => setProductParams(prev => ({ ...prev, search: e }))}
                         placeholder="Select Product"
                         isClearable
-                        styles={getReactSelectStyles<SelectOption<Product>>()}
+                        styles={getReactSelectStyles<SelectOption<VariantListItem>>()}
                     />
                 </div>
                 {/* Product With Barcode */}
@@ -409,7 +445,7 @@ export default function NewPurchase() {
             {/* Table */}
             <Table
                 data={selectedProducts.value}
-                keyExtractor={(row) => row._id}
+                keyExtractor={(row) => row.id}
                 columns={[
                     {
                         header: "#",
@@ -419,7 +455,10 @@ export default function NewPurchase() {
                     },
                     {
                         header: "Name",
-                        accessor: "name",
+                              accessor: (row, i) => (
+                            <>  {row.name}</>
+
+                        ),
                         headerClassName: "min-w-[200px]"
                     },
                     {
@@ -430,7 +469,7 @@ export default function NewPurchase() {
                             <>  {row.manageWarranty && <input
                                 type="number"
                                 value={row.warranty === 0 ? "" : row.warranty}
-                                onChange={(e) => handleProductChange(row._id, "warranty", e.target.value === "" ? 0 : Number(e.target.value))}
+                                onChange={(e) => handleProductChange(row.id, "warranty", e.target.value === "" ? 0 : Number(e.target.value))}
                                 placeholder="Days"
                                 className="global_input text-center w-24"
 
@@ -457,7 +496,7 @@ export default function NewPurchase() {
                             <input
                                 type="number"
                                 value={row.purchasePrice === 0 ? "" : row.purchasePrice}
-                                onChange={(e) => handleProductChange(row._id, "purchasePrice", e.target.value === "" ? 0 : Number(e.target.value))}
+                                onChange={(e) => handleProductChange(row.id, "purchasePrice", e.target.value === "" ? 0 : Number(e.target.value))}
                                 className="global_input text-center w-24"
                             />
                         ),
@@ -470,7 +509,7 @@ export default function NewPurchase() {
                             <input
                                 type="number"
                                 value={row.salePrice === 0 ? "" : row.salePrice}
-                                onChange={(e) => handleProductChange(row._id, "salePrice", e.target.value === "" ? 0 : Number(e.target.value))}
+                                onChange={(e) => handleProductChange(row.id, "salePrice", e.target.value === "" ? 0 : Number(e.target.value))}
                                 className="global_input text-center w-24"
                             />
                         ),
@@ -483,7 +522,7 @@ export default function NewPurchase() {
                             <input
                                 type="number"
                                 value={row.purchaseQty === 0 ? "" : row.purchaseQty}
-                                onChange={(e) => handleProductChange(row._id, "purchaseQty", e.target.value === "" ? 0 : Number(e.target.value))}
+                                onChange={(e) => handleProductChange(row.id, "purchaseQty", e.target.value === "" ? 0 : Number(e.target.value))}
                                 disabled={row.manageWarranty}
                                 className="global_input text-center w-20"
                             />
@@ -518,7 +557,7 @@ export default function NewPurchase() {
                             <DatePicker
                                 selected={row.expireDate ? new Date(row.expireDate) : null}
                                 onChange={(date: Date | null) =>
-                                    handleProductChange(row._id, "expireDate", date)
+                                    handleProductChange(row.id, "expireDate", date)
                                 }
                                 dateFormat="dd-MM-yyyy"
                                 className="global_input min-w-[140px]"

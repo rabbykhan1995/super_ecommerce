@@ -197,8 +197,8 @@ export default class ProductService {
   }
 
 
-  static async batchByProduct(id: number) {
-    const batch = await ProductRepository.batchByProductID(id);
+  static async batchByVariant(id: number) {
+    const batch = await ProductRepository.batchByVariantID(id);
 
     if (!batch) {
       throw new ApiError(404, "batch not found");
@@ -207,8 +207,8 @@ export default class ProductService {
     return batch;
   }
 
-  static async serialByProduct(id: number) {
-    const batch = await ProductRepository.batchByProductID(id);
+  static async serialByVariant(id: number) {
+    const batch = await ProductRepository.batchByVariantID(id);
 
     if (!batch) {
       throw new ApiError(404, "batch not found");
@@ -302,7 +302,7 @@ export default class ProductService {
   }
 
   static async getFifoBatch(productID: number) {
-    const batches = await ProductRepository.batchByProductID(productID);
+    const batches = await ProductRepository.batchByVariantID(productID);
 
     if (batches?.length === 0 || null) {
       throw new ApiError(404, "No stock available");

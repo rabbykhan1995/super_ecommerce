@@ -62,10 +62,10 @@ export class ProductController {
 
     res.status(200).json({ success: true, data: product });
   }
-  static async batchByProduct(req: Request, res: Response) {
-    const productID = req.params.id;
+  static async batchByVariant(req: Request, res: Response) {
+    const variantID = req.params.id;
 
-    const batches = await ProductService.batchByProduct(productID as string);
+    const batches = await ProductService.batchByVariant(Number(variantID));
 
 
     res.status(200).json({ success: true, data: batches });
