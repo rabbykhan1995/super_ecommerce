@@ -16,26 +16,23 @@ export class PurchaseReturnController {
 
   static async purchaseReturnByID(req: Request, res: Response) {
     const { id } = req.params;
-    const invoice = await PurchaseReturnService.purchaseReturnInvoiceByID(id.toString())
+    const invoice = await PurchaseReturnService.purchaseReturnInvoiceByID(Number(id))
 
     res.status(200).json({ success: true, data: invoice });
   }
 
-  static async getPurchaseReturnBatches(req: Request, res: Response) {
-    const { purchaseID } = req.params;
-    // এই purchaseID দিয়ে batch আছে কিনা
+  // static async getPurchaseReturnBatches(req: Request, res: Response) {
+  //   const { purchaseID } = req.params;
+  //   // এই purchaseID দিয়ে batch আছে কিনা
 
+  //   const batches = await PurchaseReturnService.getPurchaseReturnBatches(purchaseID);
 
-    const batches = await PurchaseReturnService.getPurchaseReturnBatches(purchaseID.toString());
-
-    return res.status(200).json({ success: true, data: batches });
-  }
+  //   return res.status(200).json({ success: true, data: batches });
+  // }
 
   static async delete(req: Request, res: Response) {
     const { id } = req.params;
-      await PurchaseReturnService.delete(id.toString());
+      await PurchaseReturnService.delete(Number(id));
       return res.status(200).json({ success: true, msg: "Purchase return deleted" });
-
-   
   }
 }

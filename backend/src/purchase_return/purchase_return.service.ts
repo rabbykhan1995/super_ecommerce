@@ -46,7 +46,7 @@ export default class PurchaseReturnService {
         note: purchaseReturn.note,
         paid: purchaseReturn.paid,
         balanceBefore: supplier.balance,
-        exchagneAmount: purchaseReturn.exchagneAmount,
+        exchangeAmount: purchaseReturn.exchangeAmount,
         balanceAfter: purchaseReturn.balanceAfter,
         discount: purchaseReturn.discount ?? 0,
         date: purchaseReturn.date,
@@ -291,5 +291,12 @@ export default class PurchaseReturnService {
         date: new Date(),
       });
     });
+  }
+
+  static async purchaseReturnInvoiceByID(purchaseReturnID: number){
+    
+    return await PurchaseReturnRepository.getPurchaseReturnInvoice(purchaseReturnID);  
+
+
   }
 }

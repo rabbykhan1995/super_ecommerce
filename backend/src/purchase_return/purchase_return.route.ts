@@ -20,6 +20,6 @@ router
   .get("/list", authMiddleware, asyncHandler(PurchaseReturnController.list))
   .get("/purchaseByID/:id", authMiddleware, asyncHandler(PurchaseReturnController.purchaseReturnByID))
   .delete('/delete/:id', authMiddleware, asyncHandler(PurchaseReturnController.delete))
-    .get("/product-by-id/:purchaseID", authMiddleware, asyncHandler(PurchaseReturnController.getPurchaseReturnBatches))
+    // .get("/product-by-id/:purchaseID", authMiddleware, asyncHandler(PurchaseReturnController.getPurchaseReturnBatches))
 
 export default router;

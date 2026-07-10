@@ -17,7 +17,7 @@ export class SaleController {
   static async saleByID(req: Request, res: Response) {
     const { id } = req.params;
 
-    const sale = await SaleService.saleInvoiceByID(id.toString());
+    const sale = await SaleService.saleInvoiceByID(Number(id));
 
     if (!sale) throw new ApiError(404, "Sale not found");
 
@@ -25,7 +25,7 @@ export class SaleController {
   }
   static async delete(req: Request, res: Response) {
     const { id } = req.params;
-    await SaleService.delete(id.toString());
+    await SaleService.delete(Number(id));
 
     res.status(201).json({ success: true, msg: "Sale deleted successfully" });
   }

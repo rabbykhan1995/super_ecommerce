@@ -85,13 +85,64 @@ export default class PurchaseReturnRepository {
     return updated;
   }
 
-  static async itemsByPurchaseReturnID(
-    returnID: number,
-    client: QueryClient = db,
-  ) {
-    return client
-      .select()
-      .from(purchaseReturnItemsTable)
-      .where(eq(purchaseReturnItemsTable.purchaseReturnID, returnID));
-  }
+static async itemsByPurchaseReturnID(
+  returnID: number,
+  client: QueryClient = db,
+) {
+  return client.query.purchaseReturnItemsTable.findMany({
+    where: (items, { eq }) => eq(items.purchaseReturnID, returnID),
+  });
+}
+
+
+    static async getPurchaseReturnInvoice(
+        purchaseReturnID: number,
+        client: QueryClient = db
+    ) {
+        
+        const purchaseReturn = await client.query.purchaseReturnTable.findFirst({
+          where:eq(purchaseReturnTable.id, purchaseReturnID),
+          with:{
+            supplier:true
+          }
+        })
+        
+        const items = await client.query.purchaseReturnItemsTable.findMany({
+            where: eq(purchaseReturnItemsTable.purchaseReturnID, purchaseReturnID),
+            with: {
+                product: {
+                    columns: {
+                        id: true,
+                        name: true,
+                    },
+                    with: {
+                        unit: {
+                            columns: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                    },
+                },
+                batch: {
+                    columns: {
+                        id: true,
+                        serial: true,
+                    },
+                    with: {
+                        variant: {
+                            columns: {
+                                id: true,
+                                attributes: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+
+       return {purchaseReturn, products:items }
+    }
+
 }

@@ -1,5 +1,4 @@
 import { ClientSession, Types } from "mongoose";
-import Sale from "./sale.model";
 import db, { QueryClient } from "../../drizzle/src";
 import { saleTable } from "./sale.table";
 import { paginateQuery } from "../../utils/queryBuilder";
@@ -55,20 +54,6 @@ export default class SaleRepository {
         });
     }
 
-    static async findAndUpdateByID(
-        id: string,
-        update: Record<string, any>,
-        session?: ClientSession
-    ) {
-        return Sale.findByIdAndUpdate(
-            id,
-            update,
-            {
-                new: true,
-                ...(session ? { session } : {}),
-            }
-        );
-    }
 
     static async getSoldProductsBySaleID(
         saleID: number,

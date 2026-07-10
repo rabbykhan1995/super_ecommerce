@@ -341,17 +341,7 @@ export default class SaleService {
         return await SaleRepository.getSaleByID(saleID);
     }
 
-    static async findAndUpdateByID(
-        id: string,
-        update: Record<string, any>,
-        session?: ClientSession
-    ) {
-        return SaleRepository.findAndUpdateByID(
-            id,
-            update,
-            session
-        );
-    }
+
 
     static async fifoSale(payload: CreateFifoSaleInput) {
         // Ekhane ki hobe: Prottek ta product je rack a sajano thakbe, seta ekdom old stock er ta, tahole ei sale ta applicable hobe, tachara eta risky hobe..ba problem hobe...
