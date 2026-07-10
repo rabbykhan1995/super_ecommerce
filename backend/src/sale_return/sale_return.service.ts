@@ -12,22 +12,19 @@ import PayloadBuilder from "../../utils/builder";
 import TransactionService from "../transaction/transaction.service";
 import LedgerService from "../ledger/ledger.service";
 import { RedisReportService } from "../../utils/ReportServiceRedis";
+import { withTransaction } from "../../utils/withTransaction";
 
 export default class SaleReturnService {
     static async create(payload: CreateSaleReturnInput) {
-        const { saleID, batches, accounts, note, paid, discount, date } = payload;
+          const { saleReturn, accounts, exchangeAccounts, products } = payload;
 
-        const sale = await SaleService.getSaleByID(saleID);
+        const sale = await SaleService.getSaleByID(saleReturn.saleID);
         if (!sale) throw new ApiError(404, "Sale not found");
 
-        const session = await mongoose.startSession();
-        session.startTransaction();
-
-
-        try {
+        await withTransaction(async(tx)=>{
             let customer: ContactResponse | null = null;
             if (sale.customerID) {
-                customer = await ContactService.findByID(sale.customerID.toString())
+                customer = await ContactService.findByID(sale.customerID)
                 if (!customer) { throw new ApiError(404, "Customer not found"); }
             }
 
@@ -166,12 +163,8 @@ export default class SaleReturnService {
 
 
 
-        } catch (error) {
-            await session.abortTransaction();
-            throw error;
-        } finally {
-            session.endSession();
-        }
+        })
+    
     }
 
     static async list(payload: any) {
