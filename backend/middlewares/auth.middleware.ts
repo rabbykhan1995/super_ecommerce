@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { UserInToken } from "../src/auth/user.type";
 import { ApiError } from "../utils/ApiError";
 import Helper from "../utils/helper";
+import { UserInToken } from "../src/auth/auth.type";
 
 interface AuthRequest extends Request {
   user?: UserInToken;

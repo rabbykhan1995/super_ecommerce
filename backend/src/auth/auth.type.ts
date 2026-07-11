@@ -21,7 +21,7 @@ export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type PasswordResetInput = z.infer<typeof passwordResetSchema>
 
 export type UserInToken = Pick<User, "name" | "email" | "mobile"> & {
-  id: number;
+  id: string;
 };
 
 export type UserLoginInput = z.infer<typeof userLoginSchema>;

@@ -19,6 +19,7 @@ import reportRoute from "../src/report/report.route"
 import expenseRoute from "../src/expense/expense.route"
 import quotationRoute from "../src/quotation/quotation.route"
 import cartRoute from "../src/cart/cart.route"
+import adminRoute from "../src/admin/role.route"
 
 const router = Router();
 router.use("/product", productRoute);
@@ -39,6 +40,7 @@ router.use("/warranty", warrantyRoute)
 router.use("/report", reportRoute)
 router.use("/expense", expenseRoute)
 router.use("/cart", cartRoute)
+router.use("/admin/role", adminRoute)
 // router.use("/quotation", quotationRoute)
 
 export default router;

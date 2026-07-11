@@ -1,4 +1,5 @@
 import {
+  boolean,
   pgTable,
   timestamp,
   uniqueIndex,
@@ -57,7 +58,7 @@ export const userTable = pgTable(
 export const staffProfiles = pgTable("staff_profiles", {
   id: uuid("id").defaultRandom().primaryKey(),
 
-  userId: uuid("user_id")
+  userID: uuid("user_id")
     .notNull()
     .unique()
     .references(() => userTable.id, {
@@ -96,6 +97,8 @@ export const roles = pgTable("roles", {
     .notNull()
     .unique(),
 
+  isSuperAdmin: boolean("is_super_admin").default(false).notNull(),
+
   description: varchar("description", { length: 255 }),
 });
 
@@ -108,7 +111,7 @@ export const userRoles = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
 
-    userId: uuid("user_id")
+    userID: uuid("user_id")
       .notNull()
       .references(() => userTable.id, {
         onDelete: "cascade",
@@ -126,12 +129,12 @@ export const userRoles = pgTable(
       .defaultNow()
       .notNull(),
   },
-(table) => [
-  uniqueIndex("unique_user_role").on(
-    table.userId,
-    table.roleId,
-  ),
-]
+  (table) => [
+    uniqueIndex("unique_user_role").on(
+      table.userID,
+      table.roleId,
+    ),
+  ]
 );
 
 /* ===========================
@@ -141,9 +144,9 @@ export const userRoles = pgTable(
 export const userRelations = relations(userTable, ({ one, many }) => ({
   staffProfile: one(staffProfiles, {
     fields: [userTable.id],
-    references: [staffProfiles.userId],
+    references: [staffProfiles.userID],
   }),
-  contact:one(contactTable),
+  contact: one(contactTable),
   userRoles: many(userRoles),
 }));
 
@@ -151,19 +154,54 @@ export const staffProfileRelations = relations(
   staffProfiles,
   ({ one }) => ({
     user: one(userTable, {
-      fields: [staffProfiles.userId],
+      fields: [staffProfiles.userID],
       references: [userTable.id],
     }),
   }),
 );
 
-export const roleRelations = relations(roles, ({ many }) => ({
-  userRoles: many(userRoles),
-}));
+export const permissions = pgTable("permissions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  // convention: "resource:action" -> "product:create", "ledger:list"
+  name: varchar("name", { length: 150 }).notNull().unique(),
+
+  description: varchar("description", { length: 255 }),
+
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+
+export const rolePermissions = pgTable(
+  "role_permissions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    roleId: uuid("role_id")
+      .notNull()
+      .references(() => roles.id, { onDelete: "cascade" }),
+
+    permissionId: uuid("permission_id")
+      .notNull()
+      .references(() => permissions.id, { onDelete: "cascade" }),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("unique_role_permission").on(
+      table.roleId,
+      table.permissionId,
+    ),
+  ],
+);
 
 export const userRoleRelations = relations(userRoles, ({ one }) => ({
   user: one(userTable, {
-    fields: [userRoles.userId],
+    fields: [userRoles.userID],
     references: [userTable.id],
   }),
 
@@ -172,3 +210,27 @@ export const userRoleRelations = relations(userRoles, ({ one }) => ({
     references: [roles.id],
   }),
 }));
+
+
+export const roleRelations = relations(roles, ({ many }) => ({
+  userRoles: many(userRoles),
+  rolePermissions: many(rolePermissions),
+}));
+
+export const permissionRelations = relations(permissions, ({ many }) => ({
+  rolePermissions: many(rolePermissions),
+}));
+
+export const rolePermissionRelations = relations(
+  rolePermissions,
+  ({ one }) => ({
+    role: one(roles, {
+      fields: [rolePermissions.roleId],
+      references: [roles.id],
+    }),
+    permission: one(permissions, {
+      fields: [rolePermissions.permissionId],
+      references: [permissions.id],
+    }),
+  }),
+);

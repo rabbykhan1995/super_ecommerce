@@ -14,7 +14,6 @@ router
   .post(
     "/create",
     authMiddleware,
-
     validate(createProductSchema),
     asyncHandler(ProductController.create),
   )

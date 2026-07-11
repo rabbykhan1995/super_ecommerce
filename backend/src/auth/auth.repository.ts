@@ -28,11 +28,11 @@ export class AuthRepository {
    }
 
    static async findByID(
-      userId: string,
+      userID: string,
       client: QueryClient = db,
    ) {
       return client.query.userTable.findFirst({
-         where: (users, { eq }) => eq(users.id, userId),
+         where: (users, { eq }) => eq(users.id, userID),
       });
    }
 
