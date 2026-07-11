@@ -19,6 +19,5 @@ router
   .get("/list", authMiddleware, asyncHandler(SaleReturnController.list))
   .get("/saleByID/:id", authMiddleware, asyncHandler(SaleReturnController.saleReturnByID))
   .delete('/delete/:id', authMiddleware, asyncHandler(SaleReturnController.delete))
-  .get("/product-by-id/:saleID", authMiddleware, asyncHandler(SaleReturnController.getSaleReturnBatches))
 
 export default router;

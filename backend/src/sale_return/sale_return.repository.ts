@@ -1,272 +1,149 @@
-import { ClientSession, Types } from "mongoose";
-import SaleReturn from "./sale_return.model";
-import { CreateSaleReturnInput, SaleReturnDetail } from "./sale_return.type";
-
+import {
+  OnlySaleReturnPayload,
+  SaleReturn,
+  SaleReturnItem,
+  SaleReturnItemPayload,
+} from "./sale_return.type";
+import { paginateQuery } from "../../utils/queryBuilder";
+import {
+  saleReturnItemsTable,
+  saleReturnTable,
+} from "./sale_return.table";
+import { eq, count } from "drizzle-orm";
+import db, { QueryClient } from "../../drizzle/src";
 
 export default class SaleReturnRepository {
-  static async create(
-    payload: any,
-    session?: ClientSession
+  static async saleReturnCreate(
+    payload: OnlySaleReturnPayload,
+    client: QueryClient = db,
+  ): Promise<SaleReturn> {
+    const [saleReturn] = await client
+      .insert(saleReturnTable)
+      .values(payload)
+      .returning();
+
+    return saleReturn;
+  }
+
+  static async saleReturnItemCreate(
+    payload: SaleReturnItemPayload,
+    client: QueryClient = db,
+  ): Promise<SaleReturnItem> {
+    const [item] = await client
+      .insert(saleReturnItemsTable)
+      .values(payload)
+      .returning();
+
+    return item;
+  }
+
+  static async findByID(
+    returnID: number,
+    client: QueryClient = db,
+  ): Promise<SaleReturn> {
+    const [saleReturn] = await client
+      .select()
+      .from(saleReturnTable)
+      .where(eq(saleReturnTable.id, returnID))
+      .limit(1);
+
+    return saleReturn;
+  }
+
+  static async deleteSaleReturnByID(
+    returnID: number,
+    client: QueryClient = db,
   ) {
-    const created = await SaleReturn.create(
-      [payload],
-      {
-        ...(session ? { session } : {}),
-      }
-    );
+    const deleted = await client
+      .delete(saleReturnTable)
+      .where(eq(saleReturnTable.id, returnID));
 
-    return created[0];
+    return deleted;
   }
 
-  static async list(query: any) {
-    // return await paginatedAggregate({
-    //   model: SaleReturn,
-    //   query: query,
-    //   postLookupSearch: true,
-    //   searchFields: [
-    //     { field: "invoiceNo" },
-    //     { field: "customer.name" },
-    //     { field: "customer.mobile" },
-    //   ],
-    //   lookups: [
-    //     {
-    //       from: "contacts",
-    //       localField: "customerID",
-    //       foreignField: "_id",
-    //       as: "customer",
-    //       preserveNull: true,
-    //     },
-    //     {
-    //       from: "sales",
-    //       localField: "saleID",
-    //       foreignField: "_id",
-    //       as: "sale",
-    //       preserveNull: true,
-    //     },
-    //   ],
-    //   projection: {
-    //     include: [
-    //       "invoiceNo",
-    //       "totalAmount",
-    //       "paid",
-    //       "balanceBefore",
-    //       "balanceAfter",
-    //       "discount",
-    //       "date",
-    //       "status",
-    //       "createdAt",
-    //     ],
-    //     computed: {
-    //       customerName: "$customer.name",
-    //       purchaseInvoiceNo: "$sale.invoiceNo",
-    //     },
-    //   },
-    // })
+  static async list(query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) {
+    return paginateQuery({
+      query: db.query.saleReturnTable,
+      countTable: saleReturnTable,
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+    });
   }
 
-  static async findById(id: string) {
-    return await SaleReturn.findById(id);
-  }
-
-  static async delete(id: string, session?: ClientSession) {
-    await SaleReturn.findByIdAndDelete(id, {
-      ...(session ? { session } : {}),
+  static async itemsBySaleReturnID(
+    returnID: number,
+    client: QueryClient = db,
+  ) {
+    return client.query.saleReturnItemsTable.findMany({
+      where: (items, { eq }) => eq(items.saleReturnID, returnID),
     });
   }
 
   static async countOtherSaleReturns(
-    saleID: string,
-    excludeId: string,
-    session?: ClientSession
+    saleID: number,
+    excludeReturnID: number,
+    client: QueryClient = db,
   ): Promise<number> {
-    return SaleReturn.countDocuments({
-      saleID,
-      _id: { $ne: excludeId },
-    }).session(session ?? null);
+    const [totalAll] = await client
+      .select({ total: count() })
+      .from(saleReturnTable)
+      .where(eq(saleReturnTable.saleID, saleID));
+
+    return (totalAll?.total ?? 0) - 1;
   }
 
-  static async saleReturnInvoiceByID(id: string) {
-    // return await aggregateOne<SaleReturnDetail>(
-    //   SaleReturn,
-    //   { _id: new Types.ObjectId(id) },
-    //   [
-    //     { from: "contacts", localField: "customerID", foreignField: "_id", as: "customer" },
-    //     { from: "sales", localField: "saleID", foreignField: "_id", as: "sale" },
-    //   ],
-    //   undefined,
-    //   [
-    //     // account names
-    //     {
-    //       $lookup: {
-    //         from: "accounts",
-    //         localField: "accounts.accountID",
-    //         foreignField: "_id",
-    //         as: "accountDetails",
-    //       },
-    //     },
-    //     {
-    //       $addFields: {
-    //         accounts: {
-    //           $map: {
-    //             input: "$accounts",
-    //             as: "acc",
-    //             in: {
-    //               accountID: "$$acc.accountID",
-    //               amount: "$$acc.amount",
-    //               name: {
-    //                 $let: {
-    //                   vars: {
-    //                     matched: {
-    //                       $first: {
-    //                         $filter: {
-    //                           input: "$accountDetails",
-    //                           as: "ad",
-    //                           cond: { $eq: ["$$ad._id", "$$acc.accountID"] },
-    //                         },
-    //                       },
-    //                     },
-    //                   },
-    //                   in: "$$matched.name",
-    //                 },
-    //               },
-    //             },
-    //           },
-    //         },
-    //       },
-    //     },
-    //     {
-    //       $addFields: {
-    //         customer: { $first: "$customer" },
-    //         sale: { $first: "$sale" },
-    //       },
-    //     },
-    //     { $project: { accountDetails: 0 } },
+  static async getSaleReturnInvoice(
+    saleReturnID: number,
+    client: QueryClient = db,
+  ) {
+    const saleReturn = await client.query.saleReturnTable.findFirst({
+      where: eq(saleReturnTable.id, saleReturnID),
+      with: {
+        customer: true,
+        sale: true,
+      },
+    });
 
-    //     // products unwind
-    //     { $unwind: "$products" },
+    const items = await client.query.saleReturnItemsTable.findMany({
+      where: eq(saleReturnItemsTable.saleReturnID, saleReturnID),
+      with: {
+        product: {
+          columns: {
+            id: true,
+            name: true,
+          },
+          with: {
+            unit: {
+              columns: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        batch: {
+          columns: {
+            id: true,
+            serial: true,
+          },
+          with: {
+            variant: {
+              columns: {
+                id: true,
+                name: true,
+                attributes: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
-    //     // batch
-    //     {
-    //       $lookup: {
-    //         from: "batches",
-    //         localField: "products.batchID",
-    //         foreignField: "_id",
-    //         as: "batch",
-    //       },
-    //     },
-    //     { $addFields: { batch: { $first: "$batch" } } },
-
-    //     // product
-    //     {
-    //       $lookup: {
-    //         from: "products",
-    //         localField: "products.productID",
-    //         foreignField: "_id",
-    //         as: "productDetails",
-    //       },
-    //     },
-    //     { $addFields: { productDetails: { $first: "$productDetails" } } },
-
-    //     // unit
-    //     {
-    //       $lookup: {
-    //         from: "units",
-    //         localField: "productDetails.unitID",
-    //         foreignField: "_id",
-    //         as: "unit",
-    //       },
-    //     },
-    //     { $addFields: { unit: { $first: "$unit" } } },
-
-    //     // brand
-    //     {
-    //       $lookup: {
-    //         from: "brands",
-    //         localField: "productDetails.brandID",
-    //         foreignField: "_id",
-    //         as: "brand",
-    //       },
-    //     },
-    //     { $addFields: { brand: { $first: "$brand" } } },
-
-    //     // category
-    //     {
-    //       $lookup: {
-    //         from: "categories",
-    //         localField: "productDetails.categoryID",
-    //         foreignField: "_id",
-    //         as: "category",
-    //       },
-    //     },
-    //     { $addFields: { category: { $first: "$category" } } },
-
-    //     // reshape product
-    //     {
-    //       $addFields: {
-    //         products: {
-    //           batchID: "$products.batchID",
-    //           productID: "$products.productID",
-    //           returnedQty: "$products.returnedQty",
-    //           returnPrice: "$products.returnPrice",
-
-    //           serial: "$batch.serial",
-    //           purchasePrice: "$batch.purchasePrice",
-    //           purchasedQty: "$batch.purchasedQty",
-
-    //           product: {
-    //             _id: "$productDetails._id",
-    //             name: "$productDetails.name",
-    //             thumbnail: "$productDetails.thumbnail",
-
-    //             brand: {
-    //               name: "$brand.name",
-    //             },
-
-    //             unit: {
-    //               name: "$unit.name",
-    //             },
-
-    //             category: {
-    //               name: "$category.name",
-    //             },
-    //           },
-    //         },
-    //       },
-    //     },
-
-    //     // regroup
-    //     {
-    //       $group: {
-    //         _id: "$_id",
-
-    //         invoiceNo: { $first: "$invoiceNo" },
-    //         saleID: { $first: "$saleID" },
-    //         sale: { $first: "$sale" },
-
-    //         customerID: { $first: "$customerID" },
-    //         customer: { $first: "$customer" },
-
-    //         note: { $first: "$note" },
-
-    //         totalAmount: { $first: "$totalAmount" },
-    //         paid: { $first: "$paid" },
-
-    //         balanceBefore: { $first: "$balanceBefore" },
-    //         balanceAfter: { $first: "$balanceAfter" },
-
-    //         accounts: { $first: "$accounts" },
-
-    //         returnDate: { $first: "$returnDate" },
-
-    //         createdAt: { $first: "$createdAt" },
-    //         updatedAt: { $first: "$updatedAt" },
-
-    //         products: {
-    //           $push: "$products",
-    //         },
-    //       },
-    //     },
-    //   ]
-    // );
+    return { saleReturn, products: items };
   }
 }

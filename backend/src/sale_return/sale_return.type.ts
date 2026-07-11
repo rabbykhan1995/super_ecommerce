@@ -1,10 +1,27 @@
 import z from "zod";
-import { createSaleReturnSchema } from "./sale_return.validator";
-import { saleReturnTable } from "./sale_return.table";
+import {
+  createSaleReturnSchema,
+  saleReturnSchema,
+} from "./sale_return.validator";
+import {
+  saleReturnItemsTable,
+  saleReturnTable,
+} from "./sale_return.table";
 
-// supplier k ami koto due rakhlam, naki ami supplier k advance dilam,amr perspective theke supplier, 
 export type SaleReturn = typeof saleReturnTable.$inferSelect;
 
-export type CreateSaleReturnInput = z.infer<typeof createSaleReturnSchema>;
-// export type UpdatePurchaseInput = z.infer<typeof updatePurchaseSchema>;
+export type OnlySaleReturnPayload = z.infer<typeof saleReturnSchema>;
 
+export type CreateSaleReturnInput = z.infer<typeof createSaleReturnSchema>;
+
+export type SaleReturnItemPayload =
+  typeof saleReturnItemsTable.$inferInsert;
+
+export type SaleReturnItem = typeof saleReturnItemsTable.$inferSelect;
+
+export type PaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+};

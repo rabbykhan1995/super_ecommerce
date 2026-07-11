@@ -4,6 +4,7 @@ import Helper from "../../utils/helper";
 import ContactService from "../contact/contact.service";
 import ProductService from "../product/product.service";
 import { CreateFifoSaleInput, CreateSaleInput, Sale, } from "./sale.type";
+import { saleTable } from "./sale.table";
 import SaleRepository from "./sale.repository";
 import { AccountService } from "../account/account.service";
 import TransactionService from "../transaction/transaction.service";
@@ -339,6 +340,10 @@ export default class SaleService {
 
     static async getSaleByID(saleID: number) {
         return await SaleRepository.getSaleByID(saleID);
+    }
+
+    static async update(saleID: number, data: Partial<typeof saleTable.$inferInsert>, tx?: QueryClient) {
+        return await SaleRepository.update(saleID, data, tx);
     }
 
 

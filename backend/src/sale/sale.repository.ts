@@ -99,4 +99,18 @@ export default class SaleRepository {
 
         return result[0];
     }
+
+    static async update(
+        saleID: number,
+        data: Partial<typeof saleTable.$inferInsert>,
+        client: QueryClient = db
+    ) {
+        const [updated] = await client
+            .update(saleTable)
+            .set(data)
+            .where(eq(saleTable.id, saleID))
+            .returning();
+
+        return updated;
+    }
 }

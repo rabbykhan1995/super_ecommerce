@@ -1,285 +1,351 @@
-import mongoose from "mongoose";
 import { ApiError } from "../../utils/ApiError";
 import SaleService from "../sale/sale.service";
-import { CreateSaleReturnInput } from "./sale_return.type";
-import { ContactResponse } from "../contact/contact.type";
+import {
+  CreateSaleReturnInput,
+  OnlySaleReturnPayload,
+  SaleReturn,
+  SaleReturnItem,
+  SaleReturnItemPayload,
+} from "./sale_return.type";
 import ContactService from "../contact/contact.service";
+import { Batch, stockFlowPayload } from "../product/product.type";
 import ProductService from "../product/product.service";
-import { BatchResponse } from "../product/product.type";
 import SaleReturnRepository from "./sale_return.repository";
 import { AccountService } from "../account/account.service";
-import PayloadBuilder from "../../utils/builder";
 import TransactionService from "../transaction/transaction.service";
 import LedgerService from "../ledger/ledger.service";
 import { RedisReportService } from "../../utils/ReportServiceRedis";
 import { withTransaction } from "../../utils/withTransaction";
+import { LedgerPayload } from "../ledger/ledger.type";
+import { TransactionPayload } from "../transaction/transaction.type";
+import SaleRepository from "../sale/sale.repository";
 
 export default class SaleReturnService {
-    static async create(payload: CreateSaleReturnInput) {
-          const { saleReturn, accounts, exchangeAccounts, products } = payload;
+  static async create(payload: CreateSaleReturnInput) {
+    const { saleReturn, accounts, exchangeAccounts, products } = payload;
 
-        const sale = await SaleService.getSaleByID(saleReturn.saleID);
-        if (!sale) throw new ApiError(404, "Sale not found");
+    const sale = await SaleService.getSaleByID(saleReturn.saleID);
+    if (!sale) throw new ApiError(404, "Sale not found");
 
-        await withTransaction(async(tx)=>{
-            let customer: ContactResponse | null = null;
-            if (sale.customerID) {
-                customer = await ContactService.findByID(sale.customerID)
-                if (!customer) { throw new ApiError(404, "Customer not found"); }
-            }
+    await withTransaction(async (tx) => {
+      let customer = null;
+      if (sale.customerID) {
+        customer = await ContactService.findByID(sale.customerID);
+        if (!customer) throw new ApiError(404, "Customer not found");
+      }
 
-            let totalReturnAmount = 0;
+      let totalReturnAmount = products.reduce(
+        (acc, p) => acc + p.salePrice,
+        0,
+      );
 
-            const batchDetails = await Promise.all(
-                batches.map(async (item: any) => {
-                    const batch: BatchResponse | null = await ProductService.findBatchByID(item.batchID.toString());
-                    if (!batch) throw new ApiError(404, `Batch not found: ${item.batchID}`);
+      const saleReturnPayload: OnlySaleReturnPayload = {
+        saleID: sale.id,
+        customerID: sale.customerID ?? null,
+        note: saleReturn.note,
+        paid: saleReturn.paid,
+        balanceBefore: customer?.balance ?? 0,
+        exchangeAmount: saleReturn.exchangeAmount,
+        balanceAfter: saleReturn.balanceAfter,
+        discount: saleReturn.discount ?? 0,
+        date: saleReturn.date,
+      };
 
-                    const alreadyReturned = batch.saleReturnedQty ?? 0;
-                    const maxReturnable = batch.soldQty - alreadyReturned;
+      const saleReturnCreated =
+        await SaleReturnRepository.saleReturnCreate(saleReturnPayload, tx);
 
-                    if (item.saleReturnQty > maxReturnable) {
-                        throw new ApiError(400, `Max returnable qty is ${maxReturnable}`);
-                    }
+      await Promise.all(
+        products.map(async (p) => {
+          const batch: Batch | null = await ProductService.findBatchByID(
+            p.batchID,
+            tx,
+          );
 
-                    totalReturnAmount += item.saleReturnQty * batch.salePrice;
+          if (!batch)
+            throw new ApiError(404, `Batch not found: ${p.batchID}`);
 
-                    // Batch remainingQty বাড়াও, returnedQty বাড়াও
-                    await ProductService.updateBatchDynamically(
-                        item.batchID,
-                        {
-                            inc: {
-                                remainingQty: item.saleReturnQty,
-                                saleReturnedQty: item.saleReturnQty,
-                            },
-
-                            set: {
-                                isActive: true,
-                            },
-                        },
-                        session // ফেরত এলে আবার active
-                    );
-
-                    // Product stock বাড়াও
-                    await ProductService.updateProductFifoBatchAndStock(batch.productID.toString(), {
-                        qty: item.saleReturnQty // ✅
-                    }, session);
-
-                    // fifo batch update — যদি কোনো active batch না থাকে
-                    const product = await ProductService.findById(batch.productID.toString(), session);
-                    if (!product?.fifoBatchID) {
-                        await ProductService.updateProductFifoBatchAndStock(batch.productID.toString(), {
-                            fifoBatchID: batch._id.toString()
-                        }, session);
-                    }
-
-                    return {
-                        batchID: batch._id,
-                        productID: batch.productID,
-                        saleReturnedQty: item.saleReturnQty,
-                        salePrice: batch.salePrice,
-                        reason: item.reason,
-                    };
-                })
+          const allSaleFlows =
+            await ProductService.findStockFlowDynamically(
+              p.batchID,
+              "saleID",
+              sale.id,
+              tx,
             );
 
-            const totalPaid = accounts.reduce((s: number, a: any) => s + a.amount, 0);
-            const balanceBefore = customer?.balance ?? 0;
-            const balanceAfter = balanceBefore - totalReturnAmount + (totalReturnAmount - totalPaid);
+          const soldFlows = allSaleFlows.filter(
+            (f) => f.type === "out" && f.referenceType === "sale",
+          );
+          const alreadySold: number = soldFlows.reduce(
+            (acc, f) => f.qty + acc,
+            0,
+          );
 
-            const saleReturnPayload = {
-                saleID: sale._id,
-                customerID: sale.customerID,
-                note,
-                totalAmount: totalReturnAmount,
-                paid: totalPaid,
-                balanceBefore,
-                balanceAfter,
-                discount: discount ?? 0,
-                accounts,
-                batches: batchDetails,
-                date,
-            }
+          const returnedFlows = allSaleFlows.filter(
+            (f) => f.type === "in" && f.referenceType === "sale_return",
+          );
+          const alreadyReturned: number = returnedFlows.reduce(
+            (acc, f) => f.qty + acc,
+            0,
+          );
 
-            const saleReturn = await SaleReturnRepository.create(saleReturnPayload, session);
+          const maxReturnable = alreadySold - alreadyReturned;
 
-            if (totalPaid > 0 && accounts.length > 0) {
-
-                await AccountService.decreaseBalance(accounts, session);
-
-                const transactionPayload = PayloadBuilder.transaction(accounts, {
-                    type: "sale_return",
-                    typeModel: "SaleReturn",
-                    typeID: saleReturn._id,
-                    contactID: sale.customerID,
-                    note,
-                    status: "completed",
-                    date: saleReturn.date,
-                })
-
-                await TransactionService.create(transactionPayload, session);
-
-
-            }
-
-            // ৫. Customer balance update + Ledger
-            if (customer) {
-                await ContactService.balanceUpdate(customer._id, saleReturn.paid, session)
-
-                const ledgerPayload = PayloadBuilder.ledger({
-                    typeID: saleReturn._id,
-                    type: "sale_return",
-                    contactID: customer._id,
-                    contactType: "customer",
-                    amount: totalReturnAmount,
-                    paidAmount: totalPaid,
-                    dueAmount: totalReturnAmount - totalPaid,
-                    discount: discount ?? 0,
-                    note: note ?? "",
-                    date: saleReturn.date,
-                    balanceBefore,
-                    balanceAfter,
-                })
-                await LedgerService.create(ledgerPayload, session);
-            }
-
-            await SaleService.findAndUpdateByID(
-                saleID,
-                {
-                    deletable: false,
-                },
-                session
+          if (p.saleReturnQty > maxReturnable) {
+            throw new ApiError(
+              400,
+              `Max returnable qty is ${maxReturnable}`,
             );
+          }
 
-            await session.commitTransaction();
+          const stockFlowPayload: stockFlowPayload = {
+            batchID: p.batchID,
+            productID: p.productID,
+            type: "in",
+            referenceType: "sale_return",
+            saleID: sale.id,
+            saleReturnID: saleReturnCreated.id,
+          };
 
-            await RedisReportService.updateSaleReturnReport({
-                amount: totalReturnAmount,
-                qty: batches.reduce((s: any, b: any) => s + b.saleReturnQty, 0),
-                paid: totalPaid,
-                discount: discount ?? 0,
-                date: new Date(),
-            });
+          const saleReturnItemPayload: SaleReturnItemPayload = {
+            batchID: p.batchID,
+            productID: p.productID,
+            variantID: p.variantID,
+            saleReturnID: saleReturnCreated.id,
+            salePrice: batch.cost,
+            saleReturnedQty: p.saleReturnQty,
+            reason: p.reason,
+          };
 
+          await Promise.all([
+            ProductService.increaseBatchStock(p.batchID, p.saleReturnQty, tx),
+            ProductService.increaseVariantStock(
+              p.variantID,
+              p.saleReturnQty,
+              tx,
+            ),
+            ProductService.increaseProductStock(
+              p.productID,
+              p.saleReturnQty,
+              tx,
+            ),
+            ProductService.createStockFlow(stockFlowPayload, tx),
+            SaleReturnRepository.saleReturnItemCreate(
+              saleReturnItemPayload,
+              tx,
+            ),
+          ]);
+        }),
+      );
 
+      const isPaymentHappened = saleReturn.paid > 0;
+      const isExchangeHappened = saleReturn.exchangeAmount > 0;
 
-        })
-    
-    }
+      if (isPaymentHappened) {
+        await AccountService.decreaseBalance(accounts, tx);
 
-    static async list(payload: any) {
-        return await SaleReturnRepository.list(payload);
-    }
+        await Promise.all(
+          accounts.map(async (a) => {
+            const transactionPayload: TransactionPayload = {
+              source: "sale_return",
+              saleReturnID: saleReturnCreated.id,
+              type: "debit",
+              date: saleReturnCreated.date,
+              accountID: a.accountID,
+              amount: a.amount,
+            };
+            await TransactionService.create(transactionPayload, tx);
+          }),
+        );
 
-    static async getSaleReturnBatches(id: string) {
-        const sale = await SaleService.getSaleByID(id);
+        if (isExchangeHappened) {
+          await AccountService.increaseBalance(exchangeAccounts, tx);
 
-        if (!sale) throw new ApiError(404, "Sale not found");
-
-        // sale এর products থেকে batchID গুলো নাও
-        const batchIDs = sale.products
-            .filter((p: any) => p.batchID);
-
-
-        const batches = await ProductService.findSaleReturnBatches(batchIDs, sale);
-
-        return batches;
-    }
-
-    static async delete(id: string) {
-        const saleReturn = await SaleReturnRepository.findById(id);
-        if (!saleReturn) throw new ApiError(404, "Sale return not found");
-
-        const session = await mongoose.startSession();
-        session.startTransaction();
-
-        let customer = null;
-        try {
-            if (saleReturn.customerID) {
-                customer = await ContactService.findByID(saleReturn.customerID.toString());
-
-                if (!customer) {
-                    throw new ApiError(404, "customer not found in sale return");
-                }
-            }
-            await Promise.all(
-                saleReturn.batches.map(async (item: any) => {
-                    saleReturn.batches.map(async (item: any) => {
-                        const updatedBatch: BatchResponse | null = await ProductService.updateBatchDynamically(item.batchID, {
-                            inc: {
-                                saleReturnedQty: -item.saleReturnedQty,
-                                remainingQty: -item.saleReturnedQty,
-                            }
-                        }, session)
-
-                        // stock ফেরত এলে active করো
-                        if (updatedBatch && updatedBatch.remainingQty > 0 && !updatedBatch.isActive) {
-                            await ProductService.updateBatchDynamically(item.batchID, {
-                                set: {
-                                    isActive: true
-                                }
-                            }, session)
-                        }
-                    });
-
-                    await ProductService.updateProductFifoBatchAndStock(item.productID, { qty: item.saleReturnedQty }, session);
-
-                })
-            );
-
-            // ৩. Account balance reverse
-            if (saleReturn.paid > 0 && saleReturn.accounts.length > 0) {
-                // decrease account balance
-                await AccountService.decreaseBalance(saleReturn.accounts.map(a => ({ ...a, accountID: a.accountID.toString() })), session)
-
-                // ৪. Transaction delete
-                await TransactionService.deleteTransactions({ typeID: saleReturn._id }, session)
-
-                // ৫. Ledger delete
-                await LedgerService.deleteLedger({
-                    typeID: saleReturn._id
-                }, session)
-                // ৬. Customer balance reverse
-                if (!!customer) {
-                    await ContactService.balanceUpdate(customer._id.toString(), saleReturn.paid, session);
-                }
-
-            }
-
-            const otherReturns = await SaleReturnRepository.countOtherSaleReturns(
-                saleReturn.saleID.toString(), saleReturn.saleID.toString(), session
-            )
-
-            if (otherReturns === 0) {
-                await SaleService.findAndUpdateByID(
-                    saleReturn.saleID.toString(),
-                    { deletable: true },
-                    session
-                );
-            }
-
-            await SaleReturnRepository.delete(saleReturn._id.toString(), session);
-
-            await session.commitTransaction();
-
-               await RedisReportService.updateSaleReturnReport({
-                amount:-saleReturn.batches.reduce((acc,b)=>acc+b.salePrice,0),
-                qty: -saleReturn.batches.reduce((acc,b)=>acc+b.saleReturnedQty,0),
-                paid: -saleReturn.paid,
-                discount: -(saleReturn.discount ?? 0),
-                date: new Date(),
-            });
-        } catch (error) {
-            await session.abortTransaction();
-            throw error;
-        } finally {
-            session.endSession();
+          await Promise.all(
+            exchangeAccounts.map(async (a) => {
+              const transactionPayload: TransactionPayload = {
+                source: "sale_return",
+                saleReturnID: saleReturnCreated.id,
+                type: "credit",
+                date: saleReturnCreated.date,
+                accountID: a.accountID,
+                amount: a.amount,
+              };
+              await TransactionService.create(transactionPayload, tx);
+            }),
+          );
         }
-    }
+      }
 
-    static async saleReturnInvoiceByID(id: string) {
-        const saleReturn = await SaleReturnRepository.saleReturnInvoiceByID(id);
-        if (!saleReturn) throw new ApiError(404, "Sale return not found");
+      if (customer) {
+        const amount =
+          saleReturnCreated.balanceAfter - saleReturnCreated.balanceBefore;
 
-    }
+        await ContactService.decreaseBalance(customer.id, amount, tx);
+
+        const payableAmount: number =
+          totalReturnAmount - (saleReturn.paid || 0);
+
+        const ledgerPayload: LedgerPayload = {
+          contactID: customer.id,
+          type: "sale_return",
+          saleReturnID: saleReturnCreated.id,
+          amount: totalReturnAmount,
+          balanceAfter: saleReturn.balanceAfter,
+          balanceBefore: saleReturn.balanceBefore ?? customer.balance ?? 0,
+          date: saleReturnCreated.date,
+          dueAmount: payableAmount,
+          discount: saleReturn.discount ?? 0,
+          paidAmount: saleReturn.paid,
+          note: saleReturn.note ?? "",
+        };
+
+        await LedgerService.create(ledgerPayload, tx);
+      }
+
+      // Mark sale as non-deletable
+      await SaleRepository.update(
+        sale.id,
+        { deletable: false },
+        tx,
+      );
+
+      await RedisReportService.updateSaleReturnReport({
+        amount: totalReturnAmount,
+        qty: products.reduce((s, b) => s + b.saleReturnQty, 0),
+        paid: saleReturn.paid,
+        discount: saleReturn.discount ?? 0,
+        date: saleReturnCreated.date,
+      });
+    });
+  }
+
+  static async list(query: any) {
+    return await SaleReturnRepository.list(query);
+  }
+
+  static async delete(saleReturnID: number) {
+    const saleReturn: SaleReturn | null =
+      await SaleReturnRepository.findByID(saleReturnID);
+    if (!saleReturn) throw new ApiError(404, "Sale return not found");
+
+    await withTransaction(async (tx) => {
+      let customer = null;
+      if (saleReturn.customerID) {
+        customer = await ContactService.findByID(saleReturn.customerID);
+        if (!customer)
+          throw new ApiError(404, "Customer not found");
+      }
+
+      const returnedItems: SaleReturnItem[] =
+        await SaleReturnRepository.itemsBySaleReturnID(
+          saleReturnID,
+          tx,
+        );
+
+      // Restore stock
+      await Promise.all(
+        returnedItems.map(async (p: SaleReturnItem) => {
+          await Promise.all([
+            ProductService.increaseVariantStock(
+              p.productID,
+              p.saleReturnedQty,
+              tx,
+            ),
+            ProductService.increaseProductStock(
+              p.productID,
+              p.saleReturnedQty,
+              tx,
+            ),
+            ProductService.increaseBatchStock(
+              p.batchID,
+              p.saleReturnedQty,
+              tx,
+            ),
+          ]);
+        }),
+      );
+
+      const allTransactions = await TransactionService.findBySourceID(
+        saleReturnID,
+        "sale_return",
+      );
+
+      const isPaymentHappened: boolean = saleReturn.paid > 0;
+      if (isPaymentHappened) {
+        const accTrans = allTransactions.filter((a) => a.type === "debit");
+
+        const accounts = accTrans.map((a) => ({
+          accountID: a.accountID,
+          amount: a.amount as number,
+        }));
+
+        await AccountService.increaseBalance(accounts, tx);
+      }
+
+      const isExchangeHappened: boolean = saleReturn.exchangeAmount > 0;
+      if (isExchangeHappened) {
+        const accTrans = allTransactions.filter((a) => a.type === "credit");
+
+        const exchangeAccounts = accTrans.map((a) => ({
+          accountID: a.accountID,
+          amount: a.amount as number,
+        }));
+
+        await AccountService.decreaseBalance(exchangeAccounts, tx);
+      }
+
+      if (customer) {
+        const rollbackAmount = -(
+          saleReturn.balanceAfter - saleReturn.balanceBefore
+        );
+
+        await ContactService.decreaseBalance(
+          saleReturn.customerID!,
+          rollbackAmount,
+          tx,
+        );
+      }
+
+      // Check if other returns exist for this sale
+      const otherReturns =
+        await SaleReturnRepository.countOtherSaleReturns(
+          saleReturn.saleID,
+          saleReturnID,
+          tx,
+        );
+
+      if (otherReturns === 0) {
+        await SaleRepository.update(
+          saleReturn.saleID,
+          { deletable: true },
+          tx,
+        );
+      }
+
+      await SaleReturnRepository.deleteSaleReturnByID(
+        saleReturnID,
+        tx,
+      );
+
+      await RedisReportService.updateSaleReturnReport({
+        amount: -returnedItems.reduce(
+          (acc, b) => acc + b.salePrice,
+          0,
+        ),
+        qty: -returnedItems.reduce(
+          (acc, b) => acc + b.saleReturnedQty,
+          0,
+        ),
+        paid: -saleReturn.paid,
+        discount: -(saleReturn.discount ?? 0),
+        date: new Date(),
+      });
+    });
+  }
+
+  static async saleReturnInvoiceByID(saleReturnID: number) {
+    return await SaleReturnRepository.getSaleReturnInvoice(
+      saleReturnID,
+    );
+  }
 }

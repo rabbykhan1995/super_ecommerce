@@ -6,7 +6,6 @@ import {
   numeric,
   text,
   index,
-  jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -16,7 +15,7 @@ import { batchTable } from "../product/batch.table";
 import { saleTable } from "../sale/sale.table";
 import { transactionTable } from "../transaction/transaction.table";
 import { ledgerTable } from "../ledger/ledger.table";
-
+import { variantTable } from "../product/variant.table";
 
 // --- ১. মূল সেলস রিটার্ন টেবিল ---
 export const saleReturnTable = pgTable(
@@ -28,22 +27,63 @@ export const saleReturnTable = pgTable(
       .notNull()
       .references(() => saleTable.id),
 
-    // customerID (nullable হতে পারে ওয়াকিং কাস্টমারের জন্য)
+    // customerID (nullable হতে পারে ওয়াকিং কাস্টমারের জন্য)
     customerID: integer("customer_id").references(() => contactTable.id),
 
     note: text("note"),
 
-    totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).default("0").notNull(),
-    paid: numeric("paid", { precision: 12, scale: 2 }).default("0").notNull(),
-    discount: numeric("discount", { precision: 12, scale: 2 }).default("0").notNull(),
+    totalAmount: numeric("total_amount", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    })
+      .default(0)
+      .notNull(),
+    paid: numeric("paid", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    })
+      .default(0)
+      .notNull(),
+    exchangeAmount: numeric("exchange_amount", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    })
+      .default(0)
+      .notNull(),
+    discount: numeric("discount", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    })
+      .default(0)
+      .notNull(),
 
     // Snapshots
-    balanceBefore: numeric("balance_before", { precision: 12, scale: 2 }).default("0").notNull(),
-    balanceAfter: numeric("balance_after", { precision: 12, scale: 2 }).default("0").notNull(),
+    balanceBefore: numeric("balance_before", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    })
+      .default(0)
+      .notNull(),
+    balanceAfter: numeric("balance_after", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    })
+      .default(0)
+      .notNull(),
 
     date: timestamp("date", { withTimezone: true }).defaultNow().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     index("sale_returns_sale_id_idx").on(table.saleID),
@@ -52,7 +92,7 @@ export const saleReturnTable = pgTable(
   ]
 );
 
-// --- ২. সেলস রিটার্ন আইটেম টেবিল (Mongoose batches array-এর বিকল্প) ---
+// --- ২. সেলস রিটার্ন আইটেম টেবিল ---
 export const saleReturnItemsTable = pgTable(
   "sale_return_items",
   {
@@ -70,46 +110,68 @@ export const saleReturnItemsTable = pgTable(
       .notNull()
       .references(() => productTable.id),
 
-    saleReturnedQty: numeric("sale_returned_qty", { precision: 10, scale: 2 }).default("0").notNull(),
-    salePrice: numeric("sale_price", { precision: 12, scale: 2 }).default("0").notNull(),
+    variantID: integer("variant_id")
+      .notNull()
+      .references(() => variantTable.id),
+
+    saleReturnedQty: numeric("sale_returned_qty", {
+      precision: 10,
+      scale: 2,
+      mode: "number",
+    })
+      .default(0)
+      .notNull(),
+    salePrice: numeric("sale_price", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    })
+      .default(0)
+      .notNull(),
     reason: text("reason"),
   },
   (table) => [
     index("sr_items_return_id_idx").on(table.saleReturnID),
     index("sr_items_batch_id_idx").on(table.batchID),
+    index("sr_items_variant_id_idx").on(table.variantID),
   ]
 );
 
+export const saleReturnRelations = relations(
+  saleReturnTable,
+  ({ one, many }) => ({
+    sale: one(saleTable, {
+      fields: [saleReturnTable.saleID],
+      references: [saleTable.id],
+    }),
+    customer: one(contactTable, {
+      fields: [saleReturnTable.customerID],
+      references: [contactTable.id],
+    }),
+    items: many(saleReturnItemsTable),
+    transactions: many(transactionTable),
+    ledger: one(ledgerTable),
+  }),
+);
 
-export const saleReturnRelations = relations(saleReturnTable, ({ one, many }) => ({
-  sale: one(saleTable, {
-    fields: [saleReturnTable.saleID],
-    references: [saleTable.id],
+export const saleReturnItemsRelations = relations(
+  saleReturnItemsTable,
+  ({ one }) => ({
+    saleReturn: one(saleReturnTable, {
+      fields: [saleReturnItemsTable.saleReturnID],
+      references: [saleReturnTable.id],
+    }),
+    batch: one(batchTable, {
+      fields: [saleReturnItemsTable.batchID],
+      references: [batchTable.id],
+    }),
+    product: one(productTable, {
+      fields: [saleReturnItemsTable.productID],
+      references: [productTable.id],
+    }),
+    variant: one(variantTable, {
+      fields: [saleReturnItemsTable.variantID],
+      references: [variantTable.id],
+    }),
   }),
-  customer: one(contactTable, {
-    fields: [saleReturnTable.customerID],
-    references: [contactTable.id],
-  }),
-  // রিটার্নের ভেতরের আইটেমসমূহ
-  items: many(saleReturnItemsTable),
-  // সেন্ট্রাল টেবিল থেকে আসা এই রিটার্নের ফিন্যান্সিয়াল ট্রানজেকশনসমূহ
-  transactions: many(transactionTable),
-  ledger: one(ledgerTable),
-}));
-
-// সেলস রিটার্ন আইটেম টেবিলের রিলেশন
-export const saleReturnItemsRelations = relations(saleReturnItemsTable, ({ one }) => ({
-  saleReturn: one(saleReturnTable, {
-    fields: [saleReturnItemsTable.saleReturnID],
-    references: [saleReturnTable.id],
-  }),
-  batch: one(batchTable, {
-    fields: [saleReturnItemsTable.batchID],
-    references: [batchTable.id],
-  }),
-  product: one(productTable, {
-    fields: [saleReturnItemsTable.productID],
-    references: [productTable.id],
-  }),
-  
-}));
+);
