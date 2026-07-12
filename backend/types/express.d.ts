@@ -1,4 +1,4 @@
-import { UserInToken } from "../src/auth/user.type";
+import { UserInToken } from "../src/auth/auth.type";
 
 declare global {
   namespace Express {

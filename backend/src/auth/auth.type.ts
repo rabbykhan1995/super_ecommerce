@@ -5,6 +5,7 @@ import {
   passwordResetSchema,
   updateUserSchema,
   userLoginSchema,
+  adminLoginSchema,
 } from "./auth.validator";
 
 import { userTable } from "./auth.table";
@@ -26,8 +27,26 @@ export type UserInToken = Pick<User, "name" | "email" | "mobile"> & {
 
 export type UserLoginInput = z.infer<typeof userLoginSchema>;
 
+export type AdminLoginInput = z.infer<typeof adminLoginSchema>;
+
 export interface PaginationQuery {
   search?: string;
   page?: number;
   limit?: number;
+}
+
+export interface AdminUserWithRoles {
+  id: string;
+  name: string;
+  email: string | null;
+  mobile: string | null;
+  image: string | null;
+  roles: { id: string; name: string; isSuperAdmin: boolean }[];
+  permissions: string[];
+  isSuperAdmin: boolean;
+  staffProfile: {
+    employeeCode: string;
+    designation: string | null;
+    department: string | null;
+  } | null;
 }

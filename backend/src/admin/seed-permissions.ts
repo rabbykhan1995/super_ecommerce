@@ -118,3 +118,6 @@ export const seedPermissions = async () => {
 
 // Run directly
 seedPermissions();
+
+// from root of the backend project
+// bun run src/admin/seed-permissions.ts

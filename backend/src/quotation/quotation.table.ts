@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   integer,
+  numeric,
   pgTable,
   serial,
   timestamp,
@@ -11,6 +12,7 @@ import {
 import { contactTable } from "../contact/contact.table";
 import { productTable } from "../product/product.table";
 import { batchTable } from "../product/batch.table";
+import { variantTable } from "../product/variant.table";
 
 /* ===========================
    Sale Quotations
@@ -48,27 +50,51 @@ export const saleQuotationTable = pgTable("sale_quotations", {
     .default(true)
     .notNull(),
 
-  totalProductPrice: integer("total_product_price")
+  totalProductPrice: numeric("total_product_price", {
+    precision: 12,
+    scale: 2,
+    mode: "number",
+  })
     .default(0)
     .notNull(),
 
-  otherCost: integer("other_cost")
+  otherCost: numeric("other_cost", {
+    precision: 12,
+    scale: 2,
+    mode: "number",
+  })
     .default(0)
     .notNull(),
 
-  discount: integer("discount")
+  discount: numeric("discount", {
+    precision: 12,
+    scale: 2,
+    mode: "number",
+  })
     .default(0)
     .notNull(),
 
-  balanceBefore: integer("balance_before")
+  balanceBefore: numeric("balance_before", {
+    precision: 12,
+    scale: 2,
+    mode: "number",
+  })
     .default(0)
     .notNull(),
 
-  balanceAfter: integer("balance_after")
+  balanceAfter: numeric("balance_after", {
+    precision: 12,
+    scale: 2,
+    mode: "number",
+  })
     .default(0)
     .notNull(),
 
-  totalAmount: integer("total_amount")
+  totalAmount: numeric("total_amount", {
+    precision: 12,
+    scale: 2,
+    mode: "number",
+  })
     .default(0)
     .notNull(),
 
@@ -94,25 +120,37 @@ export const saleQuotationItemsTable = pgTable(
   {
     id: serial("id").primaryKey(),
 
-    quotationId: integer("quotation_id")
+    quotationID: integer("quotation_id")
       .notNull()
       .references(() => saleQuotationTable.id, {
         onDelete: "cascade",
       }),
 
-    productId: integer("product_id")
+    productID: integer("product_id")
       .notNull()
       .references(() => productTable.id),
 
-    batchId: integer("batch_id").references(() => batchTable.id, {
+    variantID: integer("variant_id")
+      .notNull()
+      .references(() => variantTable.id),
+
+    batchID: integer("batch_id").references(() => batchTable.id, {
       onDelete: "set null",
     }),
 
-    soldQty: integer("sold_qty")
+    soldQty: numeric("sold_qty", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    })
       .default(0)
       .notNull(),
 
-    salePrice: integer("sale_price")
+    salePrice: numeric("sale_price", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    })
       .default(0)
       .notNull(),
 
@@ -130,7 +168,7 @@ export const saleQuotationRelations = relations(
   saleQuotationTable,
   ({ one, many }) => ({
     customer: one(contactTable, {
-      fields: [saleQuotationTable.customerId],
+      fields: [saleQuotationTable.customerID],
       references: [contactTable.id],
     }),
 
@@ -142,17 +180,22 @@ export const saleQuotationProductRelations = relations(
   saleQuotationItemsTable,
   ({ one }) => ({
     quotation: one(saleQuotationTable, {
-      fields: [saleQuotationItemsTable.quotationId],
+      fields: [saleQuotationItemsTable.quotationID],
       references: [saleQuotationTable.id],
     }),
 
     product: one(productTable, {
-      fields: [saleQuotationItemsTable.productId],
+      fields: [saleQuotationItemsTable.productID],
       references: [productTable.id],
     }),
 
+    variant: one(variantTable, {
+      fields: [saleQuotationItemsTable.variantID],
+      references: [variantTable.id],
+    }),
+
     batch: one(batchTable, {
-      fields: [saleQuotationItemsTable.batchId],
+      fields: [saleQuotationItemsTable.batchID],
       references: [batchTable.id],
     }),
   }),

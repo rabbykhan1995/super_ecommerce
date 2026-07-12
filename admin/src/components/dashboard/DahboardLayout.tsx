@@ -13,6 +13,7 @@ import { dashboardStore } from "../../stores/dashboard.store";
 import Helper from "../../utils/helper";
 import DarkLightToggle from "../buttons/DarkLightToggle";
 import { AdminRoutes } from "../../routes/admin.routes";
+import { userStore } from "../../stores/user.store";
 
 
 export default function DashboardLayout() {
@@ -20,10 +21,11 @@ export default function DashboardLayout() {
   const [activeSubmenu, setActiveSubmenu] = useState<number | null>(null);
   const { sidePanel, setSidePanel } = dashboardStore();
   const navigate = useNavigate();
+  const { logout } = userStore();
   
   const handleLogout = (): void => {
     Helper.clearToken();
-    navigate("/login");
+    logout();
   };
 
   const toggleSubmenu = (index: number): void => {

@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1783081387481,
-      "tag": "0000_pale_rockslide",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1783162546866,
-      "tag": "0001_sparkling_vertigo",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1783259882694,
-      "tag": "0002_reflective_diamondback",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1783339679558,
-      "tag": "0003_amused_doomsday",
+      "when": 1783778268730,
+      "tag": "0000_moaning_red_hulk",
       "breakpoints": true
     }
   ]

@@ -102,7 +102,7 @@ export class AuthController {
   }
 
   static async checkOutMobile(req: Request, res: Response) {
-    const userID = req.user.id;
+    const userID = req.user!.id;
     const mobile = req.body.mobile;
     const address = req.body.address;
 
@@ -111,5 +111,37 @@ export class AuthController {
     return res
       .status(200)
       .json({ msg: "Checkout successfully", success: true });
+  }
+
+  // ===========================
+  // Admin / Staff Auth
+  // ===========================
+
+  static async adminLogin(req: Request, res: Response) {
+    const { token, user } = await AuthService.adminLogin(req.body);
+
+    res.cookie("token", token, {
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      success: true,
+      msg: "Admin login successful",
+      data: user,
+      token,
+    });
+  }
+
+  static async getAdminGoogleAuth(req: Request, res: Response) {
+    const redirectURL = AuthService.getAdminGoogleAuthURL();
+    res.redirect(redirectURL);
+  }
+
+  static async adminGoogleCallback(req: Request, res: Response) {
+    const { token, user, clientRedirectURL } = await AuthService.adminGoogleCallback(req.query);
+
+    res.cookie("token", token, { httpOnly: true });
+
+    res.redirect(`${clientRedirectURL}?token=${token}`);
   }
 }

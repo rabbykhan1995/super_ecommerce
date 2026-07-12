@@ -45,4 +45,4 @@ export type CreateLedgerInput = {
 export type UpdateLedgerInput = z.infer<typeof updateLedgerSchema>;
 
 
-export type AllLedgerResponse = LedgerResponse[];
+export type AllLedgerResponse = Ledger[];

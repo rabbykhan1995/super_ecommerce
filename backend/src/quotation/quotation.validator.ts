@@ -4,8 +4,8 @@ import { paymentAccountSchema } from "../account/account.validator";
 
 
 export const createSaleQuotationSchema = z.object({
-    contactID: z
-        .string()
+    customerID: z
+        .number()
         .optional().nullable(),
     note: z.string().optional().nullable(),
     costName: z.string().optional().nullable(),
@@ -13,7 +13,6 @@ export const createSaleQuotationSchema = z.object({
         .number({ message: "Total product price must be a number" })
         .min(0, { message: "Total product price cannot be negative" })
         .default(0),
-    exchangeAmount: z.number().min(0).default(0),
     otherCost: z
         .number({ message: "Other cost must be a number" })
         .min(0, { message: "Other cost cannot be negative" })
@@ -35,7 +34,7 @@ export const createSaleQuotationSchema = z.object({
         .default(0),
     saleDate: z
         .coerce
-        .date({ message: "Purchase date must be a valid date" }),
+        .date({ message: "Sale date must be a valid date" }),
     products: z
         .array(saleProductSchema)
         .min(1, { message: "At least one product is required" }),

@@ -8,23 +8,22 @@ export default class QuotationController {
     }
 
     static async listOfSaleQuotation(req: Request, res: Response) {
-
         const list = await QuotationService.listOfSaleQuotation(req.query);
-        res.status(201).json({ success: true, data: list });
+        res.status(200).json({ success: true, data: list });
     }
 
     static async approveSaleQuotation(req: Request, res: Response) {
-        const newSale = await QuotationService.approveSaleQuotation(req.params.id.toString(), req.body);
-        res.status(201).json({ success: true, data: newSale, msg: "Quotation has been Approved and Invoice has been generated successfully" });
-
+        const newSale = await QuotationService.approveSaleQuotation(Number(req.params.id), req.body);
+        res.status(200).json({ success: true, data: newSale, msg: "Quotation has been Approved and Invoice has been generated successfully" });
     }
 
     static async getFullQuotation(req: Request, res: Response) {
-        const fullQuotation = await QuotationService.getFullQuotation(req.params.id.toString());
-        res.status(201).json({ success: true, data: fullQuotation, });
+        const fullQuotation = await QuotationService.getFullQuotation(Number(req.params.id));
+        res.status(200).json({ success: true, data: fullQuotation });
     }
-        static async getQuotationInvoice(req: Request, res: Response) {
-        const fullQuotation = await QuotationService.getQuotationInvoice(req.params.id.toString());
-        res.status(201).json({ success: true, data: fullQuotation, });
+
+    static async getQuotationInvoice(req: Request, res: Response) {
+        const fullQuotation = await QuotationService.getQuotationInvoice(Number(req.params.id));
+        res.status(200).json({ success: true, data: fullQuotation });
     }
 }

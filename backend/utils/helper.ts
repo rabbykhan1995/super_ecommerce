@@ -1,7 +1,7 @@
 import slugify from "slugify";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { UserInToken } from "../src/auth/user.type";
+import { UserInToken } from "../src/auth/auth.type";
 dotenv.config();
 import bcrypt from "bcrypt";
 import crypto from "crypto";

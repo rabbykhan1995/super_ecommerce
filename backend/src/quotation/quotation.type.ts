@@ -1,32 +1,17 @@
-import { Document, HydratedDocument, Types } from "mongoose";
 import z from "zod";
-import { SaleProduct } from "../sale/sale.type";
 import { createSaleQuotationSchema } from "./quotation.validator";
+import { saleQuotationItemsTable, saleQuotationTable } from "./quotation.table";
 
-export type QuotationStatus = "pending" | "approved" | "cancelled"
+export type QuotationStatus = "pending" | "approved" | "cancelled";
 
-export interface ISaleQuotation extends Document {
-  status:QuotationStatus;
-  customerID?: Types.ObjectId;
-  totalProductPrice: number;
-  totalAmount: number;
-  note?: string | null;
-  otherCost: number | null;
-  discount: number | null;
-  costName: string | null;
-  SaleDate: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  products: SaleProduct[];
-  deletable:boolean;
-  balanceBefore:number;
-  balanceAfter:number;
-}
+export type SaleQuotation = typeof saleQuotationTable.$inferSelect;
 
-export type SaleQuotationResponse = HydratedDocument<ISaleQuotation>;
+export type SaleQuotationItem = typeof saleQuotationItemsTable.$inferSelect;
 
-export type CreateSaleQuotationInput = z.infer<typeof createSaleQuotationSchema>;
+export type SaleQuotationItemPayload = typeof saleQuotationItemsTable.$inferInsert;
 
+export type SaleQuotationPayload = typeof saleQuotationTable.$inferInsert;
 
-
-
+export type CreateSaleQuotationInput = z.infer<
+  typeof createSaleQuotationSchema
+>;

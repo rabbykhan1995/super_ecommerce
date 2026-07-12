@@ -38,7 +38,7 @@ export default class SaleService {
 
         }
 
-        await withTransaction(async (tx: QueryClient) => {
+       const saleCreated = await withTransaction(async (tx: QueryClient) => {
 
             const salePayload = sale;
 
@@ -203,7 +203,7 @@ export default class SaleService {
             });
             return saleCreated
         })
-
+         return saleCreated;
     }
 
     static async list(query: any) {

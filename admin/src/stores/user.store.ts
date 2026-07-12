@@ -1,14 +1,28 @@
 import { create } from "zustand";
 import api, {base_url} from "../lib/axios";
 
-export interface IUser {
-  _id: string;
+export interface IStaffProfile {
+  employeeCode: string;
+  designation: string | null;
+  department: string | null;
+}
+
+export interface IUserRole {
+  id: string;
   name: string;
-  email: string;
-  mobile?: string;
-  image?: string;
-  address?: string;
-  admin: boolean;
+  isSuperAdmin: boolean;
+}
+
+export interface IUser {
+  id: string;
+  name: string;
+  email: string | null;
+  mobile: string | null;
+  image: string | null;
+  roles: IUserRole[];
+  permissions: string[];
+  isSuperAdmin: boolean;
+  staffProfile: IStaffProfile | null;
 }
 
 interface UserState {
@@ -17,9 +31,10 @@ interface UserState {
   setUser: (user: IUser | null) => void;
   fetchUser: () => Promise<void>;
   logout: () => void;
+  hasPermission: (permission: string) => boolean;
 }
 
-export const userStore = create<UserState>((set) => ({
+export const userStore = create<UserState>((set, get) => ({
   user: null,
   isLoading: false,
 
@@ -29,7 +44,7 @@ export const userStore = create<UserState>((set) => ({
     try {
       set({ isLoading: true });
 
-      const res = await api(`/user/get-profile`);
+      const res = await api(`/auth/get-profile`);
 
       if (!res.data.success === true) {
         set({ user: null, isLoading: false });
@@ -48,13 +63,19 @@ export const userStore = create<UserState>((set) => ({
   },
 
   logout: async () => {
-    await fetch(`${base_url}/user/logout`, {
+    await fetch(`${base_url}/auth/logout`, {
       method: "GET",
       credentials: "include",
     });
 
     set({ user: null });
-    // redirect to home page
-    window.location.replace("/");
+    window.location.replace("/login");
+  },
+
+  hasPermission: (permission: string) => {
+    const user = get().user;
+    if (!user) return false;
+    if (user.isSuperAdmin) return true;
+    return user.permissions.includes(permission);
   },
 }));

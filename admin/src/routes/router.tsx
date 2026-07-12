@@ -10,6 +10,7 @@ import EditProduct from "../pages/Product/EditProduct";
 import PrivateRoute from "./PrivateRoute";
 import Login from "../pages/Auth/Login";
 import Registration from "../pages/Auth/Register";
+import GoogleCallback from "../pages/Auth/GoogleCallback";
 import NewPurchase from "../pages/Purchase/NewPurchase";
 import PurchaseList from "../pages/Purchase/PurchaseList";
 import EditPurchase from "../pages/Purchase/EditPurchase";
@@ -277,6 +278,10 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     Component: Login,
+  },
+  {
+    path: "/auth/callback",
+    Component: GoogleCallback,
   },
 ]);
 

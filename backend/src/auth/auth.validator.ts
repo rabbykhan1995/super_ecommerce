@@ -60,6 +60,20 @@ export const userLoginSchema = z.object({
     }, "Identifier must be a valid email or mobile number"),
 });
 
+export const adminLoginSchema = z.object({
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters"),
+  identifier: z
+    .string()
+    .min(1, "Identifier is required")
+    .refine((val) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const mobileRegex = /^(?:\+88)?01[3-9]\d{8}$/;
+      return emailRegex.test(val) || mobileRegex.test(val);
+    }, "Identifier must be a valid email or mobile number"),
+});
+
 export const checkoutMobileSchema = z.object({
   address: z
     .string()

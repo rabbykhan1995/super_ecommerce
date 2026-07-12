@@ -1,12 +1,15 @@
 import axios from "axios";
+import { eq } from "drizzle-orm";
 import { sendEmail } from "../../config/mailSender.config";
 import { ApiError } from "../../utils/ApiError";
 import { generateEmailTemplate } from "../../utils/emailTemplate";
 import Helper from "../../utils/helper";
 import { AuthRepository } from "./auth.repository";
-import { CreateUserInput, PasswordResetInput, User, UserLoginInput } from "./auth.type";
+import { AdminLoginInput, AdminUserWithRoles, CreateUserInput, PasswordResetInput, User, UserLoginInput } from "./auth.type";
 import ContactService from "../contact/contact.service";
 import { withTransaction } from "../../utils/withTransaction";
+import db from "../../drizzle/src";
+import { staffProfiles } from "./auth.table";
 
 export class AuthService {
     static async sendEmailVerifyOTP(email: string) {
@@ -395,5 +398,167 @@ export class AuthService {
     }
 
 
+  }
+
+  // ===========================
+  // Admin / Staff Auth
+  // ===========================
+
+  static async adminLogin(payload: AdminLoginInput): Promise<{ token: string; user: AdminUserWithRoles }> {
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.identifier);
+
+    const userWithRoles = isEmail
+      ? await AuthRepository.findUserWithRolesByEmail(payload.identifier)
+      : await AuthRepository.findUserWithRolesByMobile(payload.identifier);
+
+    if (!userWithRoles) {
+      throw new ApiError(404, "Wrong credentials");
+    }
+
+    if (!userWithRoles.password && userWithRoles.openID) {
+      throw new ApiError(400, "Wrong login method. Please login with Google.");
+    }
+
+    if (!userWithRoles.password) {
+      throw new ApiError(400, "No password set for this account");
+    }
+
+    const passwordMatched = await Helper.comparePassword(userWithRoles.password, payload.password);
+
+    if (!passwordMatched) {
+      throw new ApiError(404, "Wrong credentials");
+    }
+
+    if (userWithRoles.roles.length === 0) {
+      throw new ApiError(403, "Access denied. No role assigned to this account.");
+    }
+
+    const staffProfile = await db.query.staffProfiles.findFirst({
+      where: eq(staffProfiles.userID, userWithRoles.id),
+    });
+
+    const token = Helper.generateToken({
+      id: userWithRoles.id,
+      name: userWithRoles.name,
+      email: userWithRoles.email,
+      mobile: userWithRoles.mobile,
+    });
+
+    const user: AdminUserWithRoles = {
+      id: userWithRoles.id,
+      name: userWithRoles.name,
+      email: userWithRoles.email,
+      mobile: userWithRoles.mobile,
+      image: userWithRoles.image,
+      roles: userWithRoles.roles,
+      permissions: userWithRoles.permissions,
+      isSuperAdmin: userWithRoles.isSuperAdmin,
+      staffProfile: staffProfile
+        ? {
+            employeeCode: staffProfile.employeeCode,
+            designation: staffProfile.designation,
+            department: staffProfile.department,
+          }
+        : null,
+    };
+
+    return { token, user };
+  }
+
+  static getAdminGoogleAuthURL() {
+    const redirectURL =
+      "https://accounts.google.com/o/oauth2/v2/auth?" +
+      new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        redirect_uri: process.env.GOOGLE_ADMIN_REDIRECT_URL!,
+        response_type: "code",
+        scope: "openid email profile",
+        state: "admin_google_auth",
+      });
+
+    return redirectURL;
+  }
+
+  static async adminGoogleCallback(query: any): Promise<{ token: string; user: AdminUserWithRoles; clientRedirectURL: string }> {
+    const code = query.code;
+
+    if (!code) {
+      throw new ApiError(400, "Authorization code missing");
+    }
+
+    const tokenResponse = await axios.post(
+      "https://oauth2.googleapis.com/token",
+      new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: process.env.GOOGLE_ADMIN_REDIRECT_URL!,
+        grant_type: "authorization_code",
+      }),
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      },
+    );
+
+    const { access_token } = tokenResponse.data;
+
+    const userInfoResponse = await axios.get(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      },
+    );
+
+    const googleUser: any = userInfoResponse.data;
+
+    let userWithRoles = await AuthRepository.findUserWithRolesByEmail(googleUser.email);
+
+    if (!userWithRoles) {
+      throw new ApiError(403, "No admin/staff account found for this Google email. Please contact your administrator.");
+    }
+
+    if (!userWithRoles.openID) {
+      await AuthRepository.updateUser(userWithRoles.id, { openID: googleUser.id });
+      userWithRoles = { ...userWithRoles, openID: googleUser.id };
+    }
+
+    if (userWithRoles.roles.length === 0) {
+      throw new ApiError(403, "Access denied. No role assigned to this account.");
+    }
+
+    const staffProfile = await db.query.staffProfiles.findFirst({
+      where: eq(staffProfiles.userID, userWithRoles.id),
+    });
+
+    const token = Helper.generateToken({
+      id: userWithRoles.id,
+      name: userWithRoles.name,
+      email: userWithRoles.email,
+      mobile: userWithRoles.mobile,
+    });
+
+    const user: AdminUserWithRoles = {
+      id: userWithRoles.id,
+      name: userWithRoles.name,
+      email: userWithRoles.email,
+      mobile: userWithRoles.mobile,
+      image: userWithRoles.image,
+      roles: userWithRoles.roles,
+      permissions: userWithRoles.permissions,
+      isSuperAdmin: userWithRoles.isSuperAdmin,
+      staffProfile: staffProfile
+        ? {
+            employeeCode: staffProfile.employeeCode,
+            designation: staffProfile.designation,
+            department: staffProfile.department,
+          }
+        : null,
+    };
+
+    const clientRedirectURL = process.env.ADMIN_CLIENT_URL!;
+
+    return { token, user, clientRedirectURL };
   }
 }

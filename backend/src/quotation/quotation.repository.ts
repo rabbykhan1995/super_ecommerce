@@ -1,210 +1,106 @@
-import { ClientSession, Types } from "mongoose";
-
-import SaleQuotation from "./quotation.model";
-import { CreateSaleQuotationInput } from "./quotation.type";
+import { QuotationStatus, SaleQuotationItemPayload, SaleQuotationPayload } from "./quotation.type";
+import db, { QueryClient } from "../../drizzle/src";
+import { saleQuotationItemsTable, saleQuotationTable } from "./quotation.table";
+import { eq } from "drizzle-orm";
+import { paginateQuery } from "../../utils/queryBuilder";
 
 export default class QuotationRepository {
-    static async createSaleQuotation(payload: any) {
-        return await SaleQuotation.create(payload);
+    static async createSaleQuotation(payload: SaleQuotationPayload, client: QueryClient = db) {
+        const [saleQuotation] = await client.insert(saleQuotationTable).values(payload).returning();
+        return saleQuotation;
+    }
+
+    static async createSaleQuotationItems(payload: SaleQuotationItemPayload[], client: QueryClient = db) {
+        return await client.insert(saleQuotationItemsTable).values(payload);
+
     }
 
     static async updateStatusOfSaleQuotation(
-        quoteID: string,
-        status: string,
-        session?: ClientSession
+        quoteID: number,
+        status: QuotationStatus,
+        client: QueryClient = db
     ) {
-        return await SaleQuotation.findByIdAndUpdate(
-            quoteID,
-            { $set: { status } },
-            {
-                ...(session && { session }),
-                new: true,
+        const [saleQuotation] = await client
+            .update(saleQuotationTable)
+            .set({ status })
+            .where(eq(saleQuotationTable.id, quoteID))
+            .returning();
+
+        return saleQuotation;
+    }
+
+
+
+
+    static async listOfSaleQuotation(query: {
+        page?: number;
+        limit?: number;
+        search?: string;
+    }) {
+        return paginateQuery({
+            query: db.query.saleQuotationTable,
+            countTable: saleQuotationTable,
+            page: query.page,
+            limit: query.limit,
+            search: query.search,
+            with: {
+                customer: {
+                    columns: {
+                        name: true,
+                    },
+                },
             }
-        );
+        });
     }
-
-    // static async listOfSaleQuotation(query: any) {
-    //     return await paginatedAggregate({
-    //         model: SaleQuotation,
-    //         query: query,
-    //         postLookupSearch: true,
-    //         searchFields: [
-    //             { field: "customer.name" },
-    //             { field: "customer.mobile" },
-    //         ],
-    //         lookups: [
-    //             {
-    //                 from: "contacts",
-    //                 localField: "customerID",
-    //                 foreignField: "_id",
-    //                 as: "customer",
-    //                 preserveNull: true,
-    //             },
-    //         ],
-    //         projection: {
-    //             include: ["totalAmount", "SaleDate", "deletable", "createdAt", "otherCost", "totalAmount", "discount", "totalProductPrice", "status"],
-    //             computed: {
-    //                 customerName: "$customer.name",
-    //             },
-    //         },
-    //     })
-    // }
     static async getSaleQuotationByID(
-        quoteID: string,
+        quoteID: number,
+        client: QueryClient = db
     ) {
-        return await SaleQuotation.findById(
-            quoteID
-        );
+        const [saleQuotation] = await client
+            .select().from(saleQuotationTable)
+            .where(eq(saleQuotationTable.id, quoteID));
+
+        return saleQuotation
+
     }
 
-    // static async getQuotationInvoice(
-    //     quoteID: string,
-    // ) {
-    //     return await aggregateOne(
-    //         SaleQuotation,
-    //         { _id: new Types.ObjectId(quoteID) },
-    //         [
-    //             {
-    //                 from: "contacts",
-    //                 localField: "customerID",
-    //                 foreignField: "_id",
-    //                 as: "customer",
-    //             },
-    //         ],
-    //         undefined,
-    //         [
-    //             // =========================
-    //             // ACCOUNTS LOOKUP
-    //             // =========================
-    //             {
-    //                 $lookup: {
-    //                     from: "accounts",
-    //                     localField: "accounts.accountID",
-    //                     foreignField: "_id",
-    //                     as: "accountDetails",
-    //                 },
-    //             },
-
-
-    //             // =========================
-    //             // PRODUCTS UNWIND
-    //             // =========================
-    //             { $unwind: "$products" },
-
-    //             // =========================
-    //             // BATCH LOOKUP
-    //             // =========================
-    //             {
-    //                 $lookup: {
-    //                     from: "batches",
-    //                     localField: "products.batchID",
-    //                     foreignField: "_id",
-    //                     as: "batch",
-    //                 },
-    //             },
-    //             { $addFields: { batch: { $first: "$batch" } } },
-
-    //             // =========================
-    //             // PRODUCT LOOKUP
-    //             // =========================
-    //             {
-    //                 $lookup: {
-    //                     from: "products",
-    //                     localField: "products.productID",
-    //                     foreignField: "_id",
-    //                     as: "productDetails",
-    //                 },
-    //             },
-    //             { $addFields: { productDetails: { $first: "$productDetails" } } },
-
-    //             // =========================
-    //             // UNIT / BRAND / CATEGORY
-    //             // =========================
-    //             {
-    //                 $lookup: {
-    //                     from: "units",
-    //                     localField: "productDetails.unitID",
-    //                     foreignField: "_id",
-    //                     as: "unit",
-    //                 },
-    //             },
-    //             { $addFields: { unit: { $first: "$unit" } } },
-
-    //             {
-    //                 $lookup: {
-    //                     from: "brands",
-    //                     localField: "productDetails.brandID",
-    //                     foreignField: "_id",
-    //                     as: "brand",
-    //                 },
-    //             },
-    //             { $addFields: { brand: { $first: "$brand" } } },
-
-    //             {
-    //                 $lookup: {
-    //                     from: "categories",
-    //                     localField: "productDetails.categoryID",
-    //                     foreignField: "_id",
-    //                     as: "category",
-    //                 },
-    //             },
-    //             { $addFields: { category: { $first: "$category" } } },
-
-    //             // =========================
-    //             // SHAPE PRODUCTS
-    //             // =========================
-    //             {
-    //                 $addFields: {
-    //                     products: {
-    //                         batchID: "$products.batchID",
-    //                         productID: "$products.productID",
-    //                         soldQty: "$products.soldQty",
-    //                         salePrice: "$products.salePrice",
-    //                         warranty: "$products.warranty",
-
-    //                         serial: "$batch.serial",
-    //                         purchasePrice: "$batch.purchasePrice",
-    //                         purchasedQty: "$batch.purchasedQty",
-
-    //                         product: {
-    //                             _id: "$productDetails._id",
-    //                             name: "$productDetails.name",
-    //                             thumbnail: "$productDetails.thumbnail",
-    //                             brand: { name: "$brand.name" },
-    //                             unit: { name: "$unit.name" },
-    //                             category: { name: "$category.name" },
-    //                         },
-    //                     },
-    //                 },
-    //             },
-
-    //             // =========================
-    //             // GROUP BACK
-    //             // =========================
-    //             {
-    //                 $group: {
-    //                     _id: "$_id",
-    //                     invoiceNo: { $first: "$invoiceNo" },
-    //                     customer: { $first: "$customer" },
-    //                     customerID: { $first: "$customerID" },
-    //                     note: { $first: "$note" },
-    //                     costName: { $first: "$costName" },
-    //                     deletable: { $first: "$deletable" },
-    //                     totalProductPrice: { $first: "$totalProductPrice" },
-    //                     otherCost: { $first: "$otherCost" },
-    //                     discount: { $first: "$discount" },
-    //                     totalAmount: { $first: "$totalAmount" },
-    //                     balanceBefore: { $first: "$balanceBefore" },
-    //                     balanceAfter: { $first: "$balanceAfter" },
-    //                     SaleDate: { $first: "$SaleDate" },
-    //                     status: { $first: "$status" },
-    //                     createdAt: { $first: "$createdAt" },
-    //                     updatedAt: { $first: "$updatedAt" },
-    //                     products: { $push: "$products" },
-    //                 },
-    //             },
-    //         ]
-    //     );
-    // }
+    static async getQuotationItemsByID(
+        quoteID: number,
+        client: QueryClient = db
+    ) {
+        return await client.query.saleItemsTable.findMany({
+            where: eq(saleQuotationItemsTable.quotationID, quoteID),
+            with: {
+                product: {
+                    columns: {
+                        id: true,
+                        name: true,
+                    },
+                    with: {
+                        unit: {
+                            columns: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                    },
+                },
+                batch: {
+                    columns: {
+                        id: true,
+                        serial: true,
+                    },
+                    with: {
+                        variant: {
+                            columns: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
 
 }

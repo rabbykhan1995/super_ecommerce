@@ -1,5 +1,5 @@
 import express from "express";
-import { checkoutMobileSchema, passwordResetSchema, userLoginSchema } from "./auth.validator";
+import { adminLoginSchema, checkoutMobileSchema, passwordResetSchema, userLoginSchema } from "./auth.validator";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { AuthController } from "./auth.controller";
 import { validate } from "../../middlewares/validation.middleware";
@@ -7,6 +7,9 @@ import { authMiddleware } from "../../middlewares/auth.middleware";
 
 const router = express.Router();
 
+// ===========================
+// Customer Auth
+// ===========================
 router
   .get(
     "/get-profile",
@@ -20,5 +23,18 @@ router
   .post("/send-forget-password-otp", asyncHandler(AuthController.sendForgetPasswordOTP))
   .post("/reset-password", validate(passwordResetSchema), asyncHandler(AuthController.resetPassword))
   .post("/checkout-mobile", validate(checkoutMobileSchema), asyncHandler(AuthController.checkOutMobile))
+
+// ===========================
+// Customer Google OAuth
+// ===========================
+router.get("/google-auth", asyncHandler(AuthController.getGoogleAuthAPI));
+router.get("/google-callback", asyncHandler(AuthController.googleAuthCallbackAPI));
+
+// ===========================
+// Admin / Staff Auth
+// ===========================
+router.post("/admin-login", validate(adminLoginSchema), asyncHandler(AuthController.adminLogin));
+router.get("/admin-google-auth", asyncHandler(AuthController.getAdminGoogleAuth));
+router.get("/admin-google-callback", asyncHandler(AuthController.adminGoogleCallback));
 
 export default router;

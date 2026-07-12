@@ -51,6 +51,13 @@ export default class SaleRepository {
             page: query.page,
             limit: query.limit,
             search: query.search,
+            with: {
+                customer: {
+                    columns: {
+                        name: true,
+                    },
+                },
+            }
         });
     }
 

@@ -19,6 +19,7 @@ import * as ledgerSchema from "../src/ledger/ledger.table"
 import * as expenseSchema from "../src/expense/expense.table"
 import * as damageSchema from "../src/damage/damage.table"
 import * as cartSchema from "../src/cart/cart.table"
+import * as quotationSchema from "../src/quotation/quotation.table"
 // সব টেবিল এবং তাদের রিলেশন একসাথে কম্বাইন করা হলো
 export const dbSchema = {
   ...productSchema,
@@ -42,4 +43,5 @@ export const dbSchema = {
   ...expenseSchema,
   ...damageSchema,
   ...cartSchema,
+  ...quotationSchema,
 };

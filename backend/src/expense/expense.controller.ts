@@ -27,7 +27,7 @@ export class ExpenseController {
 
   static async updateExpenseType(req: Request, res: Response) {
     const expenseType = await ExpenseService.updateExpenseType(
-      req.params.id.toString(),
+      Number(req.params.id),
       req.body.name,
     );
 
@@ -39,7 +39,7 @@ export class ExpenseController {
   }
 
   static async deleteExpenseType(req: Request, res: Response) {
-    await ExpenseService.deleteExpenseType(req.params.id.toString());
+    await ExpenseService.deleteExpenseType(Number(req.params.id));
 
     return res.status(201).json({
       success: true,
@@ -57,7 +57,7 @@ export class ExpenseController {
     });
   }
   static async deleteExpense(req: Request, res: Response) {
-    await ExpenseService.deleteExpense(req.params.id.toString());
+    await ExpenseService.deleteExpense(Number(req.params.id));
     return res.status(200).json({
       success: true,
       msg: "Expense deleted successfully",
