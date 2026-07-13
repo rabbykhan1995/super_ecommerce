@@ -55,7 +55,6 @@ export default function NewPurchase() {
             params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
         });
 
-        console.log(res.data.data)
         if (res.data.success)
             setVariants(
                 res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name}(${u.attributes.map(a=> `${a.name}-${a.value}`)})`, ...u }))
@@ -81,8 +80,8 @@ export default function NewPurchase() {
             }));
 
             // default account আলাদা করো
-            const defaultAccount = formatted.find((a) => a.default === true);
-            const rest = formatted.filter((a) => a.default !== true);
+            const defaultAccount = formatted.find((a) => a.isDefault === true);
+            const rest = formatted.filter((a) => a.isDefault !== true);
 
             setAccounts(rest);
             setExchangeAccounts(rest);
@@ -145,7 +144,7 @@ export default function NewPurchase() {
     const already = selectedProducts.value.find((item) => item.id === p.id);
     if (already) {
         selectedProducts.value = selectedProducts.value.map((item) =>
-            item.variantID === p.variantID ? { ...item, purchaseQty: item.purchaseQty + 1 } : item
+            item.variantID === p.id ? { ...item, purchaseQty: item.purchaseQty + 1 } : item
         );
         return;
     }
@@ -218,7 +217,7 @@ export default function NewPurchase() {
       setIsExchanging(true);
       return setSelectedExchangeAccounts((prev) => {
         const updated = prev.map((a) =>
-          a.default
+          a.isDefault
             ? {
               ...a,
               amount: currentBalance,
@@ -237,7 +236,7 @@ export default function NewPurchase() {
       setIsExchanging(true);
       setSelectedExchangeAccounts((prev) => {
         const updated = prev.map((a) =>
-          a.default
+          a.isDefault
             ? {
               ...a,
               amount: currentBalance,
@@ -258,7 +257,7 @@ export default function NewPurchase() {
     if (selectedSupplier && (currentBalance > 0) && isExchanging) {
       setSelectedExchangeAccounts((prev) => {
         const updated = prev.map((a) =>
-          a.default
+          a.isDefault
             ? {
               ...a,
               amount: currentBalance,
@@ -285,7 +284,7 @@ export default function NewPurchase() {
 
         if (isExchanging) {
             setSelectedExchangeAccounts((prev) => {
-                const defaultAccount = exchangeAccounts.find((a) => a.default);
+                const defaultAccount = exchangeAccounts.find((a) => a.isDefault);
 
                 if (!defaultAccount) return prev;
 

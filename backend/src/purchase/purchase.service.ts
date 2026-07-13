@@ -12,7 +12,6 @@ import { withTransaction } from "../../utils/withTransaction";
 import { BatchPayload, stockFlowPayload } from "../product/product.type";
 import { TransactionPayload } from "../transaction/transaction.type";
 import { LedgerPayload } from "../ledger/ledger.type";
-import ProductRepository from "../product/product.repository";
 
 export default class PurchaseService {
   static async create(payload: CreatePurchaseInput) {
@@ -76,7 +75,7 @@ export default class PurchaseService {
         await Promise.all(accounts.map(async (a) => {
           const transactionPayload: TransactionPayload = {
             source: "purchase",
-            saleID: purchaseCreated.id,
+            purchaseID: purchaseCreated.id,
             type: "debit",
             date: purchaseCreated.purchaseDate,
             accountID: a.accountID,
@@ -91,7 +90,7 @@ export default class PurchaseService {
           await Promise.all(exchangeAccounts.map(async (a) => {
             const transactionPayload: TransactionPayload = {
               source: "purchase",
-              saleID: purchaseCreated.id,
+              purchaseID: purchaseCreated.id,
               type: "credit",
               date: purchaseCreated.purchaseDate,
               accountID: a.accountID,
@@ -216,6 +215,15 @@ export default class PurchaseService {
   ) {
 
   return await PurchaseRepository.purchaseInvoiceByID(purchaseID)
+
+  }
+  
+
+   static async purchaseForReturnByID(
+    purchaseID: number
+  ) {
+
+  return await PurchaseRepository.purchaseForReturnByID(purchaseID)
 
   }
 

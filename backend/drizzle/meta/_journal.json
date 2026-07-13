@@ -8,6 +8,20 @@
       "when": 1783778268730,
       "tag": "0000_moaning_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783952421038,
+      "tag": "0001_bizarre_power_pack",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783953771247,
+      "tag": "0002_bumpy_manta",
+      "breakpoints": true
     }
   ]
 }

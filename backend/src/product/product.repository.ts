@@ -375,6 +375,7 @@ export default class ProductRepository {
             thumbnail: true,
             manageStock:true,
             manageWarranty:true,
+            decimal:true,
           },
           with: {
             brand: {
@@ -399,7 +400,6 @@ export default class ProductRepository {
     });
   }
   static async findSaleBatches(
-    productID: number,
     variantID: number,
     client: QueryClient = db,
   ): Promise<Batch[]> {
@@ -408,7 +408,6 @@ export default class ProductRepository {
       .from(batchTable)
       .where(
         and(
-          eq(batchTable.productID, productID),
           eq(batchTable.variantID, variantID),
           isNull(batchTable.serial),
           gt(batchTable.remainingQty, 0),
@@ -417,7 +416,7 @@ export default class ProductRepository {
   }
 
   static async findSaleSerials(
-    productID: number,
+    variantID: number,
     client: QueryClient = db,
   ): Promise<Batch[]> {
     return client
@@ -425,7 +424,7 @@ export default class ProductRepository {
       .from(batchTable)
       .where(
         and(
-          eq(batchTable.productID, productID),
+          eq(batchTable.variantID, variantID),
           eq(batchTable.isActive, true),
           isNotNull(batchTable.serial),
           gt(batchTable.remainingQty, 0),
@@ -678,6 +677,21 @@ export default class ProductRepository {
         and(
           eq(stockFlowTable.batchID, batchID),
           eq(stockFlowTable[column], columnID),
+        ),
+      );
+  }
+
+ static async getSaleProduct(
+    variantID: number,
+    client: QueryClient = db,
+  ) {
+    return client
+      .select()
+      .from(batchTable)
+      .where(
+        and(
+          eq(batchTable.variantID, variantID),
+          gt(batchTable.remainingQty, 0),
         ),
       );
   }

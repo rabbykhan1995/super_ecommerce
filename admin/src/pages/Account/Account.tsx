@@ -28,9 +28,9 @@ export default function Account() {
     setLoading(true);
     try {
       if (editID) {
-        await api.put(`/account/update/${editID}`, { default: isDefault, name, number, ...(branch ? { branch } : {}) });
+        await api.put(`/account/update/${editID}`, {  isDefault, name, number, ...(branch ? { branch } : {}) });
       } else {
-        await api.post("/account/create", { default: isDefault, name, number, ...(branch ? { branch } : {}) });
+        await api.post("/account/create", {  isDefault, name, number, ...(branch ? { branch } : {}) });
       }
       setName("");
       setNumber("");
@@ -48,7 +48,7 @@ export default function Account() {
     setName(account.name);
     setNumber(account.number ?? "");
     setBranch(account.branch ?? "");
-    setIsDefault(account.default);
+    setIsDefault(account.isDefault);
   };
 
   const handleDelete = async (id: number) => {
@@ -129,7 +129,7 @@ export default function Account() {
             header: "Name", headerClassName: "text-center", className: "text-center", accessor: (row) => (
               <div className="flex items-center justify-center gap-2">
                 <span>{row.name}</span>
-                {row.default && (
+                {row.isDefault && (
                   <span className="text-xs text-green-500">default</span>
                 )}
               </div>

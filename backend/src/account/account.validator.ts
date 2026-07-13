@@ -5,7 +5,7 @@ export const createAccountSchema = z.object({
   name: z.string().min(3,"must be 3 character"),
   branch: z.string().min(3,"must be 3 character").optional().nullable(),
   number: z.string("must be a string").min(1, "must be at least 1"),
-  default:z.boolean().optional().default(false),
+  isDefault:z.boolean().optional().default(false),
 });
 
 
@@ -13,7 +13,7 @@ export const updateAccountSchema = z.object({
   name: z.string().min(3,"must be 3 character").optional(),
   branch: z.string().min(3,"must be 3 character").optional(),
   number: z.string("must be a string").min(1, "must be at least 1").optional(),
-  default:z.boolean().optional().default(false),
+  isDefault:z.boolean().optional().default(false),
 });
 
 export const paymentAccountSchema = z.array(z.object({

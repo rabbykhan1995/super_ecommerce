@@ -81,8 +81,8 @@ export class ProductController {
   }
   // to validate the serial,
   static async findBatchBySerial(req: Request, res: Response) {
-
-    const batch = await ProductService.findBatchBySerial(req.query);
+       const { serial } = req.query;
+    const batch = await ProductService.findBatchBySerial(serial  as string);
     if (batch) {
       return res.status(200).json({
         success: false,
@@ -101,9 +101,9 @@ export class ProductController {
 
   static async getSaleProduct(req: Request, res: Response) {
     const variantID = req.params.variantID
-
-    const product = await ProductService.getSaleProduct(Number(variantID)); // ✅ lean() দিয়ে plain object
-
+    const productID= req.params.productID;
+    const product = await ProductService.getSaleProduct(Number(productID),Number(variantID)); // ✅ lean() দিয়ে plain object
+    console.log(product)
     // ✅ No stock management - return plain product
     return res.status(200).json({
       success: true,
@@ -128,12 +128,5 @@ export class ProductController {
     });
   }
 
-  static async getFifoBatch(req: Request, res: Response) {
-    const batch = await ProductService.getFifoBatch(req.params.id.toString());
-    return res.status(200).json({
-      success: true,
-      data: batch
-    });
-  }
 
 }

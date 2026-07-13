@@ -30,9 +30,8 @@ router
   .get("/batchByVariant/:id", authMiddleware, asyncHandler(ProductController.batchByVariant))
   .get("/batchBySerial", authMiddleware, asyncHandler(ProductController.findBatchBySerial))
   .get("/serialByProduct/:id", authMiddleware, asyncHandler(ProductController.serialByProduct))
-  .get("/getSaleProduct/:variantID", authMiddleware, asyncHandler(ProductController.getSaleProduct))
+  .get("/getSaleProduct/:productID/:variantID", authMiddleware, asyncHandler(ProductController.getSaleProduct))
   .get("/getPosProducts", authMiddleware, asyncHandler(ProductController.getPosProducts))
   .get("/updatePosProduct/:id", authMiddleware, asyncHandler(ProductController.updatePosProduct))
-   .get("/get-fifoBatch/:id", authMiddleware, asyncHandler(ProductController.getFifoBatch))
 
 export default router;

@@ -293,10 +293,31 @@ export default class PurchaseReturnService {
     });
   }
 
-  static async purchaseReturnInvoiceByID(purchaseReturnID: number){
-    
-    return await PurchaseReturnRepository.getPurchaseReturnInvoice(purchaseReturnID);  
+  static async purchaseReturnInvoiceByID(purchaseReturnID: number) {
+
+    return await PurchaseReturnRepository.getPurchaseReturnInvoice(purchaseReturnID);
 
 
+  }
+
+  static async purchaseForReturnByID(purchaseID: number) {
+    const purchase = await PurchaseService.purchaseForReturnByID(purchaseID);
+
+    if (!purchase) return null;
+
+    const batchesWithReturnableQty = (purchase.batches || []).map((batch: any) => {
+      const alreadyReturned = (batch.stockFlows || [])
+        .filter((f: any) => f.type === "out")
+        .reduce((acc: number, f: any) => acc + Number(f.qty), 0);
+
+      const { stockFlows, ...batchWithoutStockFlows } = batch;
+
+      return {
+        ...batchWithoutStockFlows,
+        returnableQty: Number(batch.purchasedQty) - alreadyReturned,
+      };
+    });
+
+    return { ...purchase, batches: batchesWithReturnableQty };
   }
 }

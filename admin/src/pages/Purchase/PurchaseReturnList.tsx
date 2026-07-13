@@ -3,9 +3,8 @@ import api from "../../lib/axios";
 import Table from "../../components/tables/Table";
 import TableFilterBar from "../../components/filters/TableFilterBar";
 import Pagination from "../../components/filters/Pagination";
-import { Delete, DeleteIcon, Infinity, LucideDelete, RemoveFormatting, Trash, Undo2 } from "lucide-react";
-import { Link } from "react-router";
-import type { PaginatedResult, PurchaseListItem, PurchaseReturnListItem } from "../../types/type";
+import { Trash } from "lucide-react";
+import type { PaginatedResult, PurchaseReturnListItem } from "../../types/type";
 import TimeAgo from "../../components/Ui/TimeAgo";
 import { toast } from "sonner";
 import Helper from "../../utils/helper";
@@ -40,9 +39,7 @@ export default function PurchaseReturnList() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const totalPages = Math.ceil(data.total / data.limit);
-
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
 
     toast("Are you sure?", {
       action: {
@@ -62,102 +59,63 @@ export default function PurchaseReturnList() {
   return (
     <div className=" space-y-4">
       <TableFilterBar
-        title="Products"
+        title="Purchase Returns"
         subtitle={`Total: ${data.total}`}
         search={search}
         onSearchChange={(val) => { setSearch(val); setPage(1); }}
-        addHref="/product/new"
-        addLabel="New Product"
+        addHref="/purchase/return-list"
+        addLabel="Purchase Return"
         limit={limit}
         onLimitChange={(val) => { setLimit(val); setPage(1); }}
       />
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           {
-            header: "No", accessor: (row,i) => (
-
-              <Link to={`/purchase/invoice/${row._id}`}
-                className="text-sm"
-              >
-                 {(i ?? 0) + 1}
-              </Link>
-
+            header: "No", accessor: (_row, i) => (
+              <span className="text-sm">{(i ?? 0) + 1}</span>
             ), className: "text-center", headerClassName: "text-center",
           },
-          { header: "Supplier", accessor: "supplierName", headerClassName: "text-start" },
-          {
-            header: "Other Cost", accessor: (row) =>
-
-              <h1 className="flex justify-center">{Helper.formatLongNumber(row?.otherCost ?? 0)}</h1>, className: "text-center"
-          },
-          {
-            header: "Discount", accessor: (row) =>
-
-              <h1 className="flex justify-center">{Helper.formatLongNumber(row.discount)}</h1>, className: "text-center"
-          },
-          {
-            header: "Prev. S. Due", accessor: (row) => (
-              <div className="flex gap-2 justify-center">
-                <h1
-                  className=""
-                >
-                  {Helper.formatLongNumber(Number(row.balanceBefore < 0 ? Math.abs(row.balanceBefore) : 0))} { }
-                </h1>
-              </div>
-            ), className: "text-center"
-          },
+          { header: "Supplier", accessor: (row) => row.supplier?.name ?? "-", headerClassName: "text-start" },
           {
             header: "Payable", accessor: (row) => (
-              <span> {Helper.formatLongNumber(row.totalAmount)}</span>
-
+              <span>{Helper.formatLongNumber(row.totalAmount)}</span>
             ), className: "text-center"
           },
-
           {
             header: "Paid", accessor: (row) =>
-
               <h1 className="flex justify-center">{Helper.formatLongNumber(row.paid)}</h1>, className: "text-center"
           },
-
           {
             header: "Advance / Due", accessor: (row) => (
               <div className="flex gap-2 justify-center">
-                <h1
-                  className=""
-                >
+                <h1>
                   {(row.totalAmount - row.paid) > 0 ? "Due" : "Advance"} {Helper.formatLongNumber(Number(Math.abs(row.totalAmount - row.paid)))}
                 </h1>
               </div>
             ), className: "text-center"
           },
-
           {
             header: "Date",
             className: "text-center",
             headerClassName: "text-center min-w-20",
             accessor: (row) => (
-
               <TimeAgo date={row.date} />
-
             )
-
           },
-
           {
             header: "Action",
             headerClassName: "text-right",
             className: "text-right",
             accessor: (row) => (
               <div className="flex gap-2 justify-end">
-                <button onClick={() => handleDelete(row._id)} title="Delete"
+                <button onClick={() => handleDelete(row.id)} title="Delete"
                   className="global_button_red"
                 >
                   <Trash size={15} />
                 </button>
-
               </div>
             ),
           },

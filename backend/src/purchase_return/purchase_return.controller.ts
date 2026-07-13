@@ -21,6 +21,14 @@ export class PurchaseReturnController {
     res.status(200).json({ success: true, data: invoice });
   }
 
+static async purchaseForReturnByID(req: Request, res: Response) {
+    const { id } = req.params;
+    const invoice = await PurchaseReturnService.purchaseForReturnByID(Number(id))
+
+    res.status(200).json({ success: true, data: invoice });
+  }
+  
+
   // static async getPurchaseReturnBatches(req: Request, res: Response) {
   //   const { purchaseID } = req.params;
   //   // এই purchaseID দিয়ে batch আছে কিনা

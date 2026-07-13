@@ -217,9 +217,9 @@ export default class ProductService {
     return batch;
   }
 
-  static async findBatchBySerial(query: any) {
-    const batch = await ProductRepository.findBatchBySerial(query);
-
+  static async findBatchBySerial(serial: string) {
+    const batch = await ProductRepository.findBatchBySerial(serial);
+    console.log(batch);
     return batch;
   }
 
@@ -299,16 +299,6 @@ export default class ProductService {
     return ProductRepository.updateProduct(id, {
       inPosList: !product.inPosList,
     });
-  }
-
-  static async getFifoBatch(productID: number) {
-    const batches = await ProductRepository.batchByVariantID(productID);
-
-    if (batches?.length === 0 || null) {
-      throw new ApiError(404, "No stock available");
-    }
-
-    return batches![0];
   }
 
   static async getFifoBatchesByVariantID(variantID: number) {
@@ -397,4 +387,93 @@ export default class ProductService {
       tx,
     );
   }
+
+static async getSaleProduct(
+    productID: number,
+    variantID: number,
+
+) {
+    // 1. Find product
+    const product = await ProductRepository.findByID(
+        productID,
+    );
+
+    if (!product) {
+        throw new ApiError(404, "Product not found");
+    }
+
+    // ================================
+    // STOCK + NO WARRANTY
+    // ================================
+    if (product.manageStock && !product.manageWarranty) {
+        const batches = await ProductRepository.findSaleBatches(
+            variantID,
+        );
+
+        const formattedBatches = batches.map((b) => ({
+            value: b.id,
+            label: `${Helper.formatDate(b.purchaseDate)} - ${b.remainingQty}`,
+            ...b,
+        }));
+
+        return {
+            ...product,
+
+            batches: formattedBatches,
+
+            purchaseID: formattedBatches[0]?.purchaseID,
+
+            purchasePrice: formattedBatches[0]?.cost,
+
+            salePrice: product.salePrice,
+
+            soldQty: 1,
+
+            serials: [],
+
+            selectedSerials: [],
+
+            selectedBatch: formattedBatches[0] ?? null,
+        };
+    }
+
+    // ================================
+    // STOCK + WARRANTY
+    // ================================
+    if (product.manageStock && product.manageWarranty) {
+        const serials = await ProductRepository.findSaleSerials(variantID
+        );
+
+        const formattedSerials = serials.map((s) => ({
+            value: s.id,
+            label: s.serial,
+            ...s,
+        }));
+
+        return {
+            ...product,
+
+            serials: formattedSerials,
+
+            purchasePrice: 0,
+
+            salePrice: product.salePrice,
+
+            soldQty: 0,
+
+            selectedSerials: [],
+
+            batches: [],
+
+            selectedBatch: null,
+
+            purchaseID: null,
+        };
+    }
+
+    // ================================
+    // NO STOCK MANAGEMENT
+    // ================================
+    return product;
+}
 }

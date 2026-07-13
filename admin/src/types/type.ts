@@ -49,8 +49,8 @@ export type Product = {
 
 export type PurchaseProduct = {
   id: number;
-      productID:number,
-  variantID:number;
+  productID: number,
+  variantID: number;
   name: string;
   barcode?: string;
   stock: number;
@@ -70,22 +70,16 @@ export type PurchaseProduct = {
 
 export type PurchaseReturnProduct = {
   id: number;
+  productID: number;
+  variantID: number;
   name: string;
   serial?: string;
-  stock: number;
-  unitName?: string;
-  brandName?: string;
-  categoryName?: string;
-  manageStock: boolean;
-  createdAt: string;
-  purchasePrice: number;
-  returnedQty: number;
+  cost: number;
+  purchasedQty: number;
   remainingQty: number;
   qty: number;
-  purchasedQty: number;
   warranty: number;
-  manageWarranty: boolean;
-  serials?: string[];
+  product?: { name: string };
   selected: boolean;
 };
 
@@ -112,7 +106,8 @@ export type SaleReturnProduct = {
 
 export type SaleProduct = {
   id: number;
-  purchaseID?: string;
+  purchaseID?: number;
+  productID: number;
   name: string;
   barcode?: string;
   stock: number;
@@ -150,9 +145,26 @@ export type PosProduct = {
   expireDate?: Date;
 };
 
+export type PosSaleProduct = {
+  id: number;
+  productID: number;
+  variantID: number;
+  name: string;
+  barcode?: string;
+  stock: number;
+  unitName?: string;
+  brandName?: string;
+  categoryName?: string;
+  decimal: boolean;
+  manageStock: boolean;
+  salePrice: number;
+  soldQty: number;
+  expireDate?: Date;
+};
+
 export type DamageProduct = {
   id: number;
-  purchaseID?: string;
+  purchaseID?: number;
   name: string;
   barcode?: string;
   stock: number;
@@ -201,7 +213,7 @@ export type Account = {
   balance: number;
   createdAt: Date;
   updatedAt: Date;
-  default: boolean;
+  isDefault: boolean;
 };
 
 export type AccountOption = SelectOption<Account> & {
@@ -223,25 +235,23 @@ export type PurchaseListItem = {
   deletable?: boolean;
   discount: number;
   balanceBefore: number;
-  supplier:{
-    name:string;
+  supplier: {
+    name: string;
   }
 };
 
 export type PurchaseReturnListItem = {
   id: number;
-  invoiceNo: string;
+  purchaseID: number;
+  supplierID: number;
   totalAmount: number;
   balanceAfter: number;
   paid: number;
   date: Date;
   createdAt: Date;
-  default: boolean;
-  supplierName?: string;
-  otherCost?: number;
-  deletable?: boolean;
   discount: number;
   balanceBefore: number;
+  supplier?: { name: string };
 };
 
 
@@ -394,12 +404,13 @@ export type TransactionListItem = {
 
 export type Batch = {
   id: number;
-  purchaseID: string;
-  productID: string;
+  purchaseID: number;
+  productID: number;
+  variantID: number;
   serial?: string;
   purchasedQty: number;
   remainingQty: number;
-  salePrice: number;
+  cost: number;
   purchasePrice: number;
   PurchaseDate: Date;
   expireDate?: Date;
@@ -438,29 +449,29 @@ export type QuotationListItem = {
 };
 
 export type Variant = {
-    id: number;
-    stock: number | null;
-    salePrice: number | null;
-    createdAt?: Date;
-    updatedAt?: Date;
-    productID: number;
-    barcode: string;
-    weight: number | null;
-    attributes: {
-        name: string;
-        value: string;
-    }[];
+  id: number;
+  stock: number | null;
+  salePrice: number | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  productID: number;
+  barcode: string;
+  weight: number | null;
+  attributes: {
+    name: string;
+    value: string;
+  }[];
 }
 
 export type VariantPayload = {
-    salePrice: number | null;
-    productID?:number;
-    barcode?: string;
-    weight: number;
-    attributes: {
-        name: string;
-        value: string;
-    }[];
+  salePrice: number | null;
+  productID?: number;
+  barcode?: string;
+  weight: number;
+  attributes: {
+    name: string;
+    value: string;
+  }[];
 }
 
 

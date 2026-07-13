@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/axios";
-import type { Account, Batch, Contact, SaleProduct, SelectOption } from "../../types/type";
+import type { Account, Batch, Contact, SaleProduct, SelectOption, VariantListItem } from "../../types/type";
 import Select from "react-select";
 import { getReactSelectStyles, smallReactStyle, smallReactStyleMulti } from "../../utils/reactSelectStyles";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
-import type { Product, SearchParams, AccountOption } from "../../types/type";
+import type { SearchParams, AccountOption } from "../../types/type";
 import { Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import { createPortal } from "react-dom";
@@ -33,7 +33,7 @@ export default function NewSale() {
         limit: 50,
     });
     const [barcode, setBarcode] = useState<string>("");
-    const [products, setProducts] = useState<SelectOption<Product>[]>([]);
+    const [products, setProducts] = useState<SelectOption<VariantListItem>[]>([]);
     const [customers, setCustomers] = useState<SelectOption<Contact>[]>([]);
     const [selectedCustomer, setSelectedCustomer] = useState<SelectOption<Contact> | null>(null);
     const [saleDate, setSaleDate] = useState<Date>(new Date());
@@ -52,17 +52,17 @@ export default function NewSale() {
     const [selectedExchangeAccounts, setSelectedExchangeAccounts] = useState<AccountOption[]>([]);
 
     const fetchProducts = async () => {
-        const res = await api("/product/list", {
+        const res = await api("/product/variant-list", {
             params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
         });
         if (res.data.success)
             setProducts(
-                res.data.data.items.map((u: Product) => ({ value: u.id, label: `${u.name} stock-${!u.manageStock ? " ∞" : u.stock}`, ...u }))
+                res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name} stock-${!u.product.manageStock ? " ∞" : u.stock}`, ...u }))
             );
     };
 
-    const fetchSaleProduct = async (id: number) => {
-        const res = await api(`/product/getSaleProduct/${id}`);
+    const fetchSaleProduct = async (productID:number,variantID: number) => {
+        const res = await api(`/product/getSaleProduct/${productID}/${variantID}`);
         if (res.data.success) {
             return res.data.data
         }
@@ -88,8 +88,8 @@ export default function NewSale() {
             }));
 
             // default account আলাদা করো
-            const defaultAccount = formatted.find((a) => a.default === true);
-            const rest = formatted.filter((a) => a.default !== true);
+            const defaultAccount = formatted.find((a) => a.isDefault === true);
+            const rest = formatted.filter((a) => a.isDefault !== true);
 
             setAccounts(rest);
             setExchangeAccounts(rest);
@@ -114,8 +114,9 @@ export default function NewSale() {
 
     };
 
-    const handleAddProduct = async (p: SelectOption<Product>) => {
-        if (!p.manageStock) {
+    const handleAddProduct = async (p: SelectOption<VariantListItem>) => {
+        
+        if (!p.product.manageStock) {
             const existing = selectedProducts.value.find(
                 product => product.id === p.id
             );
@@ -124,13 +125,17 @@ export default function NewSale() {
                 existing.soldQty++;
             } else {
                 selectedProducts.value.push({
-                    ...p,
+                    ...p.product,
+                    id:p.id,
+                    productID:p.product.id,
+                    name:p.label,
                     soldQty: 1,
                     warranty: 0,
                     serials: [],
                     selectedSerials: [],
                     batches: [],
                     selectedBatch: null,
+                    salePrice:p.salePrice
                 });
             }
 
@@ -138,21 +143,22 @@ export default function NewSale() {
         }
 
         // only warranty product
-        if (p.manageStock && p.manageWarranty) {
+        if (p.product.manageStock && p.product.manageWarranty) {
             const isExist = selectedProducts.value.find(product => product.id === p.id);
             if (isExist) {
                 return toast.error("Product already exists");
             }
 
-            const product: SaleProduct = await fetchSaleProduct(p.id);
+            const product: SaleProduct = await fetchSaleProduct(p.productID,p.id);
             if (product?.serials.length === 0) {
                 return toast.error("No Serial Available");
             }
+            product.salePrice = p.salePrice;
             return selectedProducts.value = [...selectedProducts.value, product];
         }
 
         // only batches/non-warranty/stock product
-        if (p.manageStock && !p.manageWarranty) {
+        if (p.product.manageStock && !p.product.manageWarranty) {
             const existingRows = selectedProducts.value.filter(product => product.id === p.id);
 
             if (existingRows.length > 0) {
@@ -186,7 +192,7 @@ export default function NewSale() {
                 // ✅ শেষ হয়ে গেছে → নতুন batch খুঁজুন
                 const usedBatchIds = existingRows
                     .map(row => row.selectedBatch?.id)
-                    .filter(Boolean) as string[];
+                    .filter(Boolean) as number[];
 
                 const availableBatches = lastRow.batches.filter(
                     b => !usedBatchIds.includes(b.id)
@@ -202,10 +208,10 @@ export default function NewSale() {
                     selectedBatch: availableBatches[0],
                     purchaseID: availableBatches[0].purchaseID,
                     purchasePrice: availableBatches[0].purchasePrice,
-                    salePrice: availableBatches[0].salePrice,
                     soldQty: 1,
                     batches: availableBatches, // ✅ শুধু available batches
                     selectedSerials: [],
+                    salePrice:p.salePrice
                 };
 
                 selectedProducts.value = [...selectedProducts.value, newEntry];
@@ -213,12 +219,13 @@ export default function NewSale() {
             }
 
             // ✅ First time adding this product
-            const product: SaleProduct = await fetchSaleProduct(p.id);
+            const product: SaleProduct = await fetchSaleProduct(p.productID,p.id);
 
             if (product?.batches.length === 0) {
                 return toast.error("No Stock Available");
             }
 
+            product.salePrice = p.salePrice;
             selectedProducts.value = [...selectedProducts.value, product];
         }
     };
@@ -257,8 +264,7 @@ export default function NewSale() {
                 purchaseID: latest.purchaseID,
                 selectedSerials,
                 soldQty: selectedSerials.length,
-                purchasePrice: latest.purchasePrice,
-                salePrice: latest.salePrice,
+                purchasePrice: latest.cost,
                 warranty: latest.warranty || 0,
             };
             selectedProducts.value = updated;
@@ -295,15 +301,14 @@ export default function NewSale() {
             serials: remainingSerials,
             selectedSerials: [latest],
             soldQty: 1,
-            purchasePrice: latest.purchasePrice,
-            salePrice: latest.salePrice,
+            purchasePrice: latest.cost,
             warranty: latest.warranty || 0,
         };
 
         selectedProducts.value = [...updated, newProduct];
     };
 
-    const selectBatch = (selectedBatch: SelectOption<Batch> | null, productId: string, currentIndex: number) => {
+    const selectBatch = (selectedBatch: SelectOption<Batch> | null, variantID: number, currentIndex: number) => {
         if (!selectedBatch) {
             selectedProducts.value = selectedProducts.value.map((product, idx) =>
                 idx === currentIndex
@@ -321,9 +326,9 @@ export default function NewSale() {
 
             // ✅ Collect all already selected batch IDs from all rows of this product
             const alreadySelectedBatchIds = selectedProducts.value
-                .filter(p => p.id === productId)
+                .filter(p => p.id === variantID)
                 .map(p => p.selectedBatch?.id)
-                .filter(Boolean) as string[];
+                .filter(Boolean) as number[];
 
             // ✅ Add the newly selected batch to the list
             alreadySelectedBatchIds.push(selectedBatch.id);
@@ -340,7 +345,6 @@ export default function NewSale() {
                 selectedBatch,
                 purchaseID: selectedBatch.purchaseID,
                 purchasePrice: selectedBatch.purchasePrice,
-                salePrice: selectedBatch.salePrice,
                 batches: availableBatches, // ✅ শুধু available batches
             };
 
@@ -371,8 +375,7 @@ export default function NewSale() {
                     ...product,
                     selectedBatch,
                     purchaseID: selectedBatch.purchaseID,
-                    purchasePrice: selectedBatch.purchasePrice,
-                    salePrice: selectedBatch.salePrice,
+                    purchasePrice: selectedBatch.cost,
                 }
                 : product
         );
@@ -439,7 +442,7 @@ export default function NewSale() {
             setIsExchanging(true);
             return setSelectedExchangeAccounts((prev) => {
                 const updated = prev.map((a) =>
-                    a.default
+                    a.isDefault
                         ? {
                             ...a,
                             amount: currentBalance,
@@ -458,7 +461,7 @@ export default function NewSale() {
             setIsExchanging(true);
             setSelectedExchangeAccounts((prev) => {
                 const updated = prev.map((a) =>
-                    a.default
+                    a.isDefault
                         ? {
                             ...a,
                             amount: currentBalance,
@@ -479,7 +482,7 @@ export default function NewSale() {
         if (selectedCustomer && (currentBalance > 0) && isExchanging) {
             setSelectedExchangeAccounts((prev) => {
                 const updated = prev.map((a) =>
-                    a.default
+                    a.isDefault
                         ? {
                             ...a,
                             amount: currentBalance,
@@ -507,7 +510,7 @@ export default function NewSale() {
 
         if (isExchanging) {
             setSelectedExchangeAccounts((prev) => {
-                const defaultAccount = exchangeAccounts.find((a) => a.default);
+                const defaultAccount = exchangeAccounts.find((a) => a.isDefault);
 
                 if (!defaultAccount) return prev;
 
@@ -544,8 +547,9 @@ export default function NewSale() {
             if (p.manageWarranty && p.selectedSerials?.length) {
 
                 return p.selectedSerials.map(serial => ({
-                    productID: p.id,
-                    batchID: serial.value, // serial batch id
+                    productID: p.productID,
+                    variantID:p.id,
+                    batchID: Number(serial.value), // serial batch id
                     soldQty: 1,
                     salePrice: p.salePrice,
                     warranty: p.warranty || 0,
@@ -554,7 +558,8 @@ export default function NewSale() {
 
             // Normal batch product
             return [{
-                productID: p.id,
+                productID: p.productID,
+                variantID:p.id,
                 batchID: p.selectedBatch?.id || null,
                 soldQty: p.soldQty,
                 salePrice: p.salePrice,
@@ -581,7 +586,7 @@ export default function NewSale() {
 
         // ✅ Sale object - backend অনুযায়ী
         const sale = {
-            contactID: selectedCustomer?.value || null, // ✅ contactID (not supplierID)
+            customerID: selectedCustomer?.value || null, // ✅ customerID
             paid: paidWithAcc,
             costName: costName || null,
             otherCost: costName ? otherCost : 0,
@@ -649,11 +654,11 @@ export default function NewSale() {
                     <Select
                         options={products}
                         value={null}
-                        onChange={(val) => handleAddProduct(val as SelectOption<Product>)}
+                        onChange={(val) => handleAddProduct(val as SelectOption<VariantListItem>)}
                         onInputChange={(e) => setProductParams(prev => ({ ...prev, search: e }))}
                         placeholder="Select Product"
                         isClearable
-                        styles={getReactSelectStyles<SelectOption<Product>>()}
+                        styles={getReactSelectStyles<SelectOption<VariantListItem>>()}
                     />
                 </div>
                 {/* Product With Barcode */}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 
 const isDark = () => document.documentElement.classList.contains("dark");
 
-export const getReactSelectStyles = <T extends SelectOption = SelectOption>(): StylesConfig<T> => {
+export const getReactSelectStyles = <T extends { value: string; label: string } = SelectOption>(): StylesConfig<T> => {
   const [dark, setDark] = useState(isDark());
 
   useEffect(() => {

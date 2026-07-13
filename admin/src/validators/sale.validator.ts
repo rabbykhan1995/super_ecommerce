@@ -2,10 +2,12 @@ import { z } from "zod";
 
 export const saleProductSchema = z.object({
   productID: z
-    .string()
+    .number()
     .min(1, "Product is required"),
 
-  batchID: z.string().nullable().optional(),
+  variantID: z.number(),
+
+  batchID: z.number().nullable().optional(),
 
   soldQty: z
     .number()
@@ -13,7 +15,7 @@ export const saleProductSchema = z.object({
 
   salePrice: z
     .number()
-    .min(0.01, "Sale price must be greater than 0"),
+    .min(1, "Sale price must be greater than 0"),
 
   warranty: z.number().nullable().optional(),
   
@@ -21,10 +23,10 @@ export const saleProductSchema = z.object({
 
 export const posSaleProductSchema = z.object({
   productID: z
-    .string()
+    .number()
     .min(1, "Product is required"),
 
-  
+  variantID: z.number(),
 
   soldQty: z
     .number()
@@ -32,7 +34,7 @@ export const posSaleProductSchema = z.object({
 
   salePrice: z
     .number()
-    .min(0.01, "Sale price must be greater than 0"),
+    .min(1, "Sale price must be greater than 0"),
   
 });
 
@@ -43,7 +45,7 @@ export const paymentAccountSchema = z.array(z.object({
 
 export const saleSchema = z.object({
   invoiceNo: z.string().trim().optional(),
-  contactID: z.string().nullable().optional(),
+  customerID: z.number().nullable().optional(),
   note: z.string().nullable().optional(),
   costName: z.string().nullable().optional(),
   exchangeAmount:z.number().min(0).default(0),

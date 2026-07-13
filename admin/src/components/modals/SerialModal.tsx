@@ -15,6 +15,7 @@ type SerialModalProps = {
 export default function SerialModal({ idx, selectedProduct, onClose, onSave }: SerialModalProps) {
     const [serialInputs, setSerialInputs] = useState<string[]>([""]);
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
     const checkSerialExists = async (serial: string): Promise<boolean> => {
         try {
             const res = await api.get(`/product/batchBySerial?serial=${serial}`);
@@ -34,7 +35,7 @@ export default function SerialModal({ idx, selectedProduct, onClose, onSave }: S
         return () => document.body.classList.remove("overflow-hidden");
     }, [idx]);
 
-    if (idx === null) return null;
+
 
     // ✅ Check local duplicates
     const checkLocalDuplicates = (serials: string[]): string[] => {
@@ -165,6 +166,8 @@ export default function SerialModal({ idx, selectedProduct, onClose, onSave }: S
             toast.error("Error checking serials");
         }
     };
+    
+    if (idx === null) return null;
 
     return createPortal(
         <div

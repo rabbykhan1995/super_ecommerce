@@ -26,19 +26,25 @@ export default function PurchaseReturn() {
   const [loading, setLoading] = useState(false);
 
   const fetchPurchase = async () => {
-    const purchaseRes = await api(`/purchase/purchaseInvoiceByID/${id}`);
+    const purchaseRes = await api(`/purchase-return/purchaseForReturn/${id}`);
 
     if (purchaseRes.data.success) {
       const data = purchaseRes.data.data;
       setPurchase(data);
 
       selectedProducts.value = (data.batches || []).map((b: any) => ({
-        ...b,
+        id: b.id,
+        productID: b.productID,
+        variantID: b.variantID,
         name: b.product?.name ?? "",
+        serial: b.serial,
+        cost: b.cost,
+        purchasedQty: b.purchasedQty,
+        remainingQty: Number(b.returnableQty ?? b.purchasedQty),
         qty: 1,
+        warranty: b.warranty,
+        product: b.product,
         selected: false,
-        serials: b.serial ? [b.serial] : [],
-        selectedSerials: [],
       }));
     }
   };
@@ -49,11 +55,11 @@ export default function PurchaseReturn() {
       const formatted: AccountOption[] = res.data.data.map((a: Account) => ({
         ...a,
         label: a.name,
-        value: String(a.id),
+        value: a.id,
         amount: 0,
       }));
-      const defaultAccount = formatted.find((a) => a.default === true);
-      const rest = formatted.filter((a) => a.default !== true);
+      const defaultAccount = formatted.find((a) => a.isDefault === true);
+      const rest = formatted.filter((a) => a.isDefault !== true);
       setAccounts(rest);
       if (defaultAccount) setSelectedAccounts([defaultAccount]);
     }
@@ -95,20 +101,35 @@ export default function PurchaseReturn() {
     }
     
 
+    const balanceBefore = purchase?.supplier?.balance ?? 0;
+    const balanceAfter = balanceBefore - (totalReturnAmount - paid);
+
     const payload = {
-      purchaseID: id as string,
-      note,
-      paid,
-      discount: 0,
-      date: purchaseReturnDate,
-      batches: selectedOnly.map((p) => ({
+      purchaseReturn: {
+        purchaseID: Number(id),
+        supplierID: purchase?.supplier?.id,
+        note,
+        paid,
+        discount: 0,
+        exchangeAmount: 0,
+        date: purchaseReturnDate,
+        balanceBefore,
+        balanceAfter,
+      },
+      products: selectedOnly.map((p) => ({
+        productID: p.productID,
         batchID: p.id,
+        variantID: p.variantID,
         purchaseReturnQty: p.qty,
+        returnPrice: p.cost * p.qty,
       })),
-      accounts: selectedAccounts.map((a) => ({
-        accountID: a.value,
-        amount: a.amount,
-      })),
+      accounts: selectedAccounts
+        .filter((a) => a.amount > 0)
+        .map((a) => ({
+          accountID: a.value,
+          amount: a.amount,
+        })),
+      exchangeAccounts: [],
     };
 
     try {
@@ -116,7 +137,7 @@ export default function PurchaseReturn() {
       const res = await api.post("/purchase-return/create", payload);
       if (res.data.success) {
         toast.success("Purchase return successful");
-        navigate(`/purchase/return/invoice/${res.data.data.id}`);
+        navigate("/purchase/return-list");
       }
     } catch {
       toast.error("Something went wrong");
@@ -182,6 +203,7 @@ export default function PurchaseReturn() {
               <input
                 type="checkbox"
                 checked={!!row.selected}
+                disabled={row.remainingQty === 0}
                 onChange={() => toggleSelect(row.id)}
                 className="w-4 h-4 cursor-pointer"
               />

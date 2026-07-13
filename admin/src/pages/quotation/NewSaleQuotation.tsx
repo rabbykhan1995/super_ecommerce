@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/axios";
-import type { Batch, Contact, SaleProduct, SelectOption } from "../../types/type";
+import type { Batch, Contact, SaleProduct, SelectOption, VariantListItem } from "../../types/type";
 import Select from "react-select";
 import { getReactSelectStyles, smallReactStyle, smallReactStyleMulti } from "../../utils/reactSelectStyles";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
-import type { Product, SearchParams } from "../../types/type";
+import type { SearchParams } from "../../types/type";
 import { Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import { createPortal } from "react-dom";
@@ -30,7 +30,7 @@ export default function NewSaleQuotation() {
         limit: 50,
     });
     const [barcode, setBarcode] = useState<string>("");
-    const [products, setProducts] = useState<SelectOption<Product>[]>([]);
+    const [products, setProducts] = useState<SelectOption<VariantListItem>[]>([]);
     const [customers, setCustomers] = useState<SelectOption<Contact>[]>([]);
     const [selectedCustomer, setSelectedCustomer] = useState<SelectOption<Contact> | null>(null);
     const [saleDate, setSaleDate] = useState<Date>(new Date());
@@ -44,17 +44,17 @@ export default function NewSaleQuotation() {
 
 
     const fetchProducts = async () => {
-        const res = await api("/product/list", {
+        const res = await api("/product/variant-list", {
             params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
         });
         if (res.data.success)
             setProducts(
-                res.data.data.items.map((u: Product) => ({ value: u._id, label: `${u.name} stock-${!u.manageStock ? " ∞" : u.stock}`, ...u }))
+                res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name} stock-${!u.product.manageStock ? " ∞" : u.stock}`, ...u }))
             );
     };
 
-    const fetchSaleProduct = async (id: string) => {
-        const res = await api(`/product/getSaleProduct/${id}`);
+    const fetchSaleProduct = async (productID:number,variantID: number) => {
+        const res = await api(`/product/getSaleProduct/${productID}/${variantID}`);
         if (res.data.success) {
             return res.data.data
         }
@@ -65,7 +65,7 @@ export default function NewSaleQuotation() {
             params: { search: contactParams.search, limit: contactParams.limit, page: contactParams.page, type: "customer" },
         });
         if (res.data.success) setCustomers(
-            res.data.data.items.map((u: Contact) => ({ value: u._id, label: `${u.name} balance(${u.balance})`, ...u }))
+            res.data.data.items.map((u: Contact) => ({ value: u.id, label: `${u.name} balance(${u.balance})`, ...u }))
         );;
     };
 
@@ -76,7 +76,7 @@ export default function NewSaleQuotation() {
         if (res.data.success) {
             const p = res.data.data;
 
-            const product = { value: p._id, label: p.name, ...p };
+            const product = { value: p.id, label: p.name, ...p };
             return handleAddProduct(product)
         } else {
             return toast.error("No Product Found with This barcode")
@@ -84,17 +84,20 @@ export default function NewSaleQuotation() {
 
     };
 
-    const handleAddProduct = async (p: SelectOption<Product>) => {
-        if (!p.manageStock) {
+    const handleAddProduct = async (p: SelectOption<VariantListItem>) => {
+        if (!p.product.manageStock) {
             const existing = selectedProducts.value.find(
-                product => product._id === p._id
+                product => product.id === p.id
             );
 
             if (existing) {
                 existing.soldQty++;
             } else {
-                selectedProducts.value.push({
-                    ...p,
+               selectedProducts.value.push({
+                    ...p.product,
+                    id:p.id,
+                    productID:p.product.id,
+                    name:p.label,
                     soldQty: 1,
                     warranty: 0,
                     serials: [],
@@ -108,13 +111,13 @@ export default function NewSaleQuotation() {
         }
 
         // only warranty product
-        if (p.manageStock && p.manageWarranty) {
-            const isExist = selectedProducts.value.find(product => product._id === p._id);
+        if (p.product.manageStock && p.product.manageWarranty) {
+            const isExist = selectedProducts.value.find(product => product.id === p.id);
             if (isExist) {
                 return toast.error("Product already exists");
             }
 
-            const product: SaleProduct = await fetchSaleProduct(p._id);
+            const product: SaleProduct = await fetchSaleProduct(p.productID,p.id);
             if (product?.serials.length === 0) {
                 return toast.error("No Serial Available");
             }
@@ -122,8 +125,8 @@ export default function NewSaleQuotation() {
         }
 
         // only batches/non-warranty/stock product
-        if (p.manageStock && !p.manageWarranty) {
-            const existingRows = selectedProducts.value.filter(product => product._id === p._id);
+        if (p.product.manageStock && !p.product.manageWarranty) {
+            const existingRows = selectedProducts.value.filter(product => product.id === p.id);
 
             if (existingRows.length > 0) {
                 // ✅ সবার শেষের row টা নিন (last added)
@@ -136,8 +139,8 @@ export default function NewSaleQuotation() {
                 // ✅ Check করুন last row এর batch এ আরো qty available আছে কিনা
                 const currentlyUsed = selectedProducts.value
                     .filter(prod =>
-                        prod._id === p._id &&
-                        prod.selectedBatch?._id === lastRow.selectedBatch?._id
+                        prod.id === p.id &&
+                        prod.selectedBatch?.id === lastRow.selectedBatch?.id
                     )
                     .reduce((sum, prod) => sum + prod.soldQty, 0);
 
@@ -155,11 +158,11 @@ export default function NewSaleQuotation() {
 
                 // ✅ শেষ হয়ে গেছে → নতুন batch খুঁজুন
                 const usedBatchIds = existingRows
-                    .map(row => row.selectedBatch?._id)
-                    .filter(Boolean) as string[];
+                    .map(row => row.selectedBatch?.id)
+                    .filter(Boolean) as number[];
 
                 const availableBatches = lastRow.batches.filter(
-                    b => !usedBatchIds.includes(b._id)
+                    b => !usedBatchIds.includes(b.id)
                 );
 
                 if (availableBatches.length === 0) {
@@ -183,7 +186,7 @@ export default function NewSaleQuotation() {
             }
 
             // ✅ First time adding this product
-            const product: SaleProduct = await fetchSaleProduct(p._id);
+            const product: SaleProduct = await fetchSaleProduct(p.productID,p.id);
 
             if (product?.batches.length === 0) {
                 return toast.error("No Stock Available");
@@ -273,7 +276,7 @@ export default function NewSaleQuotation() {
         selectedProducts.value = [...updated, newProduct];
     };
 
-    const selectBatch = (selectedBatch: SelectOption<Batch> | null, productId: string, currentIndex: number) => {
+    const selectBatch = (selectedBatch: SelectOption<Batch> | null, productId: number, currentIndex: number) => {
         if (!selectedBatch) {
             selectedProducts.value = selectedProducts.value.map((product, idx) =>
                 idx === currentIndex
@@ -287,20 +290,20 @@ export default function NewSaleQuotation() {
         if (!currentProduct) return;
 
         // ✅ If soldQty > 1 and changing batch → SPLIT
-        if (currentProduct.soldQty > 1 && currentProduct.selectedBatch?._id !== selectedBatch._id) {
+        if (currentProduct.soldQty > 1 && currentProduct.selectedBatch?.id !== selectedBatch.id) {
 
             // ✅ Collect all already selected batch IDs from all rows of this product
             const alreadySelectedBatchIds = selectedProducts.value
-                .filter(p => p._id === productId)
-                .map(p => p.selectedBatch?._id)
-                .filter(Boolean) as string[];
+                .filter(p => p.id === productId)
+                .map(p => p.selectedBatch?.id)
+                .filter(Boolean) as number[];
 
             // ✅ Add the newly selected batch to the list
-            alreadySelectedBatchIds.push(selectedBatch._id);
+            alreadySelectedBatchIds.push(selectedBatch.id);
 
             // ✅ Filter out all selected batches from available batches
             const availableBatches = currentProduct.batches.filter(
-                b => !alreadySelectedBatchIds.includes(b._id)
+                b => !alreadySelectedBatchIds.includes(b.id)
             );
 
             // Current row এ নতুন batch, qty = 1
@@ -403,7 +406,7 @@ export default function NewSaleQuotation() {
             if (p.manageWarranty && p.selectedSerials?.length) {
 
                 return p.selectedSerials.map(serial => ({
-                    productID: p._id,
+                    productID: p.id,
                     batchID: serial.value, // serial batch id
                     soldQty: 1,
                     salePrice: p.salePrice,
@@ -413,8 +416,8 @@ export default function NewSaleQuotation() {
 
             // Normal batch product
             return [{
-                productID: p._id,
-                batchID: p.selectedBatch?._id || null,
+                productID: p.id,
+                batchID: p.selectedBatch?.id || null,
                 soldQty: p.soldQty,
                 salePrice: p.salePrice,
                 warranty: p.warranty || 0,
@@ -455,7 +458,7 @@ export default function NewSaleQuotation() {
 
             if (res.data.success === true) {
                 toast.success(res.data.msg || "Sale created successfully!");
-                navigate(`/quotation/sale-quotation-invoice/${res.data.data._id}`);
+                navigate(`/quotation/sale-quotation-invoice/${res.data.data.id}`);
             } else {
                 toast.error(res.data.message || "Failed to create sale");
             }
@@ -489,11 +492,11 @@ export default function NewSaleQuotation() {
                     <Select
                         options={products}
                         value={null}
-                        onChange={(val) => handleAddProduct(val as SelectOption<Product>)}
+                        onChange={(val) => handleAddProduct(val as SelectOption<VariantListItem>)}
                         onInputChange={(e) => setProductParams(prev => ({ ...prev, search: e }))}
                         placeholder="Select Product"
                         isClearable
-                        styles={getReactSelectStyles<SelectOption<Product>>()}
+                        styles={getReactSelectStyles<SelectOption<VariantListItem>>()}
                     />
                 </div>
                 {/* Product With Barcode */}
@@ -541,7 +544,7 @@ export default function NewSaleQuotation() {
             {/* Table */}
             <Table
                 data={selectedProducts.value}
-                keyExtractor={(row, i) => `${row._id}-${i}`}
+                keyExtractor={(row, i) => `${row.id}-${i}`}
                 columns={[
                     // #
                     {
@@ -622,7 +625,7 @@ export default function NewSaleQuotation() {
                                         onChange={(selectedBatch) => {
                                             selectBatch(
                                                 selectedBatch as SelectOption<Batch> | null,
-                                                row._id,
+                                                row.id,
                                                 i as number // ✅ Pass index
                                             );
                                         }}

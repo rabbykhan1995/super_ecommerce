@@ -18,7 +18,8 @@ router
     asyncHandler(PurchaseReturnController.create),
   )
   .get("/list", authMiddleware, asyncHandler(PurchaseReturnController.list))
-  .get("/purchaseByID/:id", authMiddleware, asyncHandler(PurchaseReturnController.purchaseReturnByID))
+  .get("/purchaseReturnByID/:id", authMiddleware, asyncHandler(PurchaseReturnController.purchaseReturnByID))
+  .get('/purchaseForReturn/:id', authMiddleware,asyncHandler(PurchaseReturnController.purchaseForReturnByID))
   .delete('/delete/:id', authMiddleware, asyncHandler(PurchaseReturnController.delete))
     // .get("/product-by-id/:purchaseID", authMiddleware, asyncHandler(PurchaseReturnController.getPurchaseReturnBatches))
 

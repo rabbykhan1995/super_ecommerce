@@ -49,7 +49,7 @@ export class AccountService {
 
         // check default account
 
-        if (payload.default === true) {
+        if (payload.isDefault === true) {
 
             const defaultAccount =
                 await AccountRepository.findDefault();
@@ -99,7 +99,7 @@ export class AccountService {
             if (exist) throw new ApiError(400, "Account already exists with this name");
         }
 
-        if (payload.default === true) {
+        if (payload.isDefault === true) {
             const exist = await AccountRepository.findDefault(accountID);// ✅ id দিয়ে বাদ দাও
             if (exist) throw new ApiError(400, "Default account already exists");
         }

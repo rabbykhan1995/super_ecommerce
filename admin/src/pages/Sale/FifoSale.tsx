@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/axios";
-import type { Account, Batch, Contact, PosProduct, SelectOption } from "../../types/type";
+import type { Account, Contact, PosSaleProduct, SelectOption, VariantListItem } from "../../types/type";
 import Select from "react-select";
 import { getReactSelectStyles } from "../../utils/reactSelectStyles";
 import toast from "react-hot-toast";
 import { Link, } from "react-router";
 import type { Product, SearchParams, AccountOption } from "../../types/type";
-import { Barcode, Calendar, ImageOff, Trash } from "lucide-react";
-import DatePicker from "react-datepicker";
-import { createPortal } from "react-dom";
+import { Barcode, ImageOff, Trash } from "lucide-react";
 import "react-datepicker/dist/react-datepicker.css";
 import Table from "../../components/tables/Table";
 import { useSignal } from "@preact/signals-react";
@@ -36,12 +34,12 @@ export default function FifoSale() {
     limit: 50,
   });
   const [barcode, setBarcode] = useState<string>("");
-  const [products, setProducts] = useState<SelectOption<PosProduct>[]>([]);
+  const [products, setProducts] = useState<SelectOption<VariantListItem>[]>([]);
   const [posProducts, setPosProducts] = useState<Product[] | []>([]);
   const [customers, setCustomers] = useState<SelectOption<Contact>[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<SelectOption<Contact> | null>(null);
   const [saleDate, setSaleDate] = useState<Date>(new Date());
-  const selectedProducts = useSignal<PosProduct[]>([]);
+  const selectedProducts = useSignal<PosSaleProduct[]>([]);
   // serial is open with index, if index exist it open
   const [costName, setCostName] = useState<string | null>("");
   const [isExchanging, setIsExchanging] = useState<boolean>(false);
@@ -55,8 +53,9 @@ export default function FifoSale() {
   const [selectedExchangeAccounts, setSelectedExchangeAccounts] = useState<AccountOption[]>([]);
 
   const [invoiceModal, setInvoiceModal] = useState<boolean>(false);
-  const [printSize, setPrintSize] = useState<number>(58);
+  const [printSize] = useState<number>(58);
   const [saleInvoiceID, setSaleInvoiceID] = useState<string | null>(null);
+
   const fetchPosProducts = async () => {
     const res = await api("/product/getPosProducts");
     if (res.data.success)
@@ -64,29 +63,24 @@ export default function FifoSale() {
         res.data.data
       );
   };
-  const fetchProducts = async () => {
-    const res = await api("/product/list", {
-      params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
-    });
-    if (res.data.success)
-      setProducts(
-        res.data.data.items.map((u: Product) => ({ value: u._id, label: `${u.name} brand:(${u.brandName}) cat:(${u.categoryName})`, ...u }))
-      );
-  };
+    const fetchProducts = async () => {
+        const res = await api("/product/variant-list", {
+            params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
+        });
+        if (res.data.success)
+            setProducts(
+                res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name} stock-${!u.product.manageStock ? " ∞" : u.stock}`, ...u }))
+            );
+    };
 
-  const getFifoSaleBatchByProductID = async (id: string) => {
-    const res = await api(`/product/get-fifoBatch/${id}`);
-    if (res.data.success) {
-      return res.data.data;
-    }
-  }
+
   const fetchContacts = async () => {
     const res = await api("/contact/list", {
       params: { search: contactParams.search, limit: contactParams.limit, page: contactParams.page, type: "customer" },
     });
     if (res.data.success) {
       const options = res.data.data.items.map((u: Contact) => ({
-        value: u._id,
+        value: u.id,
         label: `${u?.name} balance(${u?.balance})`,
         ...u
       }));
@@ -94,29 +88,29 @@ export default function FifoSale() {
       return setCustomers(options)
     };
   };
-  const fetchAccount = async () => {
-    const res = await api("/account/list");
-    if (res.data.success) {
-      const formatted: AccountOption[] = res.data.data.map((a: Account) => ({
-        ...a,
-        label: a.name,
-        value: a._id,
-        amount: 0,
-        type: "Debit"
-      }));
+    const fetchAccount = async () => {
+        const res = await api("/account/list");
+        if (res.data.success) {
+            const formatted: AccountOption[] = res.data.data.map((a: Account) => ({
+                ...a,
+                label: a.name,
+                value: a.id,
+                amount: 0,
+                type: "Debit"
+            }));
 
-      // default account আলাদা করো
-      const defaultAccount = formatted.find((a) => a.default === true);
-      const rest = formatted.filter((a) => a.default !== true);
+            // default account আলাদা করো
+            const defaultAccount = formatted.find((a) => a.isDefault === true);
+            const rest = formatted.filter((a) => a.isDefault !== true);
 
-      setAccounts(rest);
-      setExchangeAccounts(rest);
-      if (defaultAccount) {
-        setSelectedAccounts([defaultAccount]);
-        setSelectedExchangeAccounts([defaultAccount])
-      };
-    }
-  };
+            setAccounts(rest);
+            setExchangeAccounts(rest);
+            if (defaultAccount) {
+                setSelectedAccounts([defaultAccount]);
+                setSelectedExchangeAccounts([defaultAccount])
+            };
+        }
+    };
   const fetchProductWithBarcode = async (barcode: string) => {
     const res = await api("/product/productByBarcode", {
       params: { barcode },
@@ -124,7 +118,7 @@ export default function FifoSale() {
     if (res.data.success) {
       const p = res.data.data;
 
-      const product = { value: p._id, label: p.name, ...p };
+      const product = { value: p.id, label: p.name, ...p };
       return handleAddProduct(product)
     } else {
       setBarcode("");
@@ -147,33 +141,32 @@ export default function FifoSale() {
     return () => clearTimeout(timer);
   }, [productParams.search]);
 
-  const handleAddProduct = async (p: SelectOption<PosProduct> | Product) => {
-
-    if (!p.manageStock) {
-      const existing = selectedProducts.value.find(product => product._id === p._id);
+  const handleAddProduct = async (p: SelectOption<VariantListItem>) => {
+    if (!p.product.manageStock) {
+      const existing = selectedProducts.value.find(product => product.id === p.id);
 
       if (existing) {
         selectedProducts.value = selectedProducts.value.map(product =>
-          product._id === p._id
+          product.id === p.id
             ? { ...product, soldQty: product.soldQty + 1 }
             : product
         );
       } else {
-        selectedProducts.value = [...selectedProducts.value, { ...p, soldQty: 1 }];
+        selectedProducts.value = [...selectedProducts.value, { ...p.product, soldQty: 1, productID:p.productID, variantID: p.id }];
       }
       return;
     }
 
-    if (p.manageStock && p.manageWarranty) {
+    if (p.product.manageStock && p.product.manageWarranty) {
       return toast.error("Please choose a different sale method");
     }
 
-    if (p.manageStock && !p.manageWarranty) {
-      const existing = selectedProducts.value.find(product => product._id === p._id);
+    if (p.product.manageStock && !p.product.manageWarranty) {
+      const existing = selectedProducts.value.find(product => product.id === p.id);
 
       if (existing && existing.stock > existing.soldQty) {
         selectedProducts.value = selectedProducts.value.map(product =>
-          product._id === p._id
+          product.id === p.id
             ? { ...product, soldQty: product.soldQty + 1 }
             : product
         );
@@ -181,15 +174,9 @@ export default function FifoSale() {
         return toast.error("No more stock available");
       } else {
 
-        const batch: Batch | null = await getFifoSaleBatchByProductID(p._id);
-
-        if (!batch) {
-          return;
-        }
 
 
-
-        selectedProducts.value = [...selectedProducts.value, { ...p, soldQty: 1, stock: batch.remainingQty, salePrice: batch.salePrice, expireDate: batch.expireDate }];
+        selectedProducts.value = [...selectedProducts.value, { ...p.product, soldQty: 1, stock: p.stock, salePrice: p.salePrice, productID:p.productID, variantID: p.id }];
       }
     }
   };
@@ -241,7 +228,7 @@ export default function FifoSale() {
       setSelectedExchangeAccounts([]);
       return setSelectedAccounts((prev) => {
         const updated = prev.map((a) =>
-          a.default
+          a.isDefault
             ? {
               ...a,
               amount: totalPayableAmount,
@@ -259,7 +246,7 @@ export default function FifoSale() {
       setIsExchanging(true);
       return setSelectedExchangeAccounts((prev) => {
         const updated = prev.map((a) =>
-          a.default
+          a.isDefault
             ? {
               ...a,
               amount: currentBalance,
@@ -278,7 +265,7 @@ export default function FifoSale() {
       setIsExchanging(true);
       setSelectedExchangeAccounts((prev) => {
         const updated = prev.map((a) =>
-          a.default
+          a.isDefault
             ? {
               ...a,
               amount: currentBalance,
@@ -299,7 +286,7 @@ export default function FifoSale() {
     if (selectedCustomer && (currentBalance > 0) && isExchanging) {
       setSelectedExchangeAccounts((prev) => {
         const updated = prev.map((a) =>
-          a.default
+          a.isDefault
             ? {
               ...a,
               amount: currentBalance,
@@ -327,11 +314,11 @@ export default function FifoSale() {
 
     if (isExchanging) {
       setSelectedExchangeAccounts((prev) => {
-        const defaultAccount = exchangeAccounts.find((a) => a.default);
+        const defaultAccount = exchangeAccounts.find((a) => a.isDefault);
 
         if (!defaultAccount) return prev;
 
-        const updated = prev.some((a) => a._id === defaultAccount._id)
+        const updated = prev.some((a) => a.id === defaultAccount.id)
           ? prev
           : [
             {
@@ -376,7 +363,8 @@ export default function FifoSale() {
 
     // ✅ Products structure - backend অনুযায়ী
     const products = selectedProducts.value.map(p => ({
-      productID: p._id,
+      productID: p.productID,
+      variantID: p.variantID,
       soldQty: 1,
       salePrice: p.salePrice,
     }));
@@ -403,7 +391,7 @@ export default function FifoSale() {
 
     // ✅ Sale object - backend অনুযায়ী
     const sale = {
-      contactID: selectedCustomer?.value || null, // ✅ contactID (not supplierID)
+      customerID: selectedCustomer?.value || null, // ✅ customerID
       paid: paidWithAcc,
       costName: costName || null,
       otherCost: costName ? otherCost : 0,
@@ -439,7 +427,7 @@ export default function FifoSale() {
 
       if (res.data.success === true) {
         toast.success(res.data.msg || "Sale created successfully!");
-        setSaleInvoiceID(res.data.data._id);
+        setSaleInvoiceID(res.data.data.id);
         setTimeout(() => {
           setInvoiceModal(true);
         }, 50);
@@ -470,7 +458,15 @@ export default function FifoSale() {
                 <div key={i}
 
                   onClick={() => {
-                    handleAddProduct({ ...p, value: p._id, label: p.name })
+                    const variantID = (p as any).variant?.id || p.id;
+                    handleAddProduct({
+                      ...p,
+                      value: variantID,
+                      label: p.name,
+                      id: variantID,
+                      productID: p.id,
+                      product: p as any,
+                    } as unknown as SelectOption<VariantListItem>)
                   }}
                   className="text-sm hover:scale-102 border border-gray-300 dark:border-zinc-700 rounded-sm p-1 flex items-center flex-col">
                   {
@@ -496,11 +492,11 @@ export default function FifoSale() {
               <Select
                 options={products}
                 value={null}
-                onChange={(val) => handleAddProduct(val as SelectOption<PosProduct>)}
+                onChange={(val) => handleAddProduct(val as SelectOption<VariantListItem>)}
                 onInputChange={(e) => setProductParams(prev => ({ ...prev, search: e }))}
                 placeholder="Select Product"
                 isClearable
-                styles={getReactSelectStyles<SelectOption<PosProduct>>()}
+                styles={getReactSelectStyles<SelectOption<VariantListItem>>()}
               />
             </div>
             {/* Product With Barcode */}
@@ -525,7 +521,7 @@ export default function FifoSale() {
           {/* Table */}
           <Table
             data={selectedProducts.value}
-            keyExtractor={(row, i) => `${row._id}-${i}`}
+            keyExtractor={(row, i) => `${row.id}-${i}`}
             columns={[
               // #
               {

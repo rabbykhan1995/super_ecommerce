@@ -7,78 +7,15 @@ import {
   numeric,
   index,
   varchar,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { productTable } from "./product.table";
 import { variantTable } from "./variant.table";
 import { relations } from "drizzle-orm";
 import { purchaseTable } from "../purchase/purchase.table";
 import { stockFlowTable } from "./stock_flow.table";
 import { purchaseReturnItemsTable } from "../purchase_return/purchase_return.table";
-
-// export const batchTable = pgTable(
-//     "batches",
-//     {
-//         id: serial("id").primaryKey(),
-
-//         serial: varchar("serial").unique(),
-
-//         productID: integer("product_id").notNull().references(() => productTable.id, {
-//             onDelete: "cascade",
-//         }),
-
-//         variantID: integer("variant_id").notNull().references(() => variantTable.id),
-//         // ekhanew same reference jog korte hobe
-//         purchaseID: integer("purchase_id").references(() => purchaseTable.id),
-
-//         cost: numeric("cost").default("0"),
-
-//         purchasedQty: numeric("purchased_qty").default("0"),
-
-//         soldQty: numeric("sold_qty").default("0"),
-
-//         damagedQty: numeric("damaged_qty").default("0"),
-
-//         remainingQty: numeric("remaining_qty").default("0"),
-
-//         purchaseReturnedQty: numeric("purchase_return_qty").default("0"),
-
-//         saleReturnedQty: numeric("sale_return_qty").default("0"),
-
-//         purchaseDate: timestamp("purchase_date", {
-//             withTimezone: true,
-//         })
-//             .defaultNow()
-//             .notNull(),
-
-//         expireDate: timestamp("expire_date", {
-//             withTimezone: true,
-//         }).$type<Date | null>(),
-
-
-//         isActive: boolean("is_active").default(true),
-
-//         createdAt: timestamp("created_at", {
-//             withTimezone: true,
-//         })
-//             .defaultNow()
-//             .notNull(),
-
-//         updatedAt: timestamp("updated_at", {
-//             withTimezone: true,
-//         })
-//             .defaultNow()
-//             .notNull(),
-
-//     },
-//     (table) => [
-//         index("batches_product_id_idx").on(table.productID),
-//         index("batches_variant_id_idx").on(table.variantID),
-//         index("batches_purchase_id_idx").on(table.purchaseID),
-//     ],
-// );
-
-
-// ব্যাচের রিলেশন
 
 export const batchTable = pgTable(
   "batches",
@@ -110,10 +47,14 @@ export const batchTable = pgTable(
       .default(0)
       .notNull(),
 
+    warranty: integer("warranty")
+      .default(0)
+      .notNull(),
+
+
     purchasedQty: numeric("purchased_qty", {
       precision: 12,
-      scale: 2
-      ,
+      scale: 2,
       mode: "number"
     })
       .default(0)
@@ -158,6 +99,7 @@ export const batchTable = pgTable(
     index("batches_product_idx").on(table.productID),
     index("batches_variant_idx").on(table.variantID),
     index("batches_purchase_idx").on(table.purchaseID),
+    check("batches_warranty_check", sql`${table.warranty} >= 0`),
   ]
 );
 
@@ -178,5 +120,5 @@ export const batchRelations = relations(batchTable, ({ one, many }) => ({
   }),
   stockFlows: many(stockFlowTable),
 
-  purchaseReturnItems:many(purchaseReturnItemsTable),
+  purchaseReturnItems: many(purchaseReturnItemsTable),
 }));

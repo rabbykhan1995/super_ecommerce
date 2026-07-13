@@ -1,78 +1,282 @@
-🛒 পিওএস (POS) সেলস স্ক্রিন: ফাংশনাল ও লজিক্যাল ওয়ার্কফ্লো
-এই পেজটি একটি দোকানের ডিজিটাল ক্যাশ কাউন্টার বা বিলিং সেকশনের মতো কাজ করে। একজন ক্যাশিয়ার যখন কোনো কাস্টমারের কাছে পণ্য বিক্রি করেন, তখন এই স্ক্রিনটি ব্যবহার করে পুরো ট্রানজেকশনটি সম্পন্ন করেন।
+# Sale Module - Admin Frontend Documentation
 
-🔄 মেইন ইউজার ফ্লো (The Core Workflow)
-একটি সফল বিক্রয় সম্পন্ন করতে সিস্টেমটি ব্যাকগ্রাউন্ডে নিচের ৫টি প্রধান ধাপ বা ফ্লো মেইনটেইন করে:
+This document covers the two sale screens in the admin dashboard: **New Sale** (batch-based) and **FIFO Sale** (auto-allocation).
 
-Plaintext
+---
 
+## New Sale (`/sale/new`)
 
-┌────────────────────────┐      ┌────────────────────────┐      ┌────────────────────────┐
-│ ধাপ ১: কাস্টমার সিলেকশন │  ──➔ │ ধাপ ২: ইনভেন্টরি ট্র্যাকিং│  ──➔ │ ধাপ ৩:   কার্ট ও ক্যালকুলেশন│
-└────────────────────────┘      └────────────────────────┘      └────────────────────────┘
-                                                                            │
-                                                                            ▼
-┌────────────────────────┐      ┌────────────────────────┐      ┌────────────────────────┐
-│  ইনভয়েস জেনারেট ও শেষ  │  ◀── │ধাপ ৫: ভ্যালিডেশন ও সাবমিট│  ◀── │ ধাপ ৪: পেমেন্ট ও অ্যাকাউন্টস│
-└────────────────────────┘      └────────────────────────┘      └────────────────────────┘
+A full-featured sale screen supporting all product types: non-stock, batch-tracked, and warranty/serial-tracked products.
 
+**Route:** `/sale/new`  
+**Component:** `NewSale.tsx`  
+**Backend Endpoint:** `POST /sale/create`
 
-🧩 স্ক্রিনের মূল অংশসমূহ এবং ব্যাকএন্ড লজিক (Components & Smart Logic)
-১. কাস্টমার সিলেকশন (Customer Management)
-কাজ: প্রথমে ড্রপডাউন থেকে কাস্টমার বেছে নেওয়া হয়। কাস্টমার সিলেক্ট করার সাথে সাথে ডাটাবেজ থেকে তার বর্তমান আর্থিক অবস্থা (Ledger) স্ক্রিনে চলে আসে।
+### Core Workflow
 
-স্মার্ট লাইভ লজিক: * কাস্টমারের যদি বকেয়া থাকে, তবে তার পরিমাণ লাল রঙে (Due) দেখাবে।
+```
+┌──────────────────────┐    ┌──────────────────────┐    ┌──────────────────────┐
+│ Step 1: Customer      │ -> │ Step 2: Product       │ -> │ Step 3: Cart &        │
+│ Selection             │    │ Selection             │    │ Calculation           │
+└──────────────────────┘    └──────────────────────┘    └──────────────────────┘
+                                                                  |
+                                                                  v
+┌──────────────────────┐    ┌──────────────────────┐    ┌──────────────────────┐
+│ Invoice & Redirect    │ <- │ Validation & Submit   │ <- │ Payment & Accounts    │
+└──────────────────────┘    └──────────────────────┘    └──────────────────────┘
+```
 
-কাস্টমার যদি আগে থেকেই অ্যাডভান্স টাকা দিয়ে রাখে, তবে তা সবুজ রঙে (Advance Balance) দেখাবে।
+### Components
 
-২. প্রোডাক্ট সিলেকশন ও ইনভেন্টরি ট্র্যাকিং
-পণ্য যোগ করার ২টি উপায় আছে: সার্চ ড্রপডাউন (টাইপ করার ৪০০ মিলিসেকেন্ড পর ডাটা ফেচ হবে) অথবা সরাসরি বারকোড স্ক্যানার। এখানে প্রোডাক্টের টাইপ অনুযায়ী সিস্টেম ৩ ধরনের স্মার্ট লজিক খাটায়:
+#### 1. Customer Selection
+- Dropdown search with 400ms debounce
+- Shows customer name + current balance
+- Balance indicators:
+  - **Red** = Due (negative balance)
+  - **Green** = Advance (positive balance)
+- Optional — walk-in customers allowed
 
-সাধারণ প্রোডাক্ট (No Stock Tracking): একই প্রোডাক্ট বারবার স্ক্যান বা সিলেক্ট করলে নতুন কোনো রো (Row) তৈরি হবে না, শুধু কার্টে পণ্যের পরিমাণ (Quantity) ১ ১ করে বাড়তে থাকবে।
+#### 2. Product Selection
+Two input methods: **Search Dropdown** or **Barcode Scanner**.
 
-ওয়ারেন্টি প্রোডাক্ট (Serial/IMEI Tracked): প্রতিটি সিরিয়াল নাম্বার যেহেতু ইউনিক, তাই একই সিরিয়াল দুইবার যোগ করা যাবে না। যদি আলাদা ব্যাচের সিরিয়াল মিক্স করা হয়, সিস্টেম স্বয়ংক্রিয়ভাবে কার্ট-টেবিলটিকে স্প্লিট (Split বা আলাদা রো) করে দেবে যাতে ওয়ারেন্টি ট্র্যাকিং নিখুঁত থাকে।
+Product type determines behavior:
 
-ব্যাচ প্রোডাক্ট (FIFO/Batch Tracked): যখন একটি নির্দিষ্ট ব্যাচের স্টক শেষ হয়ে যাবে, সিস্টেম নিজে থেকেই পরবর্তী এভেইলেবল (Next Available) ব্যাচ থেকে প্রোডাক্ট কার্টে পুশ করবে। আপনি ম্যানুয়ালি ব্যাচ পরিবর্তন করলে সিস্টেম রো-টি স্প্লিট করে মেসেজ দেবে: "Row split - different batch selected"।
+| Type | Behavior |
+|------|----------|
+| **Non-stock** (`manageStock=false`) | Increments quantity on same row |
+| **Warranty/Serial** (`manageWarranty=true`) | Fetches serials from backend, allows multi-serial selection, splits rows on mixed batches |
+| **Batch-tracked** (`manageStock=true, manageWarranty=false`) | Auto-selects first batch, allows batch switching with row split |
 
-৩. প্রোডাক্টস টেবিল (The Shopping Cart)
-নির্বাচিত সব প্রোডাক্ট এই টেবিলে এসে জমা হয়। প্রতি লাইনে নিচের ডেটাগুলো লাইভ কন্ট্রোল করা যায়:
+**Sale Price Source:** Variant-level `salePrice` from `VariantListItem` (not product-level).
 
-এডিটেবল ফিল্ডস: পারচেজ প্রাইস এবং সেলস প্রাইস অন দ্য স্পট পরিবর্তন (Override) করা যায়। ওয়ারেন্টি দিন সংখ্যা ম্যানুয়ালি বসানো যায়।
+#### 3. Selected Products Table
+Each row supports live editing:
 
-সিরিয়াল ও ব্যাচ ড্রপডাউন: কার্ট টেবিলের ভেতর থেকেই নির্দিষ্ট আইটেমের ব্যাচ বা সিরিয়াল নাম্বার পরিবর্তন করা সম্ভব।
+| Column | Editable | Notes |
+|--------|----------|-------|
+| Name | No | Display only |
+| Warranty | Yes | Days input (warranty products only) |
+| Serials | Yes | Multi-select dropdown (warranty products only) |
+| Batches | Yes | Single-select dropdown (batch products only) |
+| Purchase Price | Yes | Can override |
+| Sale Price | Yes | Can override |
+| Qty | Yes | IncrDecrButton or manual input |
+| Total | No | Auto-calculated: `salePrice * soldQty` |
 
-লাইভ টোটাল: কোনো লাইনের কোয়ান্টিটি বা প্রাইস চেঞ্জ করার সাথে সাথে Price × Qty হিসাব করে ওই লাইনের এবং গ্র্যান্ড টোটাল পলকের মধ্যে আপডেট হয়ে যায়।
+**Row Split Logic:**
+- Warranty: Selecting serials from different purchase batches splits the row
+- Batch: Changing batch on qty > 1 splits the row
 
-৪. সামারি এবং পেমেন্ট প্যানেল (Billing & Accounts)
-বিলিং এবং কাস্টমার একাউন্টিং নিখুঁত রাখার জন্য ডানপাশের এই প্যানেলটি কাজ করে:
+#### 4. Summary & Payment Panel
 
-ডিসকাউন্ট সিঙ্ক লজিক: ডিসকাউন্ট পার্সেন্টেজ (%) লিখলে টাকার পরিমাণ অটো বসে, আবার টাকার পরিমাণ লিখলে পার্সেন্টেজ অটো ক্যালকুলেট হয়। দুটি ফিল্ড সবসময় একে অপরের সাথে সিঙ্ক থাকে।
+- **Discount Sync:** Percentage and amount fields sync bidirectionally
+- **Other Cost:** Optional additional charges (transport, etc.)
+- **Advance Balance:** Auto-deducts customer's advance from payable
+- **Split Payment:** Multiple payment methods supported via `PaymentByAccounts`
+- **Exchange:** Handles overpayment with automatic exchange toggle
+- **Live Balance Preview:** Shows customer's due/advance after sale
 
-অন্যান্য খরচ (Other Costs): কুরিয়ার বা ট্রান্সপোর্ট খরচের মতো অতিরিক্ত খরচ যোগ করার আলাদা ইনপুট ফিল্ড।
+#### 5. Validation & Submit
 
-অ্যাডভান্স ব্যালেন্স অ্যাডজাস্টমেন্ট: কাস্টমারের যদি আগে থেকে অ্যাডভান্স টাকা (Advance Balance) জমা থাকে, তবে সিস্টেম Adv. Paid from Bal. ফিল্ডের মাধ্যমে মূল বিল থেকে সেই টাকা স্বয়ংক্রিয়ভাবে কেটে নেয় এবং নেট পেয়াবল (Net Payable) কমিয়ে দেয়।
+Three validations before submission:
+1. At least one product in cart
+2. All warranty products must have serials selected
+3. Walk-in customers must pay full amount (no due allowed)
 
-মাল্টিপল পেমেন্ট মেথড (Split Payment): কাস্টমার চাইলে এক বিলে কিছু টাকা ক্যাশে, কিছু টাকা চেকে বা ব্যাংকে দিতে পারে। Add another method দিয়ে একাধিক অ্যাকাউন্ট সিলেক্ট করে আলাদা আলাদা অ্যামাউন্ট ট্র্যাকিং করা যায়।
+**Payload Structure:**
+```json
+{
+  "products": [
+    {
+      "productID": 1,
+      "variantID": 2,
+      "batchID": 3,
+      "soldQty": 1,
+      "salePrice": 500,
+      "warranty": 365
+    }
+  ],
+  "accounts": [{ "accountID": 1, "amount": 1000 }],
+  "exchangeAccounts": [],
+  "sale": {
+    "contactID": 5,
+    "paid": 1000,
+    "costName": "Transport",
+    "otherCost": 50,
+    "totalProductPrice": 1000,
+    "exchangeAmount": 0,
+    "discount": 0,
+    "totalAmount": 1050,
+    "note": "Urgent delivery",
+    "saleDate": "2026-07-13",
+    "balanceBefore": 200,
+    "balanceAfter": -850
+  }
+}
+```
 
-ভবিষ্যত লেজার প্রিভিউ (Final Balance Update): ইনভয়েস সেভ হওয়ার পর কাস্টমারের ফাইনাল লেজার কেমন দাঁড়াবে (বকেয়া কত থাকবে বা কত অ্যাডভান্স থাকবে) তা সাবমিট করার আগেই লাল/সবুজ রঙে লাইভ স্ক্রিনে দেখা যায়।
+### Scenarios
 
-৫. ডাটা ভ্যালিডেশন এবং সেলস সাবমিট (Validation & Checkout)
-"Sale" বাটনে ক্লিক করার পর সিস্টেম ডেটাবেজে পাঠানোর আগে ৩টি রিজিড ভ্যালিডেশন চেক করে:
+**Simple Sale (Customer John):**
+John buys 5 pens (no stock tracking). Select customer -> search product -> qty 5 -> Sale -> Done.
 
-কার্ট বা টেবিলে অন্তত ১টি প্রোডাক্ট থাকতে হবে।
+**Complex Sale (Corporate Client XYZ):**
+XYZ buys 2 laptops with different serials from different purchase batches. System creates 2 rows. Client pays 40% cash, 60% bank transfer using split payment.
 
-সিরিয়াল ট্র্যাকিং প্রোডাক্টগুলোর জন্য সিরিয়াল নাম্বার সিলেক্ট করা বাধ্যতামূলক।
+**Prepaid Customer (Rabi):**
+Rabi has 2000 advance. Buys 3000 worth of goods. System auto-deducts 2000, shows payable 1000. Rabi pays 1000 cash, balance becomes 0.
 
-যদি কোনো কাস্টমার সিলেক্ট করা না থাকে (Walk-in Customer), তবে পেমেন্ট অ্যামাউন্ট অবশ্যই মোট বিলের সমান হতে হবে (কোনো বকেয়া রাখা যাবে না)।
+---
 
-সব ভ্যালিডেশন পাস হলে, ফ্রন্টএন্ড থেকে স্ট্রাকচার্ড JSON অবজেক্ট (Products, Accounts, Sale) ব্যাকএন্ড API-তে হিট করে, ডেটা সেভ হয় এবং ইউজারকে সরাসরি Invoice/Bill Print পেজে রিডাইরেক্ট করে দেয়।
+## FIFO Sale (`/sale/fifo`)
 
-📈 সাধারণ ৩টি ওয়ার্কফ্লো উদাহরণ (Common Scenarios)
-সিনারিও ১: একদম সিম্পল সেল (কাস্টমার জন)
-জন নামের কাস্টমার এসে ৫টি কলম কিনলেন। কলমের কোনো ব্যাচ বা সিরিয়াল ট্র্যাকিং নেই। ক্যাশিয়ার কাস্টমার সিলেক্ট করলেন -> কলম সার্চ করে কোয়ান্টিটি ৫ দিলেন -> ১ সেকেন্ডে "Sale" চাপলেন -> বিল শেষ!
+A simplified POS-style sale screen for fast checkout. Uses FIFO (First-In-First-Out) batch allocation automatically — no manual batch/serial selection.
 
-সিনারিও ২: জটিল সেল (কর্পোরেট ক্লায়েন্ট XYZ)
-XYZ কোম্পানি ২টি ল্যাপটপ কিনলো। ল্যাপটপগুলোর সিরিয়াল আলাদা এবং দুটি ভিন্ন পারচেজ ব্যাচ থেকে এসেছে। সিস্টেম কার্টে ২টি আলাদা রো তৈরি করলো যাতে ওয়ারেন্টি ট্র্যাক থাকে। কোম্পানি বিলের ৪০% ক্যাশে দিল আর ৬০% ব্যাংক ট্রান্সফারে দিল। ক্যাশিয়ার মাল্টি-পেমেন্ট মেথড সিলেক্ট করে সেল ক্লোজ করলেন।
+**Route:** `/sale/fifo`  
+**Component:** `FifoSale.tsx`  
+**Backend Endpoint:** `POST /sale/create-fifo-sale`
 
-সিনারিও ৩: প্রি-পেইড কাস্টমার (কাস্টমার রবি)
-রবি ভাইয়ের আগে থেকেই ২০০০ টাকা অ্যাডভান্স দেওয়া আছে দোকানে। আজকে তিনি ৩০০০ টাকার মালামাল কিনলেন। সিস্টেম রবির আগের ২০০০ টাকা অটো মাইনাস করে নেট পেয়াবল দেখালো ১০০০ টাকা। রবি ভাই ১০০০ টাকা ক্যাশ দিলেন, তার বর্তমান ব্যালেন্স হয়ে গেল ০ টাকা।
+### Core Workflow
+
+```
+┌──────────────────────┐    ┌──────────────────────┐    ┌──────────────────────┐
+│ Step 1: Customer      │ -> │ Step 2: Product       │ -> │ Step 3: Cart &        │
+│ Selection             │    │ Selection (POS Grid)  │    │ Calculation           │
+└──────────────────────┘    └──────────────────────┘    └──────────────────────┘
+                                                                  |
+                                                                  v
+┌──────────────────────┐    ┌──────────────────────┐    ┌──────────────────────┐
+│ Invoice Modal         │ <- │ Validation & Submit   │ <- │ Payment & Accounts    │
+└──────────────────────┘    └──────────────────────┘    └──────────────────────┘
+```
+
+### Components
+
+#### 1. POS Product Grid (Left Panel)
+- Displays `inPosList` products as a visual grid with thumbnails
+- Click to add directly to cart
+- Fetches from `GET /product/getPosProducts`
+
+#### 2. Product Selection (Center Top)
+Two input methods: **Search Dropdown** or **Barcode Scanner**.
+
+Product type behavior:
+
+| Type | Behavior |
+|------|----------|
+| **Non-stock** (`manageStock=false`) | Increments quantity on same row |
+| **Warranty/Serial** (`manageWarranty=true`) | **Blocked** — shows "Please choose a different sale method" |
+| **Batch-tracked** (`manageStock=true, manageWarranty=false`) | Increments quantity, checks stock availability |
+
+**Note:** Warranty/serial products are not supported in FIFO sale. Use New Sale for those.
+
+#### 3. Selected Products Table (Center)
+Simpler than New Sale — no batch/serial columns.
+
+| Column | Editable | Notes |
+|--------|----------|-------|
+| Name | No | Shows name + stock count |
+| Price | Yes | Sale price override |
+| Qty | Yes | IncrDecrButton with stock limit |
+| Total | No | Auto-calculated |
+| Action | — | Delete button (Trash icon) |
+
+#### 4. Summary & Payment Panel (Right)
+Same as New Sale: discount sync, other cost, advance balance, split payment, exchange, live balance preview.
+
+#### 5. Invoice Modal
+After successful sale, an invoice modal pops up for printing:
+- Supports 58mm and 80mm print sizes
+- Can be closed and re-opened from sale list
+
+### Validation & Submit
+
+Two validations before submission:
+1. At least one product in cart
+2. Walk-in customers must pay full amount
+
+**Payload Structure:**
+```json
+{
+  "products": [
+    {
+      "productID": 1,
+      "soldQty": 1,
+      "salePrice": 500
+    }
+  ],
+  "accounts": [{ "accountID": 1, "amount": 500 }],
+  "exchangeAccounts": [],
+  "sale": {
+    "contactID": null,
+    "paid": 500,
+    "costName": null,
+    "otherCost": 0,
+    "totalProductPrice": 500,
+    "exchangeAmount": 0,
+    "discount": 0,
+    "totalAmount": 500,
+    "note": null,
+    "saleDate": "2026-07-13",
+    "balanceBefore": 0,
+    "balanceAfter": 0
+  }
+}
+```
+
+**Key Difference from New Sale:** No `batchID`, `variantID`, or `warranty` in products — the backend auto-allocates FIFO batches.
+
+### Scenarios
+
+**Quick POS Sale:**
+Customer buys a pen from the POS grid. Click product -> enter quantity -> pay full amount -> Sale -> Invoice modal pops up -> Print.
+
+**Barcode Scan Sale:**
+Customer brings 3 items. Scan barcode 3 times (each increments qty or adds new row). Select customer -> Sale.
+
+---
+
+## Key Differences: New Sale vs FIFO Sale
+
+| Feature | New Sale | FIFO Sale |
+|---------|----------|-----------|
+| Batch selection | Manual (dropdown) | Auto (FIFO) |
+| Serial/Warranty | Full support | Blocked |
+| Row split | Yes (batch/serial change) | No |
+| Purchase price display | Yes | No |
+| POS grid | No | Yes (left panel) |
+| Invoice after sale | Redirect to page | Modal popup |
+| Print sizes | N/A | 58mm / 80mm |
+| Product type support | All 3 types | Non-stock + Batch only |
+
+---
+
+## File Structure
+
+```
+admin/src/pages/Sale/
+  NewSale.tsx          # Batch-based sale (full-featured)
+  FifoSale.tsx         # FIFO auto-allocation sale (POS-style)
+  SaleList.tsx         # Sale history list
+  SaleInvoice.tsx      # Invoice print page
+  EditSale.tsx         # Edit sale (placeholder)
+  document.md          # This file
+
+admin/src/types/type.ts
+  SaleProduct          # Type for NewSale selected products
+  PosSaleProduct       # Type for FifoSale selected products
+  VariantListItem      # Type for product dropdown options
+
+admin/src/validators/sale.validator.ts
+  createSaleSchema     # Zod validation for New Sale
+  createfifoSaleSchema # Zod validation for FIFO Sale
+
+admin/src/components/Ui/PaymentOption.tsx
+  PaymentByAccounts    # Split payment component
+
+admin/src/components/buttons/IncrDecrButton.tsx
+  IncrDecrButton       # Quantity increment/decrement button
+
+admin/src/components/modals/SaleInvoiceModal.tsx
+  SaleInvoiceModal     # Post-sale invoice modal (FIFO)
+```
