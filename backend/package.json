@@ -38,6 +38,7 @@
   "scripts": {
     "build": "bun tsc",
     "start": "bun index.js",
-    "dev": "bun --watch index.ts"
+    "dev": "bun --watch index.ts",
+    "seed:admin": "bun run src/admin/seed-super-admin.ts"
   }
 }

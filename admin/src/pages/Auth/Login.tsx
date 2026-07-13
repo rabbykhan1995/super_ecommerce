@@ -44,7 +44,7 @@ export default function Login() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-white ">
+    <div className="flex justify-center items-center min-h-screen bg-white">
       <div className="shadow-2xl rounded-2xl p-8 w-[90%] max-w-md dark:bg-gray-900">
         <h2 className="text-2xl font-bold text-center mb-6 text-indigo-600">
           Admin Login

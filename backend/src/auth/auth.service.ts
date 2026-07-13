@@ -260,7 +260,7 @@ export class AuthService {
       throw new ApiError(400, "Wrong Login Method, Login with Google")
     }
 
-    const passwordMatched = Helper.comparePassword(user.password as string, payload.password as string);
+    const passwordMatched = await Helper.comparePassword(payload.password!, user.password as string);
 
     if (!passwordMatched) {
       throw new ApiError(404, "Wrong Credential")
@@ -410,7 +410,7 @@ export class AuthService {
     const userWithRoles = isEmail
       ? await AuthRepository.findUserWithRolesByEmail(payload.identifier)
       : await AuthRepository.findUserWithRolesByMobile(payload.identifier);
-
+   
     if (!userWithRoles) {
       throw new ApiError(404, "Wrong credentials");
     }
@@ -423,7 +423,7 @@ export class AuthService {
       throw new ApiError(400, "No password set for this account");
     }
 
-    const passwordMatched = await Helper.comparePassword(userWithRoles.password, payload.password);
+    const passwordMatched = await Helper.comparePassword(payload.password, userWithRoles.password);
 
     if (!passwordMatched) {
       throw new ApiError(404, "Wrong credentials");

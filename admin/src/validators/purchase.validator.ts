@@ -3,9 +3,11 @@ import { paymentAccountSchema } from "./sale.validator";
 
 export const purchaseProductSchema = z.object({
   productID: z
-    .string()
+    .number()
     .min(1, { message: "Product is required" }),
-
+  variantID: z
+    .number()
+    .min(1, { message: "Variant is required" }),
   serial: z.string().optional().nullable(),
 
   purchasedQty: z
@@ -19,7 +21,8 @@ export const purchaseProductSchema = z.object({
   salePrice: z
     .number({ message: "Sale price must be a number" })
     .min(1, { message: "Sale price must be greater than 0" }),
-  warranty: z.number({ message: "Sale price must be a number" }).optional(), expireDate: z
+  warranty: z.number({ message: "warranty must be a number" }).optional(),
+  expireDate: z
     .coerce
     .date({ message: "Expiry date must be a valid date" })
     .nullable()
@@ -52,10 +55,9 @@ export const purchaseProductSchema = z.object({
 
 
 export const purchaseSchema = z.object({
-  invoiceNo: z.string().trim().optional(),
 
   supplierID: z
-    .string()
+    .number()
     .min(1, { message: "Supplier is required" }),
 
   note: z.string().optional().nullable(),
@@ -66,7 +68,7 @@ export const purchaseSchema = z.object({
     .number({ message: "Total product price must be a number" })
     .min(0, { message: "Total product price cannot be negative" })
     .default(0),
-  exchangeAmount:z.number().min(0).default(0),
+
   otherCost: z
     .number({ message: "Other cost must be a number" })
     .min(0, { message: "Other cost cannot be negative" })
@@ -86,6 +88,10 @@ export const purchaseSchema = z.object({
     .number({ message: "Paid amount must be a number" })
     .min(0, { message: "Paid amount cannot be negative" })
     .default(0),
+  exchangeAmount: z
+    .number({ message: "Exchange amount must be a number" })
+    .min(0, { message: "Exchange amount cannot be negative" })
+    .default(0),
 
   balanceBefore: z
     .number({ message: "Balance before must be a number" })
@@ -97,8 +103,7 @@ export const purchaseSchema = z.object({
 
   purchaseDate: z
     .coerce
-    .date({ message: "Purchase date must be a valid date" })
-    .optional(),
+    .date({ message: "Purchase date must be a valid date" }),
 })
 
 export const createPurchaseSchema = z.object({

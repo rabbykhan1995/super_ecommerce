@@ -41,7 +41,7 @@ export default function PurchaseList() {
   }, [search]);
 
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
 
     toast("Are you sure?", {
       action: {
@@ -73,12 +73,12 @@ export default function PurchaseList() {
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           {
             header: "Invoice", accessor: (row) => (
 
-              <Link to={`/purchase/invoice/${row._id}`}
+              <Link to={`/purchase/invoice/${row.id}`}
                 className="text-sm"
               >
                 {row.invoiceNo}
@@ -86,7 +86,11 @@ export default function PurchaseList() {
 
             ), className: "text-start", headerClassName: "text-start",
           },
-          { header: "Supplier", accessor: "supplierName", headerClassName: "text-start" },
+          { header: "Supplier", accessor: (row) => (
+
+              <span>{row.supplier.name}</span>
+
+            ), headerClassName: "text-start" },
           {
             header: "Other Cost", accessor: (row) =>
 
@@ -139,7 +143,7 @@ export default function PurchaseList() {
             headerClassName: "text-center min-w-20",
             accessor: (row) => (
 
-              <TimeAgo date={row.PurchaseDate} />
+              <TimeAgo date={row.purchaseDate} />
 
             )
 
@@ -151,12 +155,12 @@ export default function PurchaseList() {
             className: "text-right",
             accessor: (row) => (
               <div className="flex gap-2 justify-end">
-                {row.deletable && <button onClick={() => handleDelete(row._id)} title="Delete"
+                {row.deletable && <button onClick={() => handleDelete(row.id)} title="Delete"
                   className="global_button_red"
                 >
                   <Trash size={15} />
                 </button>}
-                <Link to={`/purchase/return/${row._id}`} className="global_button"><Undo2 size={15} /></Link>
+                <Link to={`/purchase/return/${row.id}`} className="global_button"><Undo2 size={15} /></Link>
 
 
               </div>

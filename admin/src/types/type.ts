@@ -49,6 +49,7 @@ export type Product = {
 
 export type PurchaseProduct = {
   id: number;
+      productID:number,
   variantID:number;
   name: string;
   barcode?: string;
@@ -214,7 +215,7 @@ export type PurchaseListItem = {
   totalAmount: number;
   balanceAfter: number;
   paid: number;
-  PurchaseDate: Date;
+  purchaseDate: Date;
   createdAt: Date;
   default: boolean;
   supplierName?: string;
@@ -222,6 +223,9 @@ export type PurchaseListItem = {
   deletable?: boolean;
   discount: number;
   balanceBefore: number;
+  supplier:{
+    name:string;
+  }
 };
 
 export type PurchaseReturnListItem = {

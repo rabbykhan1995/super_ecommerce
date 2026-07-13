@@ -54,6 +54,8 @@ export default function NewPurchase() {
         const res = await api("/product/variant-list", {
             params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
         });
+
+        console.log(res.data.data)
         if (res.data.success)
             setVariants(
                 res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name}(${u.attributes.map(a=> `${a.name}-${a.value}`)})`, ...u }))
@@ -112,13 +114,14 @@ export default function NewPurchase() {
 
     // if product's warranty is enabled, then enable the serial field...and enable the warranty date...
     if (p.product.manageWarranty) {
-        const already = selectedProducts.value.find((item) => item.id === p.id);
+        const already = selectedProducts.value.find((item) => item.variantID === p.id);
         if (already) {
             return toast.error("Please Add serials now");
         }
 
         selectedProducts.value = [...selectedProducts.value, {
             id: p.id,
+                productID:p.productID,
             variantID: p.id,
             name: p.label, // or p.label if you prefer
             barcode: p.barcode,
@@ -142,13 +145,14 @@ export default function NewPurchase() {
     const already = selectedProducts.value.find((item) => item.id === p.id);
     if (already) {
         selectedProducts.value = selectedProducts.value.map((item) =>
-            item.id === p.id ? { ...item, purchaseQty: item.purchaseQty + 1 } : item
+            item.variantID === p.variantID ? { ...item, purchaseQty: item.purchaseQty + 1 } : item
         );
         return;
     }
 
     selectedProducts.value = [...selectedProducts.value, {
         id: p.id,
+        productID:p.productID,
         variantID: p.id,
         name: p.label, // or p.label
         barcode: p.barcode,
@@ -329,10 +333,10 @@ export default function NewPurchase() {
             amount: a.amount,
         }));
 
-        const variants = selectedProducts.value.flatMap(p => {
+        const products = selectedProducts.value.flatMap(p => {
             if (p.serials && p.serials.length > 0) {
                 return p.serials.map((serial: string) => ({
-                    productID: p.id,
+                    productID: p.productID,
                     serial: serial as string | null,
                     purchasedQty: 1,
                        variantID:p.variantID,
@@ -343,7 +347,7 @@ export default function NewPurchase() {
                 }));
             }
             return [{
-                productID: p.id,
+                productID: p.productID,
                 variantID:p.variantID,
                 serial: null as string | null,
                 purchasedQty: p.purchaseQty,
@@ -352,10 +356,12 @@ export default function NewPurchase() {
                 expireDate: p.expireDate ?? null, // ✅
             }];
         });
-        console.log(variants)
-        const purchaseResult = createPurchaseSchema.safeParse({ purchase, variants, accounts, exchangeAccounts });
+  
+        const purchaseResult = createPurchaseSchema.safeParse({ purchase, products, accounts, exchangeAccounts });
+ 
         if (!purchaseResult.success) {
             const firstError = purchaseResult.error.issues[0];
+            console.log(firstError);
             toast.error(firstError.message);
             return;
         }

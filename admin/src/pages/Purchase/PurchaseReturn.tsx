@@ -26,16 +26,15 @@ export default function PurchaseReturn() {
   const [loading, setLoading] = useState(false);
 
   const fetchPurchase = async () => {
-    const [purchaseRes, batchRes] = await Promise.all([
-      api(`/purchase/purchaseInvoiceByID/${id}`),
-      api(`/purchase-return/product-by-id/${id}`)
-    ]);
+    const purchaseRes = await api(`/purchase/purchaseInvoiceByID/${id}`);
 
-    if (purchaseRes.data.success) setPurchase(purchaseRes.data.data);
+    if (purchaseRes.data.success) {
+      const data = purchaseRes.data.data;
+      setPurchase(data);
 
-    if (batchRes.data.success) {
-      selectedProducts.value = batchRes.data.data.map((b: any) => ({
+      selectedProducts.value = (data.batches || []).map((b: any) => ({
         ...b,
+        name: b.product?.name ?? "",
         qty: 1,
         selected: false,
         serials: b.serial ? [b.serial] : [],
@@ -50,7 +49,7 @@ export default function PurchaseReturn() {
       const formatted: AccountOption[] = res.data.data.map((a: Account) => ({
         ...a,
         label: a.name,
-        value: a._id,
+        value: String(a.id),
         amount: 0,
       }));
       const defaultAccount = formatted.find((a) => a.default === true);
@@ -65,16 +64,16 @@ export default function PurchaseReturn() {
   }, [id]);
 
   // checkbox toggle
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: number) => {
     selectedProducts.value = selectedProducts.value.map((p) =>
-      p._id === id ? { ...p, selected: !p.selected } : p
+      p.id === id ? { ...p, selected: !p.selected } : p
     );
   };
 
   // qty change
-  const handleQtyChange = (id: string, value: number) => {
+  const handleQtyChange = (id: number, value: number) => {
     selectedProducts.value = selectedProducts.value.map((p) =>
-      p._id === id ? { ...p, qty: value } : p
+      p.id === id ? { ...p, qty: value } : p
     );
   };
 
@@ -82,7 +81,7 @@ export default function PurchaseReturn() {
   const selectedOnly = selectedProducts.value.filter((p) => p.selected);
 
   const totalReturnAmount = selectedOnly.reduce(
-    (acc, p) => acc + p.qty * p.purchasePrice, 0
+    (acc, p) => acc + p.qty * p.cost, 0
   );
   const paid = selectedAccounts.reduce((acc, a) => acc + (a.amount || 0), 0);
   const supplierBalance = purchase?.supplier?.balance ?? 0;
@@ -103,7 +102,7 @@ export default function PurchaseReturn() {
       discount: 0,
       date: purchaseReturnDate,
       batches: selectedOnly.map((p) => ({
-        batchID: p._id,
+        batchID: p.id,
         purchaseReturnQty: p.qty,
       })),
       accounts: selectedAccounts.map((a) => ({
@@ -117,7 +116,7 @@ export default function PurchaseReturn() {
       const res = await api.post("/purchase-return/create", payload);
       if (res.data.success) {
         toast.success("Purchase return successful");
-        navigate(`/purchase/return/invoice/${res.data.data._id}`);
+        navigate(`/purchase/return/invoice/${res.data.data.id}`);
       }
     } catch {
       toast.error("Something went wrong");
@@ -173,7 +172,7 @@ export default function PurchaseReturn() {
       {/* Table */}
       <Table
         data={selectedProducts.value}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           {
             header: "Select",
@@ -183,7 +182,7 @@ export default function PurchaseReturn() {
               <input
                 type="checkbox"
                 checked={!!row.selected}
-                onChange={() => toggleSelect(row._id)}
+                onChange={() => toggleSelect(row.id)}
                 className="w-4 h-4 cursor-pointer"
               />
             ),
@@ -192,13 +191,13 @@ export default function PurchaseReturn() {
             header: "Name",
             className: "",
             headerClassName: "",
-            accessor: (row) => <h1>{row.name} {!!row.serial && <span>{row.serial}</span>}</h1>,
+            accessor: (row) => <h1>{row.product?.name} {!!row.serial && <span>{row.serial}</span>}</h1>,
           },
           {
             header: "Purchase Price",
             className: "text-center",
             headerClassName: "text-center",
-            accessor: (row) => <span>৳{row.purchasePrice}</span>,
+            accessor: (row) => <span>৳{row.cost}</span>,
           },
           {
             header: "Purchased",
@@ -221,7 +220,7 @@ export default function PurchaseReturn() {
             accessor: (row) => {
               if (!row.selected) return <span className="text-gray-300">—</span>;
               // serial product হলে qty fixed = serials count
-              if (row.manageWarranty) return <span>{row.qty}</span>;
+              if (row.serial) return <span>{row.qty}</span>;
               return (
                 <input
                   type="number"
@@ -229,7 +228,7 @@ export default function PurchaseReturn() {
                   onChange={(e) => {
                     const val = e.target.value === "" ? 0 : Number(e.target.value);
                     if (val > row.remainingQty) return toast.error(`Max returnable qty is ${row.remainingQty}`);
-                    handleQtyChange(row._id, val);
+                    handleQtyChange(row.id, val);
                   }}
                   max={row.remainingQty}
                   min={1}
@@ -244,7 +243,7 @@ export default function PurchaseReturn() {
             headerClassName: "text-center",
             accessor: (row) => {
               if (!row.selected) return <span className="text-gray-300">—</span>;
-              return <span>৳{(row.qty * row.purchasePrice).toFixed(2)}</span>;
+              return <span>৳{(row.qty * row.cost).toFixed(2)}</span>;
             },
           },
         ]}

@@ -36,17 +36,10 @@ export const posSaleProductSchema = z.object({
   
 });
 
-export const paymentAccountSchema = z.array(
-  z.object({
-    accountID: z
-      .string()
-      .min(1, "Account is required"),
-
-    amount: z
-      .number()
-      .min(0.1, "Amount cannot be 0")
-  })
-);
+export const paymentAccountSchema = z.array(z.object({
+  accountID: z.number().min(1, "Account is required"),
+  amount: z.number({ message: "Amount must be a number" }).min(0.1, { message: "Amount cannot be 0" }),
+}));
 
 export const saleSchema = z.object({
   invoiceNo: z.string().trim().optional(),

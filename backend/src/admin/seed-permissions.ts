@@ -1,7 +1,7 @@
 import db from "../../drizzle/src";
 import { permissions } from "../auth/auth.table";
 
-const PERMISSIONS_LIST = [
+export const PERMISSIONS_LIST = [
   // Product
   { name: "product:create", description: "Create products" },
   { name: "product:update", description: "Update products" },

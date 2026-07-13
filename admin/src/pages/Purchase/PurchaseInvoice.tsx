@@ -40,13 +40,13 @@ const PurchaseInvoice = () => {
           <h1>Supplier :{data?.supplier?.name}</h1>
           <address>{data?.supplier?.address}</address>
           <h1>Mobile : {data?.supplier?.mobile}</h1>
-          <h1>Purchased At : {Helper.formatDate(data?.PurchaseDate)}</h1>
+          <h1>Purchased At : {Helper.formatDate(data?.purchaseDate)}</h1>
         </div>
       </div>
 
       <Table
         data={data?.batches || []}
-        keyExtractor={(row: any) => row._id}
+        keyExtractor={(row: any) => row.id}
         columns={[
           {
             header: "#",
@@ -68,22 +68,6 @@ const PurchaseInvoice = () => {
             ),
             headerClassName: "min-w-[200px] text-left"
           },
-          ...(data?.batches?.some((p: any) => !!p.warranty)
-            ? [
-              {
-                header: "Warranty",
-                className: "text-center",
-                headerClassName: "text-center",
-                accessor: (row: any) => (
-                  <>
-                    {row.warranty > 0 && <h1>{row.warranty ?? 0} Days</h1>}
-                  </>
-                ),
-              },
-            ]
-            : [])
-
-          ,
 
           {
             header: "QTY",
@@ -97,7 +81,7 @@ const PurchaseInvoice = () => {
           {
             header: "Purchase Price",
             accessor: (row) => (
-              <>  {Helper.formatLongNumber(row.purchasePrice)}</>
+              <>  {Helper.formatLongNumber(row.cost)}</>
 
             ),
             className: "w-10 text-center",
@@ -106,7 +90,7 @@ const PurchaseInvoice = () => {
           {
             header: "Total",
             accessor: (row) => (
-              <>  {Helper.formatLongNumber(row.purchasedQty * row.purchasePrice)} </>
+              <>  {Helper.formatLongNumber(row.purchasedQty * row.cost)} </>
 
             ),
             className: "w-10 text-end",
@@ -122,7 +106,7 @@ const PurchaseInvoice = () => {
             <td className="text-end font-bold">
               {Helper.formatLongNumber(
                 data?.batches?.reduce(
-                  (sum: number, row: any) => sum + row.purchasedQty * row.purchasePrice,
+                  (sum: number, row: any) => sum + row.purchasedQty * row.cost,
                   0
                 )
               )}
@@ -158,10 +142,10 @@ const PurchaseInvoice = () => {
       <hr  className='my-5'/>
       <h1>Payment History</h1>
       {
-        data?.accounts.map((a:any)=>{
+        data?.transactions?.map((a:any)=>{
           return (
              <div className='flex justify-between'>
-        <h1>{a.name} : </h1>
+        <h1>{a.source} : </h1>
         <h1>{Helper.formatLongNumber(a?.amount)}</h1>
       </div>
           )

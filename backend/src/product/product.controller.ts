@@ -100,9 +100,9 @@ export class ProductController {
   }
 
   static async getSaleProduct(req: Request, res: Response) {
-    const productID = req.params.id as string;
+    const variantID = req.params.variantID
 
-    const product = await ProductService.getSaleProduct(productID); // ✅ lean() দিয়ে plain object
+    const product = await ProductService.getSaleProduct(Number(variantID)); // ✅ lean() দিয়ে plain object
 
     // ✅ No stock management - return plain product
     return res.status(200).json({

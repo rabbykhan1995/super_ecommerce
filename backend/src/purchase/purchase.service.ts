@@ -215,28 +215,7 @@ export default class PurchaseService {
     purchaseID: number
   ) {
 
-    const purchase =
-      await PurchaseRepository.findByID(
-        purchaseID
-      );
-
-    if (!purchase) {
-      throw new ApiError(
-        404,
-        "Purchase not found"
-      );
-    }
-
-    const batches =
-      await ProductRepository.findBatchesByPurchaseID(
-        purchaseID
-      );
-
-    return {
-      ...purchase,
-      batches,
-    };
-
+  return await PurchaseRepository.purchaseInvoiceByID(purchaseID)
 
   }
 

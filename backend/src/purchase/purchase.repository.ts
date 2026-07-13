@@ -48,9 +48,49 @@ export default class PurchaseRepository {
             page: query.page,
             limit: query.limit,
             search: query.search,
+             with: {
+                supplier: {
+                    columns: {
+                        name: true,
+                    },
+                },
+            }
         });
     }
+static async purchaseInvoiceByID(
+    purchaseID: number,
+    client: QueryClient = db
+) {
+const purchase = await client.query.purchaseTable.findFirst({
+    where: eq(purchaseTable.id, purchaseID),
+    with: {
+        transactions: true,
+        supplier:true,
+        batches: {
+            with: {
+                product: {
+                    columns: {
+                        name: true,
+                    },
+                    with: {
+                        category: true,
+                        brand: true,
+                        unit: true,
 
+                    },
+                },
+                variant: {
+                    columns: {
+                        attributes: true,
+                    },
+                },
+            },
+        },
+    },
+});
+
+    return purchase;
+}
     static async purchaseUpdateDynamic(
         purchaseID: number,
         data: Partial<typeof purchaseTable.$inferInsert>,
