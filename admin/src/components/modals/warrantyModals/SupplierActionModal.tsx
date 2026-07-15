@@ -66,9 +66,9 @@ export default function SupplierActionModal({ isOpen, close, warranty }: Supplie
             status: selectedAction,
             supplierNote,
             ...(selectedAction === "replaced" && { replacedSerial }),
-            ...(selectedAction === "refunded" && { refundedAmount })
+            ...(selectedAction === "refunded" && { refundAmount: refundedAmount })
         }
-        const res = await api.post(`/warranty/supplier-action-update/${warranty._id}`, payload);
+        const res = await api.post(`/warranty/supplier-action-update/${warranty.id}`, payload);
 
         if (res.data.success) {
             toast.success(res.data.msg);
@@ -91,9 +91,9 @@ export default function SupplierActionModal({ isOpen, close, warranty }: Supplie
             >
                 <h2 className="text-lg font-semibold mb-4">Supplier Action</h2>
                 <div className="py-5">
-                    <h1 className="font-bold text-lg uppercase">{warranty.productName}. s/n : {warranty.serial}</h1>
-                    <h1 className="font-semibold text-sm uppercase">Supplier : {warranty.supplierName}</h1>
-                    <h1 className="font-semibold text-sm uppercase">Customer : {warranty.customerName}</h1>
+                    <h1 className="font-bold text-lg uppercase">{warranty.product?.name}. s/n : {warranty.serial}</h1>
+                    <h1 className="font-semibold text-sm uppercase">Supplier : {warranty.supplier?.name}</h1>
+                    <h1 className="font-semibold text-sm uppercase">Customer : {warranty.customer?.name}</h1>
                 </div>
                 {/* status action */}
                 <div className="py-5">

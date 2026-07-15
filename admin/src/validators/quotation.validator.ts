@@ -2,8 +2,8 @@ import { z } from "zod";
 import { paymentAccountSchema, saleProductSchema } from "./sale.validator";
 
 export const createSaleQuotationSchema = z.object({
-    contactID: z
-        .string()
+    customerID: z
+        .number()
         .optional().nullable(),
     note: z.string().optional().nullable(),
     costName: z.string().optional().nullable(),

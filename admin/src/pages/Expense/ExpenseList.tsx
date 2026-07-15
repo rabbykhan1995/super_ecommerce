@@ -95,7 +95,7 @@ export default function ExpenseList() {
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           {
             header: "#",
@@ -105,7 +105,11 @@ export default function ExpenseList() {
           },
           {
             header: "Type",
-            accessor: "expenseTypeName",
+            accessor: (row) => (
+              < >
+                {row.expenseType.name}
+              </>
+            ),
             headerClassName: "text-start min-w-[160px]",
           },
           {
@@ -134,7 +138,7 @@ export default function ExpenseList() {
             className: "text-right",
             accessor: (row) => (
               <button
-                onClick={() => handleDelete(row._id)}
+                onClick={() => handleDelete(String(row.id))}
                 title="Delete"
                 className="global_button_red"
               >

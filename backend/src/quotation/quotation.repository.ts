@@ -56,11 +56,14 @@ export default class QuotationRepository {
         quoteID: number,
         client: QueryClient = db
     ) {
-        const [saleQuotation] = await client
-            .select().from(saleQuotationTable)
-            .where(eq(saleQuotationTable.id, quoteID));
+        const [saleQuotation] = await client.query.saleQuotationTable.findMany({
+            where: eq(saleQuotationTable.id, quoteID),
+            with: {
+                items: true,
+            },
+        });
 
-        return saleQuotation
+        return saleQuotation;
 
     }
 
@@ -68,7 +71,7 @@ export default class QuotationRepository {
         quoteID: number,
         client: QueryClient = db
     ) {
-        return await client.query.saleItemsTable.findMany({
+        return await client.query.saleQuotationItemsTable.findMany({
             where: eq(saleQuotationItemsTable.quotationID, quoteID),
             with: {
                 product: {

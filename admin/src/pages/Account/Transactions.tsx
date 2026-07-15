@@ -3,11 +3,9 @@ import api from "../../lib/axios";
 import Table from "../../components/tables/Table";
 import TableFilterBar from "../../components/filters/TableFilterBar";
 import Pagination from "../../components/filters/Pagination";
-import { Delete, DeleteIcon, Heading1, Infinity, LucideDelete, RemoveFormatting, Trash } from "lucide-react";
 import { Link, useParams } from "react-router";
-import type { Account, LedgerListItem, PaginatedResult, SaleListItem, TransactionListItem } from "../../types/type";
+import type { Account, PaginatedResult, TransactionListItem } from "../../types/type";
 import TimeAgo from "../../components/Ui/TimeAgo";
-import { toast } from "sonner";
 import Helper from "../../utils/helper";
 
 
@@ -32,7 +30,7 @@ export default function Transactions() {
   };
   const fetchTransaction = async () => {
 
-    const res = await api("/transaction/account-list", {
+    const res = await api("/transaction/account-transaction-list", {
       params: { accountID: id, limit, page },
     });
     if (res.data.success) setData(res.data.data);
@@ -87,12 +85,12 @@ export default function Transactions() {
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => String(row.id)}
         columns={[
           {
             header: "Type", accessor: (row) => (
 
-              <h1 className=" capitalize">{row?.type === "transfer"? `${row.type}red to ${row.toAccountName}` :row?.type}</h1>
+              <h1 className=" capitalize">{row?.source === "balance_transfer" ? `transfer` : row?.source}</h1>
 
             ), className: "text-start", headerClassName: "text-start",
           },
@@ -100,7 +98,9 @@ export default function Transactions() {
           {
             header: "Amount", accessor: (row) => (
 
-              <h1>{row?.amount}</h1>
+              <h1 className={row.type === "credit" ? "text-green-600" : "text-red-600"}>
+                {row.type === "credit" ? "+" : "-"}{Helper.formatLongNumber(row.amount)}
+              </h1>
 
             ), className: "text-center"
           },
@@ -126,8 +126,8 @@ export default function Transactions() {
             className: "text-right",
             accessor: (row) => (
               <div className="flex gap-2 justify-end">
-                {row.type === "sale" && <Link to={`/sale/invoice/${row?.typeID}`} className="global_button bg-[#238b95]">Sale Invoice</Link>}
-
+                {row.source === "sale" && row.saleID && <Link to={`/sale/invoice/${row.saleID}`} className="global_button bg-[#238b95]">Sale Invoice</Link>}
+                {row.source === "purchase" && row.purchaseID && <Link to={`/purchase/invoice/${row.purchaseID}`} className="global_button bg-[#238b95]">Purchase Invoice</Link>}
               </div>
             ),
           },

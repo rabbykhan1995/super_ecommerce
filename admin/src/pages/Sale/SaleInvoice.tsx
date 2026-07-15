@@ -40,13 +40,13 @@ const SaleInvoice = () => {
           <h1>Customer :{data?.customer?.name}</h1>
           <address>{data?.customer?.address}</address>
           <h1>Mobile : {data?.customer?.mobile}</h1>
-          <h1>Sold At : {Helper.formatDate(data?.SaleDate)}</h1>
+          <h1>Sold At : {Helper.formatDate(data?.saleDate)}</h1>
         </div>
       </div>
 
       <Table
         data={data?.products || []}
-        keyExtractor={(row: any) => row._id}
+        keyExtractor={(row: any) => row.id}
         columns={[
           {
             header: "#",
@@ -60,8 +60,8 @@ const SaleInvoice = () => {
             accessor: (row) => (
               <div>
                 <h1 className='w-full text-[16px]'>{row.product.name}{row.product.brand ? `(${row.product.brand.name})` : ""}</h1>
-                {row.serial && <span>SN:</span>}
-                {row.serial && <span className='dark:bg-[#494949] px-2 text-xs'>{row.serial}</span>}
+                {row.batch?.serial && <span>SN:</span>}
+                {row.batch?.serial && <span className='dark:bg-[#494949] px-2 text-xs'>{row.batch.serial}</span>}
               </div>
 
 

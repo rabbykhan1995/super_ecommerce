@@ -1,9 +1,4 @@
 import { z } from "zod";
-import { Types } from "mongoose";
-
-const objectId = z
-  .string()
-  .refine((val) => Types.ObjectId.isValid(val), { message: "Invalid ObjectId" });
 
 export const createWarrantySchema = z.object({
   saleID: z.number(),
@@ -30,7 +25,6 @@ export const updateWarrantySchema = z.object({
       "received_from_supplier",
       "repaired",
       "replaced",
-      "new_serial_assigned",
       "rejected",
       "returned_to_customer",
       "refunded",

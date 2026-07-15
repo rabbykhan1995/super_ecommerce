@@ -2,7 +2,7 @@ import { Router } from "express";
 import productRoute from "../src/product/product.route";
 import userRoute from "../src/auth/auth.route";
 import categoryRoute from "../src/category/category.route"
-import imageRoute from "./image.route";
+import imageRoute from "../src/image/image.route";
 import contactRoute from "../src/contact/contact.route";
 import brandRoute from "../src/brand/brand.route";
 import unitRoute from "../src/unit/unit.route";
@@ -20,6 +20,7 @@ import expenseRoute from "../src/expense/expense.route"
 import quotationRoute from "../src/quotation/quotation.route"
 import cartRoute from "../src/cart/cart.route"
 import adminRoute from "../src/admin/role.route"
+import parcelRoute from "../src/parcel/parcel.route"
 
 const router = Router();
 router.use("/product", productRoute);
@@ -41,6 +42,8 @@ router.use("/report", reportRoute)
 router.use("/expense", expenseRoute)
 router.use("/cart", cartRoute)
 router.use("/admin/role", adminRoute)
+router.use("/parcel", parcelRoute)
+router.use("/image", imageRoute)
 // router.use("/quotation", quotationRoute)
 
 export default router;

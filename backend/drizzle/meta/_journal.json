@@ -22,6 +22,20 @@
       "when": 1783953771247,
       "tag": "0002_bumpy_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784092698094,
+      "tag": "0003_swift_tempest",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784099494744,
+      "tag": "0004_third_kang",
+      "breakpoints": true
     }
   ]
 }

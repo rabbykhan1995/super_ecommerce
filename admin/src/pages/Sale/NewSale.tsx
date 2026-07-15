@@ -122,9 +122,13 @@ export default function NewSale() {
             );
 
             if (existing) {
-                existing.soldQty++;
+                selectedProducts.value = selectedProducts.value.map(product =>
+                    product.id === p.id
+                        ? { ...product, soldQty: product.soldQty + 1 }
+                        : product
+                );
             } else {
-                selectedProducts.value.push({
+                selectedProducts.value = [...selectedProducts.value, {
                     ...p.product,
                     id:p.id,
                     productID:p.product.id,
@@ -136,7 +140,7 @@ export default function NewSale() {
                     batches: [],
                     selectedBatch: null,
                     salePrice:p.salePrice
-                });
+                }];
             }
 
             return;
@@ -154,6 +158,7 @@ export default function NewSale() {
                 return toast.error("No Serial Available");
             }
             product.salePrice = p.salePrice;
+            product.productID = p.productID;
             return selectedProducts.value = [...selectedProducts.value, product];
         }
 
@@ -226,6 +231,7 @@ export default function NewSale() {
             }
 
             product.salePrice = p.salePrice;
+            product.productID = p.productID;
             selectedProducts.value = [...selectedProducts.value, product];
         }
     };
@@ -542,12 +548,17 @@ export default function NewSale() {
 
         // ✅ Products structure - backend অনুযায়ী
         const products = selectedProducts.value.flatMap(p => {
+            const productID = p.productID ?? (p as any).product?.id;
+            if (!productID) {
+                toast.error("Some products are missing product ID. Please re-add them.");
+                return [];
+            }
 
             // Serial managed product
             if (p.manageWarranty && p.selectedSerials?.length) {
 
                 return p.selectedSerials.map(serial => ({
-                    productID: p.productID,
+                    productID,
                     variantID:p.id,
                     batchID: Number(serial.value), // serial batch id
                     soldQty: 1,
@@ -558,7 +569,7 @@ export default function NewSale() {
 
             // Normal batch product
             return [{
-                productID: p.productID,
+                productID,
                 variantID:p.id,
                 batchID: p.selectedBatch?.id || null,
                 soldQty: p.soldQty,
@@ -567,16 +578,24 @@ export default function NewSale() {
             }];
         });
 
+        if (products.length === 0) return;
+
         // ✅ Accounts structure
-        const accounts = selectedAccounts.map(a => ({
-            accountID: a.value,
-            amount: a.amount,
-        }));
+        const accounts = selectedAccounts
+            .filter(a => a.amount > 0)
+            .map(a => ({
+                accountID: a.value,
+                amount: a.amount,
+            }));
         
-        const exchangeAccounts = selectedExchangeAccounts.map(a => ({
-            accountID: a.value,
-            amount: a.amount,
-        }));
+        const exchangeAccounts = isExchanging
+            ? selectedExchangeAccounts
+                .filter(a => a.amount > 0)
+                .map(a => ({
+                    accountID: a.value,
+                    amount: a.amount,
+                }))
+            : [];
         if (!selectedCustomer && paidWithAcc < totalPayableAmount) {
             return toast.error(`You have pay ${totalPayableAmount} TK`)
         }
@@ -610,7 +629,11 @@ export default function NewSale() {
 
         if (!saleResult.success) {
             const firstError = saleResult.error.issues[0];
-            toast.error(firstError.message);
+            const field = firstError.path.join(".");
+            const msg = firstError.message;
+            toast.error(msg.includes("received undefined") || msg.includes("Invalid input")
+                ? `Invalid data in "${field}". Please check and re-add the item.`
+                : msg);
             console.error("Validation errors:", saleResult.error.issues);
             return;
         }

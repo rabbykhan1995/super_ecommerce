@@ -49,6 +49,13 @@ export default class DamageRepository {
                         serial: true,
                     },
                 },
+
+                variant: {
+                    columns: {
+                        id: true,
+                        attributes: true,
+                    },
+                },
             },
         });
     }

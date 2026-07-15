@@ -20,6 +20,8 @@ import * as expenseSchema from "../src/expense/expense.table"
 import * as damageSchema from "../src/damage/damage.table"
 import * as cartSchema from "../src/cart/cart.table"
 import * as quotationSchema from "../src/quotation/quotation.table"
+import * as parcelSchema from "../src/parcel/parcel.table"
+import * as warrantySchema from "../src/warranty/warranty.table"
 // সব টেবিল এবং তাদের রিলেশন একসাথে কম্বাইন করা হলো
 export const dbSchema = {
   ...productSchema,
@@ -44,4 +46,6 @@ export const dbSchema = {
   ...damageSchema,
   ...cartSchema,
   ...quotationSchema,
+  ...parcelSchema,
+  ...warrantySchema,
 };

@@ -51,7 +51,7 @@ export default class DamageService {
                     qty: item.damagedQty,
                 }
 
-                await ProductService.createStockFlow(stockFlowPayload);
+                await ProductService.createStockFlow(stockFlowPayload, tx);
             }
 
         })

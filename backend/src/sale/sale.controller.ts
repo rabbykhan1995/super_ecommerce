@@ -16,8 +16,10 @@ export class SaleController {
   }
   static async saleByID(req: Request, res: Response) {
     const { id } = req.params;
+    const saleID = Number(id);
+    if (isNaN(saleID)) throw new ApiError(400, "Invalid sale ID");
 
-    const sale = await SaleService.saleInvoiceByID(Number(id));
+    const sale = await SaleService.saleInvoiceByID(saleID);
 
     if (!sale) throw new ApiError(404, "Sale not found");
 

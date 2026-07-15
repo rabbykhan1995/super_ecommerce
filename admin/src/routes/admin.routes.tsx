@@ -226,12 +226,12 @@ export const AdminRoutes: NavItem[] = [
         subItems: [
             {
                 name: "Create",
-                link: "",
+                link: "/parcel/create",
                 icon: <Plus size={16} />,
             },
             {
                 name: "List",
-                link: "",
+                link: "/parcel/list",
                 icon: <Scroll size={16} />,
             },
 

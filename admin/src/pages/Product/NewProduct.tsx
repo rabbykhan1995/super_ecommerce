@@ -10,6 +10,7 @@ import { useNavigate } from "react-router";
 import Table from "../../components/tables/Table";
 
 import AttributeCell from "../../components/modals/AttributeCell";
+import ImageUploader from "../../components/Ui/ImageUploader";
 
 export default function NewProduct() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export default function NewProduct() {
   const [stock, setStock] = useState<number | "">("");
   const [purchasePrice, setPurchasePrice] = useState<number | "">("");
   const [salePrice, setSalePrice] = useState<number | "">("");
-  const [variants, setVariants] = useState<VariantPayload[]>([{ salePrice: 0, barcode: "", weight: 0, attributes: [{ name: "base", value: "none" }] }]);
+  const [variants, setVariants] = useState<VariantPayload[]>([{ salePrice: 0, barcode: "", weight: 0, attributes: [{ name: "base", value: "none" }], images: [] }]);
   const [brandParams, setBrandParams] = useState<SearchParams>({
     search: "",
     page: 1,
@@ -108,7 +109,13 @@ export default function NewProduct() {
     }
     
 
-    const formattedVariant = variants.map(v=>v.barcode ==="" ? delete v.barcode : v);
+    const formattedVariant = variants.map(v => {
+      if (v.barcode === "") {
+        const { barcode, ...rest } = v;
+        return rest;
+      }
+      return v;
+    });
 
     const payload = {
       name,
@@ -148,7 +155,8 @@ export default function NewProduct() {
       salePrice: 0,
       barcode: "",
       weight: 0,
-      attributes: [] // ফাঁকা অ্যারে
+      attributes: [],
+      images: []
     }
 
     setVariants(prev => [...prev, newVariant]);
@@ -360,6 +368,20 @@ export default function NewProduct() {
                   onChange={(e) => changeVariant(i as number,"salePrice" ,e.target.value)}
                   placeholder="sale price"
                   className="global_input"
+                />
+
+              , className: "text-center"
+            },
+
+            {
+              header: "images", accessor: (row,i) =>
+                <ImageUploader
+                  id={`variant-image-${i}`}
+                  value={row.images || []}
+                  multiple
+                  label="Variant Images"
+                  maxFiles={5}
+                  onChange={(val) => changeVariant(i as number, "images", val)}
                 />
 
               , className: "text-center"

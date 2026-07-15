@@ -69,7 +69,7 @@ export default function SaleList() {
   const handleActionChange = (val: string, row: SaleListItem) => {
     switch (val) {
       case "Print Inv":
-        navigate(`/sale/invoice/${row._id}`);
+        navigate(`/sale/invoice/${row.id}`);
 
         break;
       case "Print 58mm":
@@ -88,11 +88,11 @@ export default function SaleList() {
         }, 50);
         break;
       case "Delete":
-        handleDelete(row._id);
+        handleDelete(String(row.id));
         break;
 
       case "Return":
-        navigate(`/sale/return/${row._id}`);
+        navigate(`/sale/return/${row.id}`);
         break;
       default:
         break;
@@ -127,12 +127,12 @@ export default function SaleList() {
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => String(row.id)}
         columns={[
           {
             header: "Invoice", accessor: (row) => (
 
-              <Link to={`/sale/invoice/${row._id}`}
+              <Link to={`/sale/invoice/${row.id}`}
                 className="text-sm"
               >
                 {row.invoiceNo}
@@ -140,7 +140,7 @@ export default function SaleList() {
 
             ), className: "text-start", headerClassName: "text-start",
           },
-          { header: "Customer", accessor: "customerName", headerClassName: "text-start" },
+          { header: "Customer", accessor: (row) => row.customer?.name ?? "", headerClassName: "text-start" },
           {
             header: "Other Cost", accessor: (row) => (
               <span> {Helper.formatLongNumber(row.otherCost || 0)}</span>
@@ -196,7 +196,7 @@ export default function SaleList() {
             headerClassName: "text-center min-w-20",
             accessor: (row) => (
 
-              <TimeAgo date={row.SaleDate} />
+              <TimeAgo date={row.saleDate} />
 
             )
 
@@ -229,7 +229,7 @@ export default function SaleList() {
       <SaleInvoiceModal isOpen={invoiceModal} close={() => {
         setInvoiceModal(false);
         setSelectedSale(null);
-      }} saleID={selectedSale?._id!} printSize={printSize} />
+      }} saleID={selectedSale?.id ? String(selectedSale.id) : ""} printSize={printSize} />
     </div>
   );
 }

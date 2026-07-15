@@ -4,12 +4,14 @@ import { Search, ShoppingBag, Menu } from "lucide-react";
 import CartSlider from "../Sliders/CartSlider";
 import { useState } from "react";
 import MenuSlider from "../Sliders/MenuSliders";
+import SearchFromMobile from "../Filter/SearchFromMobile";
 import { cartStore } from "@/zustand/cart.store";
 import { shadowsIntoLight } from "@/lib/font";
 import BrandLogo from "../Logos/BrandLogo";
 const NavbarMobile = () => {
   const [cartSlider, setCartSlider] = useState(false);
   const [menuSlider, setMenuSlider] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
     const {totalCartItems, openCartSlider,setOpenCartSlider} = cartStore();
   return (
     <>
@@ -20,7 +22,9 @@ const NavbarMobile = () => {
             <button onClick={() => setMenuSlider(true)}>
               <Menu size={20} color="#242424" />
             </button>
-            <Search size={20} color="#242424" />
+            <button onClick={() => setSearchOpen(true)}>
+              <Search size={20} color="#242424" />
+            </button>
           </div>
                    <BrandLogo />
 
@@ -39,6 +43,7 @@ const NavbarMobile = () => {
         </div>
       </div>
       <MenuSlider open={menuSlider} setOpen={setMenuSlider} />
+      <SearchFromMobile open={searchOpen} setOpen={setSearchOpen} />
     </>
   );
 };

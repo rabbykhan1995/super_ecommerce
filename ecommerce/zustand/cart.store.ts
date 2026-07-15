@@ -1,46 +1,127 @@
 import api from "@/utils/apiconfig";
 import { create } from "zustand";
-import { Cart } from "@/types/cart.types";
+import { CartItem, AddToCartPayload, UpdateCartPayload } from "@/types/cart.types";
 
 type CartStore = {
-  cart: Cart[];
-  totalCartItems:number;
-  openCartSlider:boolean;
-  isLoading: boolean;
-  setCart: (cart: Cart[]) => void;
-  setOpenCartSlider:(val:boolean)=>void;
+  cart: CartItem[];
+  totalCartItems: number;
+  cartTotal: number;
+  openCartSlider: boolean;
+  isFetching: boolean;
+  isAdding: boolean;
+  isUpdating: boolean;
+  isRemoving: boolean;
+  isClearing: boolean;
   fetchCart: () => Promise<void>;
+  addItem: (payload: AddToCartPayload) => Promise<boolean>;
+  updateItem: (cartItemID: number, payload: UpdateCartPayload) => Promise<boolean>;
+  removeItem: (cartItemID: number) => Promise<boolean>;
+  clearCart: () => Promise<boolean>;
+  setOpenCartSlider: (val: boolean) => void;
 };
 
-
-export const cartStore = create<CartStore>((set) => ({
+export const cartStore = create<CartStore>((set, get) => ({
   cart: [],
-  totalCartItems:0,
-  isLoading: false,
-  openCartSlider:false,
+  totalCartItems: 0,
+  cartTotal: 0,
+  openCartSlider: false,
+  isFetching: false,
+  isAdding: false,
+  isUpdating: false,
+  isRemoving: false,
+  isClearing: false,
 
-  setCart: (cart:Cart[] | []) => set({ cart }),
-  setOpenCartSlider:(val:boolean)=>set({openCartSlider:val}),
+  setOpenCartSlider: (val: boolean) => set({ openCartSlider: val }),
+
   fetchCart: async () => {
     try {
-      set({ isLoading: true });
+      set({ isFetching: true });
+      const res = await api("/cart/list");
 
-      const res = await api(`/cart/list`);
-
-      if (!res.data.success === true) {
-        set({ cart: [], isLoading: false });
+      if (res.data.success !== true) {
+        set({ cart: [], totalCartItems: 0, cartTotal: 0, isFetching: false });
         return;
       }
 
+      const items: CartItem[] = res.data.data;
+      const totalCartItems = items.reduce((sum, item) => sum + 1, 0);
+      const cartTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-      console.log(res.data.data)
       set({
-        cart: res.data.data.items,
-        totalCartItems:res.data.data.totalItems,
-        isLoading: false,
+        cart: items,
+        totalCartItems,
+        cartTotal,
+        isFetching: false,
       });
-    } catch (error) {
-      set({ cart: [], isLoading: false });
+    } catch {
+      set({ cart: [], totalCartItems: 0, cartTotal: 0, isFetching: false });
+    }
+  },
+
+  addItem: async (payload: AddToCartPayload) => {
+    try {
+      set({ isAdding: true });
+      const res = await api.post("/cart/add", payload);
+      if (res.data.success === true) {
+        await get().fetchCart();
+        set({ isAdding: false });
+        return true;
+      }
+      set({ isAdding: false });
+      return false;
+    } catch {
+      set({ isAdding: false });
+      return false;
+    }
+  },
+
+  updateItem: async (cartItemID: number, payload: UpdateCartPayload) => {
+    try {
+      set({ isUpdating: true });
+      const res = await api.put(`/cart/update/${cartItemID}`, payload);
+      if (res.data.success === true) {
+        await get().fetchCart();
+        set({ isUpdating: false });
+        return true;
+      }
+      set({ isUpdating: false });
+      return false;
+    } catch {
+      set({ isUpdating: false });
+      return false;
+    }
+  },
+
+  removeItem: async (cartItemID: number) => {
+    try {
+      set({ isRemoving: true });
+      const res = await api.delete(`/cart/remove/${cartItemID}`);
+      if (res.data.success === true) {
+        await get().fetchCart();
+        set({ isRemoving: false });
+        return true;
+      }
+      set({ isRemoving: false });
+      return false;
+    } catch {
+      set({ isRemoving: false });
+      return false;
+    }
+  },
+
+  clearCart: async () => {
+    try {
+      set({ isClearing: true });
+      const res = await api.delete("/cart/clear");
+      if (res.data.success === true) {
+        set({ cart: [], totalCartItems: 0, cartTotal: 0, isClearing: false });
+        return true;
+      }
+      set({ isClearing: false });
+      return false;
+    } catch {
+      set({ isClearing: false });
+      return false;
     }
   },
 }));

@@ -78,7 +78,7 @@ export default class QuotationService {
 
 
 
-        const products = fullQuotationObj.products.map((p:any) => ({ ...p, productID: p.productID, batchID: p.batchID || null }));
+        const products = fullQuotationObj.items.map((p:any) => ({ ...p, productID: p.productID, batchID: p.batchID || null }));
 
         const accounts = payload.accounts;
 
@@ -101,6 +101,8 @@ export default class QuotationService {
         delete sale.createdAt;
 
         delete sale.updatedAt;
+
+        delete sale.items;
 
 
 
@@ -176,11 +178,16 @@ export default class QuotationService {
 
           const quote:SaleQuotation = await QuotationRepository.getSaleQuotationByID(quoteID);
 
+          if (!quote) {
+            throw new ApiError(404, "Quotation not found");
+          }
+
           const items = await QuotationRepository.getQuotationItemsByID(quoteID);
 
-          
-
-
+          return {
+            ...quote,
+            items,
+          };
     }
 
 

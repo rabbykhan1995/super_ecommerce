@@ -1,102 +1,77 @@
 "use client";
-import { Search, ShoppingBag } from "lucide-react";
-import { useState } from "react";
+import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { userStore } from "@/zustand/user.store";
 import { cartStore } from "@/zustand/cart.store";
 import SearchFormLarge from "../Filter/SearchFromDesktop";
-import { shadowsIntoLight } from "@/lib/font";
 import BrandLogo from "../Logos/BrandLogo";
+import CategoryBar from "./CategoryBar";
+import { User, LogOut } from "lucide-react";
 
 const NavbarDestop = () => {
   const { user, logout } = userStore();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { totalCartItems, openCartSlider, setOpenCartSlider } = cartStore();
 
   return (
-    <>
-      <div className="top-0 sticky w-full hidden lg:block border-b border-gray-300 bg-[#d9e8ffa9] backdrop-blur-2xl z-20">
-        {/* Top Container */}
-        <div className="h-full flex justify-center w-full">
-          <div className="flex items-center justify-between h-14 lg:w-250 xl:px-4 xl:w-7xl px-2">
-           <BrandLogo />
-            {/* Routes */}
-            <div className="flex gap-8 font-semibold text-[15px] uppercase">
+    <div className="top-0 sticky w-full hidden lg:block z-20">
+      {/* Main Navbar */}
+      <div className="border-b border-gray-200 flex justify-center  bg-[#d9e8ffa9] backdrop-blur-2xl">
+     
+          <div className="flex items-center justify-between h-14  xl:px-4  px-2 xl:w-7xl lg:w-250 w-full">
+            <Link href={'/'}>          <BrandLogo />
+            </Link>
 
-              <SearchFormLarge />
+
+            <SearchFormLarge />
+
+            <div className="flex items-center gap-4">
               {!user ? (
-                <Link href="/login" className="Hover_Border">
+                <Link
+                  href="/login"
+                  className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-white/60 rounded-lg transition-colors"
+                >
+                  <User size={16} />
                   Login
                 </Link>
-              ) : user.admin === false ? (
-                <Link href="/user" className="Hover_Border">
+              ) : (
+                <Link
+                  href="/user"
+                  className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-white/60 rounded-lg transition-colors"
+                >
+                  <User size={16} />
                   Profile
                 </Link>
-              ) : (
-                <Link href="/admin" className="Hover_Border">
-                  Admin Panel
-                </Link>
               )}
-              {!!user && (
-                <button onClick={logout} className="Hover_Border">
-                  Logout
+
+              {user && (
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-white/60 rounded-lg transition-colors"
+                >
+                  <LogOut size={15} />
                 </button>
               )}
-            </div>
-            {/* Right Cart & Search */}
-            <div className="flex gap-5">
-  
+
               <button
-                onClick={() => {
-                  setOpenCartSlider(!openCartSlider);
-                }}
-                className="relative"
+                onClick={() => setOpenCartSlider(!openCartSlider)}
+                className="relative p-2 hover:bg-white/60 rounded-lg transition-colors"
               >
                 <ShoppingBag size={20} color="#242424" />
-             { totalCartItems>0&&  <span className="absolute bg-[#0052CC] text-white top-[-8] right-[-10] rounded-full text-[9px] w-[17px] h-[17px] flex items-center justify-center">
-                  {totalCartItems || 0}
-                </span>}
+                {totalCartItems > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-blue-600 text-white rounded-full text-[9px] w-[17px] h-[17px] flex items-center justify-center font-bold">
+                    {totalCartItems}
+                  </span>
+                )}
               </button>
             </div>
           </div>
-        </div>
 
-          <div className="flex justify-center w-full bg-white">
-          <div className="flex items-center justify-between h-8 lg:w-250 xl:px-4 xl:w-7xl px-2">
-                {/* Dropdown Menu */}
-              <div className="relative group">
-                <button className="Hover_Border flex items-center gap-1 uppercase">
-                  Categories
-                  <span className="text-xs">▼</span>
-                </button>
-
-                <div className="absolute top-full left-0 mt-1 w-48 bg-white shadow-lg border border-gray-200 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <Link
-                    href={"/training&programs"}
-                    className="block px-4 py-2 hover:bg-slate-100 text-slate-800"
-                  >
-                    Training Programs
-                  </Link>
-                  <Link
-                    href={"/blog"}
-                    className="block px-4 py-2 hover:bg-slate-100 text-slate-800"
-                  >
-                    Blog
-                  </Link>
-                  <Link
-                    href={"/products"}
-                    className="block px-4 py-2 hover:bg-slate-100 text-slate-800"
-                  >
-                    Products
-                  </Link>
-                </div>
-              </div>
-          </div>
-        </div>
 
       </div>
 
-    </>
+      {/* Category Bar */}
+      <CategoryBar />
+    </div>
   );
 };
 

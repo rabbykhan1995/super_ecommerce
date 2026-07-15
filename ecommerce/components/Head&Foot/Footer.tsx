@@ -17,7 +17,7 @@ import BrandLogo from "../Logos/BrandLogo";
 const Footer = () => {
   return (
     <div className="flex justify-center w-full bg-[#1a1c1e] text-[#c9cbcc] py-5">
-      <div className="grid grid-cols-2 lg:grid-cols-4 lg:px-20 text-sm w-full lg:w-250 xl:w-7xl px-2 xl:px-4 gap-y-10">
+      <div className="grid grid-cols-2 lg:grid-cols-4 text-sm w-full lg:w-250 xl:w-7xl px-2 xl:px-4 gap-y-10">
         {/* Brand & About */}
         <div className="flex flex-col gap-4 col-span-2 lg:col-span-1">
           <BrandLogo />
@@ -45,19 +45,16 @@ const Footer = () => {
           <h1 className="uppercase font-bold text-white tracking-wide text-[13px] mb-1">
             Quick Links
           </h1>
-          <Link href="#" className="hover:text-white transition-colors">
+          <Link href="/about" className="hover:text-white transition-colors">
             About Us
           </Link>
-          <Link href="#" className="hover:text-white transition-colors">
+          <Link href="/products" className="hover:text-white transition-colors">
             All Products
           </Link>
-          <Link href="#" className="hover:text-white transition-colors">
-            Nutrition Plans
+          <Link href="/training&programs" className="hover:text-white transition-colors">
+            Training &amp; Programs
           </Link>
-          <Link href="#" className="hover:text-white transition-colors">
-            Track Order
-          </Link>
-          <Link href="#" className="hover:text-white transition-colors">
+          <Link href="/faq" className="hover:text-white transition-colors">
             FAQ
           </Link>
         </div>
@@ -67,20 +64,14 @@ const Footer = () => {
           <h1 className="uppercase font-bold text-white tracking-wide text-[13px] mb-1">
             Customer Service
           </h1>
-          <Link href="#" className="hover:text-white transition-colors">
+          <Link href="/contact" className="hover:text-white transition-colors">
             Contact Us
           </Link>
-          <Link href="#" className="hover:text-white transition-colors">
+          <Link href="/shipping-policy" className="hover:text-white transition-colors">
             Shipping Policy
           </Link>
-          <Link href="#" className="hover:text-white transition-colors">
+          <Link href="/return-refund-policy" className="hover:text-white transition-colors">
             Return &amp; Refund
-          </Link>
-          <Link href="#" className="hover:text-white transition-colors">
-            Warranty
-          </Link>
-          <Link href="#" className="hover:text-white transition-colors">
-            Support Center
           </Link>
         </div>
 

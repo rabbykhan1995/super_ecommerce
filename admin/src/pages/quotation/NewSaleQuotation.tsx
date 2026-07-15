@@ -91,9 +91,13 @@ export default function NewSaleQuotation() {
             );
 
             if (existing) {
-                existing.soldQty++;
+                selectedProducts.value = selectedProducts.value.map(product =>
+                    product.id === p.id
+                        ? { ...product, soldQty: product.soldQty + 1 }
+                        : product
+                );
             } else {
-               selectedProducts.value.push({
+                selectedProducts.value = [...selectedProducts.value, {
                     ...p.product,
                     id:p.id,
                     productID:p.product.id,
@@ -104,7 +108,8 @@ export default function NewSaleQuotation() {
                     selectedSerials: [],
                     batches: [],
                     selectedBatch: null,
-                });
+                    salePrice: p.salePrice
+                }];
             }
 
             return;
@@ -406,8 +411,9 @@ export default function NewSaleQuotation() {
             if (p.manageWarranty && p.selectedSerials?.length) {
 
                 return p.selectedSerials.map(serial => ({
-                    productID: p.id,
-                    batchID: serial.value, // serial batch id
+                    productID: p.productID,
+                    variantID: p.id,
+                    batchID: Number(serial.value), // serial batch id
                     soldQty: 1,
                     salePrice: p.salePrice,
                     warranty: p.warranty || 0,
@@ -416,7 +422,8 @@ export default function NewSaleQuotation() {
 
             // Normal batch product
             return [{
-                productID: p.id,
+                productID: p.productID,
+                variantID: p.id,
                 batchID: p.selectedBatch?.id || null,
                 soldQty: p.soldQty,
                 salePrice: p.salePrice,
@@ -428,7 +435,7 @@ export default function NewSaleQuotation() {
 
         // ✅ Sale object - backend অনুযায়ী
         const sale = {
-            contactID: selectedCustomer?.value || null,
+            customerID: selectedCustomer?.value || null,
             costName: costName || null,
             otherCost: costName ? otherCost : 0,
             balanceBefore:selectedCustomer?.balance??0,

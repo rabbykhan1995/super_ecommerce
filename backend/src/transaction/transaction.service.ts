@@ -12,7 +12,7 @@ export default class TransactionService {
         let formattedQuery: any = { page: query.page, limit: query.limit, search: query.search };
 
         if (query.accountID) {
-            formattedQuery.accountID = query.accountID;
+            formattedQuery.accountID = Number(query.accountID);
         }
 
         if (query.source) {

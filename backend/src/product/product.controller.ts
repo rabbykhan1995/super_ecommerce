@@ -23,9 +23,12 @@ export class ProductController {
   // update Product
   static async update(req: Request, res: Response) {
     const id = req.params.id;
-    const payload: UpdateProductInput = req.body;
+    const { variants, ...productInput } = req.body;
 
-    const product = await ProductService.update(Number(id), payload);
+    const product = await ProductService.update(Number(id), {
+      productInput,
+      variants: variants || [],
+    });
     res.status(201).json({
       success: true,
       data: product,
@@ -45,10 +48,59 @@ export class ProductController {
     //  I want to send response with the unitname, categoryname and brandname including..
     return res.status(200).json({ success: true, data: result });
   }
+      static async ecomProductList(req: Request, res: Response) {
+
+    const q = req.query;
+
+    const toNum = (v: unknown): number | undefined => {
+      if (v == null || v === "") return undefined;
+      const n = Number(v);
+      return isNaN(n) ? undefined : n;
+    };
+
+    const toNumArray = (v: unknown): number[] | undefined => {
+      if (v == null || v === "") return undefined;
+      const raw = Array.isArray(v) ? v : String(v).split(",");
+      const nums = raw.map((item) => Number(String(item).trim())).filter((n) => !isNaN(n));
+      return nums.length > 0 ? nums : undefined;
+    };
+
+    const toBool = (v: unknown): boolean | undefined => {
+      if (v == null || v === "") return undefined;
+      return String(v) === "true";
+    };
+
+    const parsed = {
+      page: toNum(q.page) ?? 1,
+      limit: toNum(q.limit) ?? 10,
+      search: q.search ? String(q.search) : undefined,
+      categoryID: toNumArray(q.categoryID),
+      brandID: toNumArray(q.brandID),
+      unitID: toNumArray(q.unitID),
+      featured: toBool(q.featured),
+      published: toBool(q.published),
+      inStock: toBool(q.inStock),
+      minPrice: toNum(q.minPrice),
+      maxPrice: toNum(q.maxPrice),
+      minRating: toNum(q.minRating),
+      sort: q.sort ? String(q.sort) : undefined,
+    };
+
+    const result = await ProductService.ecomProductList(parsed);
+    return res.status(200).json({ success: true, data: result });
+  }
   static async productByID(req: Request, res: Response) {
     const { id } = req.params;
 
     const product = await ProductService.structuredProductByID(Number(id));
+
+    res.status(200).json({ success: true, data: product });
+  }
+
+  static async productBySlug(req: Request, res: Response) {
+    const { slug } = req.params;
+
+    const product = await ProductService.findBySlug(slug);
 
     res.status(200).json({ success: true, data: product });
   }

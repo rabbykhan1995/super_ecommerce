@@ -29,6 +29,6 @@ router
     authMiddleware,
     asyncHandler(BrandController.delete),
   )
-  .get("/list", authMiddleware, asyncHandler(BrandController.list))
+  .get("/list", asyncHandler(BrandController.list))
 
 export default router;

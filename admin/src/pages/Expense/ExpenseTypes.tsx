@@ -34,7 +34,7 @@ export default function ExpenseTypes() {
   };
 
   const handleEdit = (unit: ExpenseType) => {
-    setEditID(unit._id);
+    setEditID(String(unit.id));
     setName(unit.name);
   };
 
@@ -92,7 +92,7 @@ export default function ExpenseTypes() {
       {/* Table */}
       <Table
         data={expenseTypes}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           { header: "#", accessor: (_, i) => i as number + 1, className: "w-10 text-center" },
           {
@@ -105,7 +105,7 @@ export default function ExpenseTypes() {
           <button onClick={() => handleEdit(row)} className="global_edit">
                   <Edit size={18} />
                 </button>
-                <button onClick={() => handleDelete(row._id)} className="global_button_red">
+                <button onClick={() => handleDelete(String(row.id))} className="global_button_red">
                   <Delete size={18} />
                 </button>
               </div>

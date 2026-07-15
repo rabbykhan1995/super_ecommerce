@@ -27,7 +27,7 @@ const SidePanel = ({ user }: Props) => {
 
   const toggle = () => setIsOpen(!isOpen);
   
-  const menuItems = user.admin === true? adminRoutes:userRoutes
+  const menuItems = userRoutes
 
 
 

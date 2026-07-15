@@ -1,14 +1,15 @@
 import api, { base_url } from "@/utils/apiconfig";
+import Helper from "@/helper/helper";
 import { create } from "zustand";
 
 export interface IUser {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   mobile?: string;
-  image?: string;
+  image?: string | null;
   address?: string;
-  admin: boolean;
+  openID?: string | null;
 }
 
 interface UserState {
@@ -28,33 +29,36 @@ export const userStore = create<UserState>((set) => ({
   fetchUser: async () => {
     try {
       set({ isLoading: true });
-
-      const res = await api(`/user/get-profile`);
-
-      if (!res.data.success === true) {
+      const token = Helper.getToken();
+      if (!token) {
         set({ user: null, isLoading: false });
         return;
       }
 
-      const data = await res.data;
+      const res = await api.get("/auth/get-profile");
+
+      if (!res.data.success) {
+        set({ user: null, isLoading: false });
+        return;
+      }
 
       set({
-        user: data.data,
+        user: res.data.data,
         isLoading: false,
       });
-    } catch (error) {
+    } catch {
       set({ user: null, isLoading: false });
     }
   },
 
   logout: async () => {
-    await fetch(`${base_url}/user/logout`, {
-      method: "GET",
-      credentials: "include",
-    });
-
+    try {
+      await api.get("/auth/logout");
+    } catch {
+      // ignore
+    }
+    Helper.clearToken();
     set({ user: null });
-    // redirect to home page
     window.location.replace("/");
   },
 }));

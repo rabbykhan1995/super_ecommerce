@@ -1,12 +1,13 @@
 import {
   SQL,
   and,
+  asc,
   count,
+  desc,
   ilike,
   or,
 } from "drizzle-orm";
 import db, { QueryClient } from "../drizzle/src";
-
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -20,7 +21,6 @@ interface PaginateOptions<T> {
   limit?: number;
 
   search?: string;
-
   searchColumns?: any[];
 
   where?: SQL[];
@@ -34,10 +34,12 @@ interface PaginateOptions<T> {
   db?: QueryClient;
 
   with?: Record<string, any>;
+
+  orderBy?: any | any[];
 }
 
 export const paginateQuery = async <T>({
-  db:QueryClient = db,
+  db: client = db,
   query,
   countTable,
 
@@ -48,16 +50,14 @@ export const paginateQuery = async <T>({
   searchColumns = [],
 
   where,
+
   with: relations,
+
+  orderBy,
 }: PaginateOptions<T>): Promise<PaginatedResult<T>> => {
   const offset = (page - 1) * limit;
 
   const conditions: SQL[] = [...(where ?? [])];
-
-  const finalWhere =
-    conditions.length > 0
-      ? and(...conditions)
-      : undefined;
 
   if (search && searchColumns.length) {
     conditions.push(
@@ -69,17 +69,21 @@ export const paginateQuery = async <T>({
     );
   }
 
-
+  const finalWhere =
+    conditions.length > 0
+      ? and(...conditions)
+      : undefined;
 
   const [items, totalRows] = await Promise.all([
     query.findMany({
       where: finalWhere,
       with: relations,
+      orderBy,
       limit,
       offset,
     }),
 
-    db
+    client
       .select({
         total: count(),
       })

@@ -12,7 +12,7 @@ export const createExpenseSchema = z.object({
     .date({ message: "Expense date must be a valid date" }),
   accounts: paymentAccountSchema,
   exchangeAmount:z.number("must be number").default(0),
-  exchangeAccounts: paymentAccountSchema,
+  exchangeAccounts: paymentAccountSchema.default([]),
 });
 
 

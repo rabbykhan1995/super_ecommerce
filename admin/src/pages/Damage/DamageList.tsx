@@ -3,8 +3,7 @@ import api from "../../lib/axios";
 import Table from "../../components/tables/Table";
 import TableFilterBar from "../../components/filters/TableFilterBar";
 import Pagination from "../../components/filters/Pagination";
-import { Trash, Undo2 } from "lucide-react";
-import { Link } from "react-router";
+import { Trash } from "lucide-react";
 import type { PaginatedResult } from "../../types/type";
 import TimeAgo from "../../components/Ui/TimeAgo";
 import Helper from "../../utils/helper";
@@ -37,7 +36,7 @@ export default function DamageList() {
         return () => clearTimeout(timer);
     }, [search]);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (id: number) => {
         const res = await api.delete(`/damage/delete/${id}`)
 
         if (res.data.success) {
@@ -53,43 +52,31 @@ export default function DamageList() {
     return (
         <div className=" space-y-4">
             <TableFilterBar
-                title="Products"
+                title="Damages"
                 subtitle={`Total: ${data.total}`}
                 search={search}
                 onSearchChange={(val) => { setSearch(val); setPage(1); }}
-                addHref="/product/new"
-                addLabel="New Product"
+                addHref="/damage/create"
+                addLabel="New Damage"
                 limit={limit}
                 onLimitChange={(val) => { setLimit(val); setPage(1); }}
             />
 
             <Table
                 data={data.items}
-                keyExtractor={(row) => row._id}
+                keyExtractor={(row) => row.id}
                 columns={[
                     {
-                        header: "Invoice", accessor: (row, i) => (
-
-                            <Link to={`/sale/invoice/${row._id}`}
-                                className="text-sm"
-                            >
-                                {i as number + 1}
-                            </Link>
-
+                        header: "#", accessor: (row, i) => (
+                            <span className="text-sm">{i as number + 1}</span>
                         ), className: "text-start", headerClassName: "text-start",
                     },
                     {
-                        header: "Name", accessor: (row) => (
-                            <h1> {row.productName}      {!!row.serial && <span> | SN: ({row.serial}) </span>}</h1>
+                        header: "Product", accessor: (row) => (
+                            <h1> {row.product?.name} {row.variant?.attributes?.map((a: any) => <span key={a.name}>| {a.name}: {a.value} </span>)} {!!row.serial && <span> | SN: ({row.serial}) </span>}</h1>
                         ), headerClassName: "text-start"
                     },
                     { header: "Reason", accessor: "reason", headerClassName: "text-start" },
-                    {
-                        header: "Other Cost", accessor: (row) => (
-                            <span> {Helper.formatLongNumber(row.otherCost || 0)}</span>
-
-                        ), className: "text-center"
-                    },
                     {
                         header: "P. Price", accessor: (row) => (
                             <span> {Helper.formatLongNumber(row.purchasePrice)}</span>
@@ -104,8 +91,11 @@ export default function DamageList() {
                     },
 
 
+
                     {
-                        header: "Total Loss", accessor: "totalLoss", className: "text-center"
+                        header: "Total Loss", accessor: (row) => (
+                            <span>{Helper.formatLongNumber(row.damagedQty * row.purchasePrice)}</span>
+                        ), className: "text-center"
                     },
 
 
@@ -116,7 +106,7 @@ export default function DamageList() {
                         headerClassName: "text-center min-w-20",
                         accessor: (row) => (
 
-                            <TimeAgo date={row.DamageDate} />
+                            <TimeAgo date={row.damageDate} />
 
                         )
 
@@ -129,7 +119,7 @@ export default function DamageList() {
                         accessor: (row) => (
                             <div className="flex gap-2 justify-end">
                                 <button
-                                    onClick={() => handleDelete(row._id)} className="global_button_red"><Trash size={15} /></button>
+                                    onClick={() => handleDelete(row.id)} className="global_button_red"><Trash size={15} /></button>
                             </div>
                         ),
                     },

@@ -1,17 +1,24 @@
-export type Cart = {
-    _id:string;
-  itemID: string;
-  itemSlug: string;
-  itemTitle: string;
-  thumbnail?: string;
+export type CartItem = {
+  id: number;
+  userID: string;
+  productID: number;
+  variantID: number;
+  name: string;
   price: number;
-  stock: number;
+  slug: string;
+  thumbnail: string | null;
+  attributes: { name: string; value: string }[];
   quantity: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+  stock: number;
+  addedAt: string;
+};
 
-export type UpdateCart = Omit<Cart, "createdAt" | "updatedAt" | "_id">
+export type AddToCartPayload = {
+  productID: number;
+  variantID: number;
+  quantity: number;
+};
 
-
-export type CreateCart = UpdateCart;
+export type UpdateCartPayload = {
+  quantity: number;
+};

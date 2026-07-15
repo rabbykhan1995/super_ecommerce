@@ -3,8 +3,7 @@ import api from "../../lib/axios";
 import Table from "../../components/tables/Table";
 import TableFilterBar from "../../components/filters/TableFilterBar";
 import Pagination from "../../components/filters/Pagination";
-import { Trash, Undo2 } from "lucide-react";
-import { Link } from "react-router";
+import { Trash } from "lucide-react";
 import type { PaginatedResult, WarrantyListItem, WarrantyStatus } from "../../types/type";
 import TimeAgo from "../../components/Ui/TimeAgo";
 import { toast } from "sonner";
@@ -53,7 +52,7 @@ export default function WarrantyList() {
       status: "received_from_supplier",
       receivedDate: new Date()
     }
-    const res = await api.post(`/warranty/recieve-from-supplier/${warranty._id}`, payload);
+    const res = await api.post(`/warranty/recieve-from-supplier/${warranty.id}`, payload);
 
     if (res.data.success) {
       toast.success(res.data.msg);
@@ -65,7 +64,7 @@ export default function WarrantyList() {
       status: "returned_to_customer",
       resolvedDate: new Date(),
     }
-    const res = await api.post(`/warranty/return-to-customer/${warranty._id}`, payload);
+    const res = await api.post(`/warranty/return-to-customer/${warranty.id}`, payload);
 
     if (res.data.success) {
       toast.success(res.data.msg);
@@ -169,15 +168,13 @@ export default function WarrantyList() {
         subtitle={`Total: ${data.total}`}
         search={search}
         onSearchChange={(val) => { setSearch(val); setPage(1); }}
-        addHref="/product/new"
-        addLabel="New Product"
         limit={limit}
         onLimitChange={(val) => { setLimit(val); setPage(1); }}
       />
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           {
             header: "Status", accessor: (row) => (
@@ -196,14 +193,14 @@ export default function WarrantyList() {
               <h1
                 className="text-sm"
               >
-                {row.productName} (SN:{row.serial})
+                {row.product?.name} (SN:{row.serial})
               </h1>
 
             ), className: "text-start", headerClassName: "text-start",
           },
 
-          { header: "Customer", accessor: "customerName", headerClassName: "text-start" },
-          { header: "Supplier", accessor: "supplierName", headerClassName: "text-start" },
+          { header: "Customer", accessor: (row) => row.customer?.name ?? "-", headerClassName: "text-start" },
+          { header: "Supplier", accessor: (row) => row.supplier?.name ?? "-", headerClassName: "text-start" },
           {
             header: "S.Price", accessor: (row) => (
               <span> {Helper.formatLongNumber(row.salePrice || 0)}</span>

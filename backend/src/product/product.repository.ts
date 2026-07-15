@@ -1,6 +1,7 @@
 import {
   Batch,
   BatchPayload,
+  EcomProductQuery,
   Product,
   ProductPayload,
   StockFlowColumn,
@@ -15,12 +16,15 @@ import {
   and,
   asc,
   count,
+  desc,
   eq,
   gt,
+  gte,
   ilike,
   inArray,
   isNotNull,
   isNull,
+  lte,
   ne,
   or,
   SQL,
@@ -257,6 +261,21 @@ export default class ProductRepository {
     });
   }
 
+  static async FullStructuredProductBySlug(
+    slug: string,
+    client: QueryClient = db,
+  ) {
+    return client.query.productTable.findFirst({
+      where: eq(productTable.slug, slug),
+      with: {
+        brand: true,
+        unit: true,
+        category: true,
+        variants: true,
+      },
+    });
+  }
+
   static async batchByVariantID(
     variantID: number,
     client: QueryClient = db,
@@ -367,6 +386,7 @@ export default class ProductRepository {
       page: query.page,
       limit: query.limit,
       where: searchCondition ? [searchCondition] : undefined,
+      orderBy: desc(variantTable.updatedAt),
       with: {
         product: {
           columns: {
@@ -399,6 +419,262 @@ export default class ProductRepository {
       },
     });
   }
+
+ static async ecomProductList(query: EcomProductQuery) {
+
+  const conditions: SQL[] = [];
+
+  // ===================================
+  // Search
+  // ===================================
+
+  if (query.search?.trim()) {
+
+    const keyword = `%${query.search.trim()}%`;
+
+    conditions.push(
+
+      or(
+
+        ilike(productTable.name, keyword),
+
+        ilike(productTable.slug, keyword),
+
+        ilike(productTable.sku, keyword)
+
+      )!
+
+    );
+
+  }
+
+  // ===================================
+  // Category
+  // ===================================
+
+  if (query.categoryID?.length) {
+
+    conditions.push(
+
+      inArray(productTable.categoryID, query.categoryID)
+
+    );
+
+  }
+
+  // ===================================
+  // Brand
+  // ===================================
+
+  if (query.brandID?.length) {
+
+    conditions.push(
+
+      inArray(productTable.brandID, query.brandID)
+
+    );
+
+  }
+
+  // ===================================
+  // Unit
+  // ===================================
+
+  if (query.unitID?.length) {
+
+    conditions.push(
+
+      inArray(productTable.unitID, query.unitID)
+
+    );
+
+  }
+
+  // ===================================
+  // Featured
+  // ===================================
+
+  if (query.featured !== undefined) {
+
+    conditions.push(
+
+      eq(productTable.featured, query.featured)
+
+    );
+
+  }
+
+  // ===================================
+  // Published
+  // ===================================
+
+  if (query.published !== undefined) {
+
+    conditions.push(
+
+      eq(productTable.isPublished, query.published)
+
+    );
+
+  }
+
+  // ===================================
+  // Stock
+  // ===================================
+
+  if (query.inStock) {
+
+    conditions.push(
+
+      gt(productTable.stock, 0)
+
+    );
+
+  }
+
+  // ===================================
+  // Rating
+  // ===================================
+
+  if (query.minRating) {
+
+    conditions.push(
+
+      gte(productTable.averageRating, query.minRating)
+
+    );
+
+  }
+
+  // ===================================
+  // Variant Price
+  // ===================================
+
+  if (query.minPrice != null || query.maxPrice != null) {
+
+    const variantConditions: SQL[] = [];
+
+    if (query.minPrice != null) {
+
+      variantConditions.push(
+
+        gte(variantTable.salePrice, query.minPrice)
+
+      );
+
+    }
+
+    if (query.maxPrice != null) {
+
+      variantConditions.push(
+
+        lte(variantTable.salePrice, query.maxPrice)
+
+      );
+
+    }
+
+    conditions.push(
+
+      sql`${productTable.id} IN (
+
+        SELECT product_id
+
+        FROM ${variantTable}
+
+        WHERE ${and(...variantConditions)}
+
+      )`
+
+    );
+
+  }
+
+  // ===================================
+  // Sort
+  // ===================================
+
+  let orderBy;
+
+  switch (query.sort) {
+
+    case "oldest":
+      orderBy = asc(productTable.createdAt);
+      break;
+
+    case "priceAsc":
+      orderBy = asc(productTable.salePrice);
+      break;
+
+    case "priceDesc":
+      orderBy = desc(productTable.salePrice);
+      break;
+
+    case "nameAsc":
+      orderBy = asc(productTable.name);
+      break;
+
+    case "nameDesc":
+      orderBy = desc(productTable.name);
+      break;
+
+    case "bestSelling":
+      orderBy = desc(productTable.totalSold);
+      break;
+
+    default:
+      orderBy = desc(productTable.createdAt);
+
+  }
+
+  return paginateQuery({
+
+    db,
+
+    query: db.query.productTable,
+
+    countTable: productTable,
+
+    page: query.page,
+
+    limit: query.limit,
+
+    where: conditions,
+
+    orderBy,
+
+    with: {
+
+      brand: true,
+
+      category: true,
+
+      unit: true,
+
+      variants: {
+
+        columns: {
+
+          id: true,
+
+          salePrice: true,
+
+          stock: true,
+
+          barcode: true,
+
+          attributes: true,
+
+          createdAt: true,
+
+        },
+
+      },
+
+    },
+
+  });
+ }
   static async findSaleBatches(
     variantID: number,
     client: QueryClient = db,

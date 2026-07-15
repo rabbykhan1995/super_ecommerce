@@ -1,22 +1,142 @@
 export type FullProduct = {
-  _id:string;
-  title: string;
+  id: number;
+  name: string;
   slug: string;
-  rating: number;
-  description?: string;
-  shortDescription?: string;
-  thumbnail?: string | null;
-  images: string[];
-  tags:string[];
-  price: number;
+  description: string | null;
+  shortDescription: string | null;
+  thumbnail: string | null;
+  video: string | null;
   stock: number;
-  reviewers: number;
-  averageReview: number;
+  salePrice: number;
+  purchasePrice: number;
+  sku: string | null;
+  status: string;
+  featured: boolean;
+  isPublished: boolean;
+  manageStock: boolean;
+  averageRating: number;
+  totalReviews: number;
+  totalSold: number;
   createdAt: Date;
   updatedAt: Date;
-}
+  brand: { id: number; name: string } | null;
+  category: { id: number; name: string } | null;
+  unit: { id: number; name: string } | null;
+  variants: ProductVariant[];
+};
 
-export type CardProduct = Pick<
-  FullProduct,
-  "thumbnail" | "averageReview" | "title" | "slug"
->;
+export type ProductVariant = {
+  id: number;
+  productID: number;
+  salePrice: number | null;
+  stock: number | null;
+  barcode: string;
+  weight: number | null;
+  attributes: { name: string; value: string }[];
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type CardProduct = {
+  thumbnail: string | null;
+  averageRating: number;
+  name: string;
+  slug: string;
+};
+
+// ---- Ecom Product Types (for /ecom-product-list) ----
+
+export type EcomBrand = {
+  id: number;
+  name: string;
+};
+
+export type EcomCategory = {
+  id: number;
+  name: string;
+};
+
+export type EcomUnit = {
+  id: number;
+  name: string;
+};
+
+export type EcomVariant = {
+  id: number;
+  salePrice: number | null;
+  stock: number | null;
+  barcode: string;
+  attributes: Array<{ name: string; value: string }>;
+  createdAt: Date;
+};
+
+export type EcomProduct = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  shortDescription: string | null;
+  thumbnail: string | null;
+  salePrice: number;
+  stock: number;
+  totalSold: number;
+  averageRating: number;
+  totalReviews: number;
+  featured: boolean;
+  isPublished: boolean;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  brand: EcomBrand | null;
+  category: EcomCategory | null;
+  unit: EcomUnit | null;
+  variants: EcomVariant[];
+};
+
+export type EcomProductFilters = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  categoryID?: number[];
+  brandID?: number[];
+  unitID?: number[];
+  featured?: boolean;
+  inStock?: boolean;
+  published?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  minRating?: number;
+  sort?:
+    | "latest"
+    | "oldest"
+    | "priceAsc"
+    | "priceDesc"
+    | "nameAsc"
+    | "nameDesc"
+    | "bestSelling";
+};
+
+export type PaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type ApiResponse<T> = {
+  success: boolean;
+  data: T;
+};
+
+export type CategoryListItem = {
+  id: number;
+  name: string;
+  slug?: string;
+  parentID?: number | null;
+};
+
+export type BrandListItem = {
+  id: number;
+  name: string;
+  slug?: string;
+};

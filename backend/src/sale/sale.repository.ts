@@ -3,7 +3,7 @@ import db, { QueryClient } from "../../drizzle/src";
 import { saleTable } from "./sale.table";
 import { paginateQuery } from "../../utils/queryBuilder";
 import { OnlySalePayload, SaleItemPayload } from "./sale.type";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { saleItemsTable } from "./sale_items.table";
 
 export default class SaleRepository {
@@ -51,6 +51,7 @@ export default class SaleRepository {
             page: query.page,
             limit: query.limit,
             search: query.search,
+            orderBy: desc(saleTable.id),
             with: {
                 customer: {
                     columns: {
@@ -76,6 +77,12 @@ export default class SaleRepository {
                     },
                     with: {
                         unit: {
+                            columns: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                        brand: {
                             columns: {
                                 id: true,
                                 name: true,

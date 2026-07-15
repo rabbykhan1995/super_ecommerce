@@ -23,10 +23,10 @@ export default function SaleInvoiceModal({ isOpen, close, saleID, printSize = 58
     }
 
     useEffect(() => {
-        if (saleID) {
+        if (isOpen && saleID) {
             fetchSaleDetails()
         }
-    }, [saleID]);
+    }, [saleID, isOpen]);
 
     if (!isOpen) {
         return null
@@ -55,7 +55,7 @@ export default function SaleInvoiceModal({ isOpen, close, saleID, printSize = 58
                             <p className="text-[11px]">Mobile: 01769546456</p>
                             <div className="text-[10px] mt-1 text-left border-b border-dashed border-gray-400 pb-1">
                                 <div>Invoice: {data?.invoiceNo || "N/A"}</div>
-                                <div>Date: {data?.SaleDate ? new Date(data.SaleDate).toLocaleDateString() : ""}</div>
+                                <div>Date: {data?.saleDate ? new Date(data.saleDate).toLocaleDateString() : ""}</div>
                             </div>
                         </div>
 
@@ -68,7 +68,7 @@ export default function SaleInvoiceModal({ isOpen, close, saleID, printSize = 58
                         {/* Product Items */}
                         <div className="space-y-2 mb-2">
                             {data?.products?.map((row: any, i: number) => (
-                                <div key={row._id || i} className="text-[12px]">
+                                <div key={row.id || i} className="text-[12px]">
                                     <p className="font-medium">
                                         {i + 1}. {row.product?.name} 
                                     </p>

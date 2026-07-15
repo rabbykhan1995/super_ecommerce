@@ -9,6 +9,7 @@ import { updateProductSchema } from "../../validators/product.validator";
 import toast from "react-hot-toast";
 import AttributeCell from "../../components/modals/AttributeCell";
 import Table from "../../components/tables/Table";
+import ImageUploader from "../../components/Ui/ImageUploader";
 
 export default function EditProduct() {
   const { id } = useParams();
@@ -97,41 +98,66 @@ export default function EditProduct() {
   }, [id]);
 
   const updateProduct = async () => {
- 
- const oldVariantMap = new Map(oldData!.variants!.map(v => [v.id, v]));
+    if (!oldData) return;
 
-  // শুধু পরিবর্তিত ভ্যারিয়েন্ট ফিল্টার
-  const updatedVariants = variants.filter(v => {
-    const old = oldVariantMap.get(v.id);
-    if (!old) return false;
-    return JSON.stringify(old) !== JSON.stringify(v);
-  });
+    // --- Diff product fields against oldData ---
+    const productFields: Record<string, any> = {};
 
-  // নতুন ভ্যারিয়েন্ট (যাদের id নেই)
-  const newVariants = variants.filter(v => !v.id);
+    if (name !== oldData.name) productFields.name = name;
+    if (barcode !== (oldData.barcode ?? "")) productFields.barcode = barcode || undefined;
+    if (alertQty !== (oldData.alertQty ?? "")) productFields.alertQty = alertQty === "" ? 0 : alertQty;
+    if (manageStock !== oldData.manageStock) productFields.manageStock = manageStock;
+    if (manageWarranty !== oldData.manageWarranty) productFields.manageWarranty = manageWarranty;
+    if (decimal !== oldData.decimal) productFields.decimal = decimal;
+    if (selectedUnit?.value !== oldData.unit?.id) productFields.unitID = selectedUnit?.value;
+    if ((selectedBrand?.value ?? null) !== (oldData.brand?.id ?? null)) productFields.brandID = selectedBrand?.value ?? null;
+    if ((selectedCategory?.value ?? null) !== (oldData.category?.id ?? null)) productFields.categoryID = selectedCategory?.value ?? null;
 
-  // সব পরিবর্তিত ভ্যারিয়েন্ট একত্রিত
-  const changedVariants = [...updatedVariants, ...newVariants];
+    if (!manageStock) {
+      if (salePrice !== (oldData.salePrice ?? "")) productFields.salePrice = salePrice;
+      if (purchasePrice !== (oldData.purchasePrice ?? "")) productFields.purchasePrice = purchasePrice;
+    }
 
-  // payload এর জন্য ফরম্যাট
-  const formattedVariant = changedVariants.map(v => ({
-    ...v,
-    barcode: v.barcode || undefined
-  }));
+    // --- Diff variant fields ---
+    const oldVariantMap = new Map(oldData.variants!.map((v: any) => [v.id, v]));
+    const changedVariants: any[] = [];
 
-  const payload = {
-    name,
-    barcode: barcode || undefined,
-    alertQty: alertQty === "" ? 0 : alertQty,
-    manageStock,
-    manageWarranty,
-    decimal,
-    unitID: selectedUnit?.value,
-    brandID: selectedBrand?.value ?? null,
-    categoryID: selectedCategory?.value ?? null,
-    ...(!manageStock ? { salePrice, purchasePrice } : {}),
-    variants: formattedVariant // শুধু পরিবর্তিত + নতুন
-  };
+    for (const v of variants) {
+      if (v.id) {
+        const old = oldVariantMap.get(v.id);
+        if (!old) continue;
+
+        const fields: Record<string, any> = { id: v.id };
+        let changed = false;
+
+        if (v.barcode !== old.barcode) { fields.barcode = v.barcode || undefined; changed = true; }
+        if (v.weight !== old.weight) { fields.weight = v.weight; changed = true; }
+        if (v.salePrice !== old.salePrice) { fields.salePrice = v.salePrice; changed = true; }
+        if (JSON.stringify(v.attributes) !== JSON.stringify(old.attributes)) { fields.attributes = v.attributes; changed = true; }
+        if (JSON.stringify(v.images) !== JSON.stringify(old.images)) { fields.images = v.images; changed = true; }
+
+        if (changed) changedVariants.push(fields);
+      } else {
+        changedVariants.push({
+          salePrice: v.salePrice,
+          barcode: v.barcode || undefined,
+          weight: v.weight,
+          attributes: v.attributes,
+          images: v.images,
+        });
+      }
+    }
+
+    // --- Build payload with only changed fields ---
+    const payload: Record<string, any> = { ...productFields };
+    if (changedVariants.length > 0) {
+      payload.variants = changedVariants;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      toast.error("No changes to update");
+      return;
+    }
 
     const result = updateProductSchema.safeParse(payload);
     if (!result.success) {
@@ -139,8 +165,11 @@ export default function EditProduct() {
       return;
     }
 
-    const res = await api.put(`/product/update2/${id}`, result.data);
-    if (res.data.success) navigate("/product/list");
+    const res = await api.put(`/product/update/${id}`, result.data);
+    if (res.data.success) {
+      toast.success("Product updated successfully");
+      navigate("/product/list");
+    }
   };
   useEffect(() => {
     const timer = setTimeout(() => fetchBrands(), 400);
@@ -152,7 +181,8 @@ export default function EditProduct() {
       salePrice: 0,
       barcode: "",
       weight: 0,
-      attributes: [] // ফাঁকা অ্যারে
+      attributes: [],
+      images: []
     }
 
     setVariants(prev => [...prev, newVariant]);
@@ -338,6 +368,20 @@ export default function EditProduct() {
                   onChange={(e) => changeVariant(i as number,"salePrice" ,e.target.value)}
                   placeholder="sale price"
                   className="global_input"
+                />
+
+              , className: "text-center"
+            },
+
+            {
+              header: "images", accessor: (row,i) =>
+                <ImageUploader
+                  id={`variant-image-edit-${i}`}
+                  value={row.images || []}
+                  multiple
+                  label="Variant Images"
+                  maxFiles={5}
+                  onChange={(val) => changeVariant(i as number, "images", val)}
                 />
 
               , className: "text-center"

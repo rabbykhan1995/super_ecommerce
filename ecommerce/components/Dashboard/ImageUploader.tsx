@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { X, Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
 import api from "@/utils/apiconfig";
 
 interface ImageUploaderProps {
@@ -33,7 +34,7 @@ const ImageUploader = ({
     if (!files.length) return;
 
     if (multiple && images.length + files.length > maxFiles) {
-      alert(`You can upload up to ${maxFiles} images`);
+      toast.error(`You can upload up to ${maxFiles} images`);
       return;
     }
 
@@ -58,7 +59,7 @@ const ImageUploader = ({
       onChange(multiple ? updatedImages : uploadedUrls[0]);
     } catch (err) {
       console.error("Upload failed", err);
-      alert("Upload failed");
+      toast.error("Upload failed");
     } finally {
       setLoading(false);
     }
@@ -73,7 +74,7 @@ const ImageUploader = ({
       onChange(multiple ? updated : "");
     } catch (err) {
       console.error("Delete failed", err);
-      alert("Delete failed");
+      toast.error("Delete failed");
     }
   };
 

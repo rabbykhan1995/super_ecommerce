@@ -1,4 +1,4 @@
-import { eq, and, sql} from "drizzle-orm";
+import { eq, and, sql, desc} from "drizzle-orm";
 import db, { QueryClient } from "../../drizzle/src";
 import { transactionTable } from "./transaction.table"; // আপনার ড্রিসেল টেবিল
 import { accountTable } from "../account/account.table";
@@ -157,14 +157,19 @@ static async findBySourceID(
       page: query.page,
       limit: query.limit,
       search: query.search,
+      orderBy: desc(transactionTable.id),
       where: [
-        ...(query.accountID ? [eq(transactionTable.accountID, query.accountID)] : []),
+        ...(query.accountID ? [eq(transactionTable.accountID, Number(query.accountID))] : []),
         ...(query.type ? [eq(transactionTable.type, query.type)] : []),
         ...(query.source ? [eq(transactionTable.source, query.source)] : [])
       ],
       with: {
-        accounts: true,
-        transactions: true,
+        account: {
+          columns: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
   }

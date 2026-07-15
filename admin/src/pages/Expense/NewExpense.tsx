@@ -35,7 +35,7 @@ export default function NewExpense() {
     if (res.data.success) {
       setExpenseTypes(
         res.data.data.map((t: ExpenseType) => ({
-          value: t._id,
+          value: t.id,
           label: t.name,
           ...t,
         })),
@@ -49,7 +49,7 @@ export default function NewExpense() {
       const formatted: AccountOption[] = res.data.data.map((a: Account) => ({
         ...a,
         label: a.name,
-        value: a._id,
+        value: a.id,
         amount: 0,
         type: "Debit",
       }));
@@ -93,11 +93,13 @@ export default function NewExpense() {
 
     const payload = {
       expenseDate,
-      expenseTypeID: selectedExpenseType.value,
+      expenseTypeID: Number(selectedExpenseType.value),
       accounts: accountsPayload,
       note: note.trim() || undefined,
       paid: paidWithAcc,
       documentImage: null,
+      exchangeAmount: 0,
+      exchangeAccounts: [],
     };
 
     const result = createExpenseSchema.safeParse(payload);

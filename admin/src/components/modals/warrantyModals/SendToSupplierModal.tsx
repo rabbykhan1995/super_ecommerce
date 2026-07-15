@@ -22,19 +22,19 @@ export default function SendToSupplierModal({ isOpen, close, warranty }: SendToS
     const fetchAccount = async () => {
         const res = await api("/account/list");
         if (res.data.success) {
-            const formatted: AccountOption[] = res.data.data.map((a: Account) => ({ ...a, label: a.name, value: a._id, amount: 0, type: "Credit" }));
+            const formatted: AccountOption[] = res.data.data.map((a: Account) => ({ ...a, label: a.name, value: a.id, amount: 0, type: "Credit" }));
             setAccounts(formatted);
         }
     };
     const handleSendToSupplier = async () => {
-        const formattedAccounts = selectedAccounts.map(a => ({ accountID: a._id, amount: a.amount }))
+        const formattedAccounts = selectedAccounts.map(a => ({ accountID: a.id, amount: a.amount }))
         const payload = {
             sentDate,
             status: "sent_to_supplier" as WarrantyStatus,
             ...(selectedAccounts.length > 0 && { accounts: formattedAccounts }),
             supplierNote: "",
         }
-        const res = await api.post(`/warranty/send-to-supplier/${warranty._id}`, payload);
+        const res = await api.post(`/warranty/send-to-supplier/${warranty.id}`, payload);
 
         if (res.data.success) {
             toast.success(res.data.msg);
@@ -60,9 +60,9 @@ export default function SendToSupplierModal({ isOpen, close, warranty }: SendToS
             >
                 <h2 className="text-lg font-semibold mb-4">Send To Supplier</h2>
                 <div className="py-5">
-                    <h1 className="font-bold text-lg uppercase">{warranty.productName}. s/n : {warranty.serial}</h1>
-                    <h1 className="font-semibold text-sm uppercase">Supplier : {warranty.supplierName}</h1>
-                    <h1 className="font-semibold text-sm uppercase">Customer : {warranty.customerName}</h1>
+                    <h1 className="font-bold text-lg uppercase">{warranty.product?.name}. s/n : {warranty.serial}</h1>
+                    <h1 className="font-semibold text-sm uppercase">Supplier : {warranty.supplier?.name}</h1>
+                    <h1 className="font-semibold text-sm uppercase">Customer : {warranty.customer?.name}</h1>
                 </div>
                 {/* Date */}
                 <div className="relative w-full">

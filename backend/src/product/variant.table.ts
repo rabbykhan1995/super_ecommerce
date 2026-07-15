@@ -47,6 +47,10 @@ export const variantTable = pgTable(
       .notNull()
       .default(sql`'[{"name":"base","value":"none"}]'::jsonb`),
 
+    images: jsonb("images")
+      .$type<string[]>()
+      .default(sql`'[]'::jsonb`),
+
     updatedAt: timestamp("updated_at", {
       withTimezone: true,
     })

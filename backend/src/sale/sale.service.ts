@@ -76,13 +76,11 @@ export default class SaleService {
 
                         }
 
-                        Promise.all(
-                            [
-                                await ProductService.decreaseProductStock(p.productID, p.soldQty, tx),
-                                await ProductService.decreaseVariantStock(p.variantID, p.soldQty, tx),
-                                await ProductService.decreaseBatchStock(p.batchID as number, p.soldQty)
-                            ]
-                        )
+                        await Promise.all([
+                            ProductService.decreaseProductStock(p.productID, p.soldQty, tx),
+                            ProductService.decreaseVariantStock(p.variantID, p.soldQty, tx),
+                            ProductService.decreaseBatchStock(p.batchID as number, p.soldQty, tx)
+                        ]);
                     }
 
 
@@ -242,19 +240,15 @@ export default class SaleService {
 
             ...sale,
 
-            ...(sale.exchangeAmount > 0 ? {
-                ...exchangeTransactions!.map((t) => ({
-                    name: t.account.name,
-                    amount: t.amount
-                }))
-            } : {}),
+            accounts: transactions?.map((t) => ({
+                name: t.account.name,
+                amount: t.amount
+            })) ?? [],
 
-            ...(sale.paid > 0 ? {
-                ...transactions!.map((t) => ({
-                    name: t.account.name,
-                    amount: t.amount
-                }))
-            } : {}),
+            exchangeAccounts: exchangeTransactions?.map((t) => ({
+                name: t.account.name,
+                amount: t.amount
+            })) ?? [],
 
             products: saleProducts,
 

@@ -1,18 +1,15 @@
-import Filter from "@/components/Filter/Filter";
-import FilterMobile from "@/components/Filter/FilterMobile";
-import React from "react";
+import { Suspense } from "react";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      {" "}
-      <FilterMobile />
-      <div className="flex lg:px-20 ">
-        <Filter />
-        <main className="max-h-screen  overflow-y-scroll scrollbar-hide">
-          {children}
-        </main>
-      </div>
-    </>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20">
+          <p className="text-gray-500">Loading products...</p>
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
   );
 }

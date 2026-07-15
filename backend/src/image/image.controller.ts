@@ -7,40 +7,43 @@ export class ImageController {
   constructor() {}
 
   // Upload multiple images (with custom ID)
-static async uploadImages(req: Request, res: Response) {
-  if (!req.files) throw new ApiError(400, "No files uploaded");
+  static async uploadImages(req: Request, res: Response) {
+    if (!req.files) throw new ApiError(400, "No files uploaded");
 
-  const files = req.files as Express.Multer.File[];
+    const files = req.files as Express.Multer.File[];
 
-  const uploadPromises = files.map((file) => {
-    const uniqueId = Helper.generateRandomID();
-    const publicId = `sheshir_image/${uniqueId}`;
+    const uploadPromises = files.map((file) => {
+      const uniqueId = Helper.generateRandomID();
+      const publicId = `sheshir_image/${uniqueId}`;
 
-    return new Promise<{ url: string; imageId: string }>((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { public_id: publicId, overwrite: false },
-        (error, result) => {
-          if (error) return reject(error);
+      return new Promise<{ url: string; imageId: string }>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { public_id: publicId, overwrite: false, resource_type: "auto" },
+          (error, result) => {
+            if (error) {
+              console.error("Cloudinary upload error:", error.message);
+              return reject(new ApiError(500, `Image upload failed: ${error.message}`));
+            }
 
-          resolve({
-            url: result!.secure_url,
-            imageId: uniqueId,
-          });
-        }
-      );
+            resolve({
+              url: result!.secure_url,
+              imageId: uniqueId,
+            });
+          }
+        );
 
-      stream.end(file.buffer);
+        stream.end(file.buffer);
+      });
     });
-  });
 
-  const uploadedImages = await Promise.all(uploadPromises);
+    const uploadedImages = await Promise.all(uploadPromises);
 
-  return res.status(201).json({
-    msg: "Upload successful",
-    success: true,
-    data: uploadedImages,
-  });
-}
+    return res.status(201).json({
+      msg: "Upload successful",
+      success: true,
+      data: uploadedImages,
+    });
+  }
 
   // Delete image by URL
   static async deleteImage(req: Request, res: Response) {
@@ -50,7 +53,10 @@ static async uploadImages(req: Request, res: Response) {
     const public_id = Helper.getPublicIdFromUrl(imageUrl);
     const deleted: any = await cloudinary.uploader.destroy(public_id);
 
-    console.log(deleted);
+    if (deleted.result !== "ok") {
+      console.error("Cloudinary delete error:", deleted);
+      throw new ApiError(500, `Image delete failed: ${deleted.result}`);
+    }
 
     return res.status(200).json({ success: true, msg: "Delete successful" });
   }

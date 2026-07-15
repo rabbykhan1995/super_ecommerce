@@ -27,7 +27,7 @@ router
   //   asyncHandler(ContactController.delete))
   .get("/list", authMiddleware, asyncHandler(ContactController.list))
 
-  .get('/contact-by-id/:id',authMiddleware, asyncHandler(ContactController.getContactByID) )
+  .get('/contactByID/:id',authMiddleware, asyncHandler(ContactController.getContactByID) )
 
 
 export default router;

@@ -35,11 +35,11 @@ export const productTable = pgTable(
 
     keywords: text("keywords").array().default([]),
 
-    brandID: integer("brand_id").references(()=> brandTable.id),
+    brandID: integer("brand_id").references(() => brandTable.id),
 
-    unitID: integer("unit_id").notNull().references(()=> unitTable.id),
+    unitID: integer("unit_id").notNull().references(() => unitTable.id),
 
-    categoryID: integer("category_id").references(()=>categoryTable.id),
+    categoryID: integer("category_id").references(() => categoryTable.id),
 
     manageStock: boolean("manage_stock").default(true).notNull(),
 
@@ -49,7 +49,7 @@ export const productTable = pgTable(
 
     video: text("video"),
 
-    stock: numeric("stock", {mode:"number", precision:12, scale:3}).default(0).notNull(),
+    stock: numeric("stock", { mode: "number", precision: 12, scale: 3 }).default(0).notNull(),
 
     totalSold: numeric("total_sold").default("0").notNull(),
 
@@ -63,7 +63,7 @@ export const productTable = pgTable(
 
     decimal: boolean("decimal").default(false).notNull(),
 
-    purchasePrice: numeric("purchase_price", {mode:"number", precision:12, scale:2}).default(0).notNull(),
+    purchasePrice: numeric("purchase_price", { mode: "number", precision: 12, scale: 2 }).default(0).notNull(),
 
     salePrice: numeric("sale_price", {
       precision: 12,
@@ -97,7 +97,13 @@ export const productTable = pgTable(
 
     sortOrder: integer("sort_order").default(0).notNull(),
 
-    averageRating: numeric("average_rating").default("0").notNull(),
+    averageRating: numeric("average_rating", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    })
+      .default(0)
+      .notNull(),
 
     totalReviews: integer("total_reviews").default(0).notNull(),
   },

@@ -1,104 +1,84 @@
-import { ClientSession } from "mongoose";
-import Warranty from "./warranty.model";
 import db, { QueryClient } from "../../drizzle/src";
+import { warrantyTable } from "./warranty.table";
+import { WarrantyPayload, WarrantyResponse } from "./warranty.type";
+import { eq } from "drizzle-orm";
+import { paginateQuery } from "../../utils/queryBuilder";
 
-export default class WarrantyRepositoy {
-    static async create(payload: any, client: QueryClient = db) {
-        return await Warranty.create([payload], { session });
+export default class WarrantyRepository {
+    static async create(payload: WarrantyPayload, client: QueryClient = db) {
+        const [warranty] = await client
+            .insert(warrantyTable)
+            .values(payload)
+            .returning();
+        return warranty ?? null;
     }
 
-    static async createMany(payloads: any[], session?: ClientSession) {
-        return await Warranty.insertMany(payloads, { session });
+    static async createMany(payloads: WarrantyPayload[], client: QueryClient = db) {
+        return await client
+            .insert(warrantyTable)
+            .values(payloads)
+            .returning();
     }
 
-    static async findByID(id: string, session?: ClientSession):Promise<WarrantyResponse | null> {
-        return await Warranty.findById(id).session(session ?? null);
+    static async findByID(id: number, client: QueryClient = db): Promise<WarrantyResponse | null> {
+        const [warranty] = await client
+            .select()
+            .from(warrantyTable)
+            .where(eq(warrantyTable.id, id))
+            .limit(1);
+        return warranty ?? null;
     }
 
-    static async findBySaleID(saleID: string, session?: ClientSession) {
-        return await Warranty.find({ saleID }).session(session ?? null);
+    static async findBySaleID(saleID: number, client: QueryClient = db) {
+        return await client
+            .select()
+            .from(warrantyTable)
+            .where(eq(warrantyTable.saleID, saleID));
     }
 
-    static async updateByID(id: string, payload: any, session?: ClientSession) {
-        return await Warranty.findByIdAndUpdate(id, payload, { new: true, session });
+    static async updateByID(id: number, payload: Partial<WarrantyPayload>, client: QueryClient = db) {
+        const [warranty] = await client
+            .update(warrantyTable)
+            .set(payload)
+            .where(eq(warrantyTable.id, id))
+            .returning();
+        return warranty ?? null;
     }
 
-    static async deleteByID(id: string, session?: ClientSession) {
-        return await Warranty.findByIdAndDelete(id).session(session ?? null);
+    static async deleteByID(id: number, client: QueryClient = db) {
+        const [warranty] = await client
+            .delete(warrantyTable)
+            .where(eq(warrantyTable.id, id))
+            .returning();
+        return warranty ?? null;
     }
 
-    static async deleteManyBySaleID(saleID: string, session?: ClientSession) {
-        return await Warranty.deleteMany({ saleID }).session(session ?? null);
+    static async deleteManyBySaleID(saleID: number, client: QueryClient = db) {
+        return await client
+            .delete(warrantyTable)
+            .where(eq(warrantyTable.saleID, saleID))
+            .returning();
     }
 
     static async list(query: any) {
-        // return await paginatedAggregate({
-        //     model: Warranty,
-        //     query,
-        //     postLookupSearch: true,
-        //     searchFields: [
-        //         { field: "serial" },
-        //     ],
-        //     lookups: [
-        //         {
-        //             from: "contacts",
-        //             localField: "customerID",
-        //             foreignField: "_id",
-        //             as: "customer",
-        //             preserveNull: true,
-        //         },
-        //         {
-        //             from: "contacts",
-        //             localField: "supplierID",
-        //             foreignField: "_id",
-        //             as: "supplier",
-        //             preserveNull: true,
-        //         },
-        //         {
-        //             from: "products",
-        //             localField: "productID",
-        //             foreignField: "_id",
-        //             as: "product",
-        //             preserveNull: true,
-        //         },
-        //     ],
-        //     projection: {
-        //         include: [
-        //             "customerID",
-        //             "supplierID",
-        //             "saleID",
-        //             "productID",
-        //             "batchID",
-                    
-        //             "serial",
-        //             "salePrice",
-        //             "warranty",
-        //             "status",
-        //             "supplierAction",
-        //             "active",
-
-        //             "expireDate",
-        //             "claimDate",
-        //             "saleDate",
-        //             "sentDate",
-        //             "receivedDate",
-        //             "resolvedDate",
-
-        //             "replacedSerial",
-        //             "replacedBatchID",
-
-        //             "refundAmount",
-        //             "otherCost",
-
-        //             "createdAt",
-        //             "updatedAt",
-        //         ],
-        //         computed: {
-        //             customerName: "$customer.name",
-        //             supplierName: "$supplier.name",
-        //              productName: "$product.name",
-        //         },
-        //     },
-        // });
+        return paginateQuery({
+            page: Number(query.page) || 1,
+            limit: Number(query.limit) || 10,
+            query: db.query.warrantyTable,
+            countTable: warrantyTable,
+            search: query.search,
+            searchColumns: [warrantyTable.serial, warrantyTable.note],
+            with: {
+                product: {
+                    columns: { id: true, name: true },
+                },
+                customer: {
+                    columns: { id: true, name: true },
+                },
+                supplier: {
+                    columns: { id: true, name: true },
+                },
+            },
+        });
     }
 }

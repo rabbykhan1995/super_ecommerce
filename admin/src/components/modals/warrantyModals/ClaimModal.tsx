@@ -19,9 +19,9 @@ export default function WarrantyClaimModal({ isOpen, close, warranty }: Warranty
     const handleClaim = async () => {
 
         const payload = {
-            claimDate, issueDesciption: issue,
+            claimDate, issueDescription: issue,
         }
-        const res = await api.post(`/warranty/claim/${warranty._id}`, payload);
+        const res = await api.post(`/warranty/claim/${warranty.id}`, payload);
 
         if (res.data.success) {
             toast.success(res.data.msg);
@@ -44,9 +44,9 @@ export default function WarrantyClaimModal({ isOpen, close, warranty }: Warranty
             >
                 <h2 className="text-lg font-semibold mb-4">Claim</h2>
                 <div>
-                    <h1 className="font-bold text-lg uppercase">{warranty.productName}. s/n : {warranty.serial}</h1>
-                    <h1 className="font-semibold text-sm uppercase">Supplier : {warranty.supplierName}</h1>
-                    <h1 className="font-semibold text-sm uppercase">Customer : {warranty.customerName}</h1>
+                    <h1 className="font-bold text-lg uppercase">{warranty.product?.name}. s/n : {warranty.serial}</h1>
+                    <h1 className="font-semibold text-sm uppercase">Supplier : {warranty.supplier?.name}</h1>
+                    <h1 className="font-semibold text-sm uppercase">Customer : {warranty.customer?.name}</h1>
                 </div>
                 {/* Date */}
                 <div className="relative w-full">

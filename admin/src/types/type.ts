@@ -262,13 +262,12 @@ export type SaleListItem = {
   totalAmount: number;
   balanceAfter: number;
   paid: number;
-  SaleDate: Date;
+  saleDate: Date;
   createdAt: Date;
-  default: boolean;
+  deletable: boolean;
   exchangeAmount?: number;
-  customerName?: string;
+  customer?: { name: string };
   otherCost?: number;
-  deletable?: boolean;
   discount: number;
   balanceBefore: number;
 };
@@ -285,10 +284,10 @@ export type WarrantyStatus =
 
 export type WarrantyListItem = {
   id: number;
-  saleID: string;
-  customerID: string | null;
-  productID: string;
-  batchID: string;
+  saleID: number;
+  customerID: number | null;
+  productID: number;
+  batchID: number;
   serial: string | null;
   salePrice: number;
   warranty: number;
@@ -297,20 +296,20 @@ export type WarrantyListItem = {
   status: WarrantyStatus;
   supplierAction: WarrantyStatus;
   claimDate: Date | null;
-  supplierID: string | null;
+  supplierID: number | null;
   sentDate: Date | null;
   receivedDate: Date | null;
   replacedSerial: string | null;
-  replacedBatchID: string | null;
+  replacedBatchID: number | null;
   refundAmount: number;
   otherCost: number;
   resolvedDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  // populated fields
-  customerName: string | null;
-  supplierName: string | null;
-  productName: string;
+  // populated relations
+  product?: { id: number; name: string } | null;
+  customer?: { id: number; name: string } | null;
+  supplier?: { id: number; name: string } | null;
 };
 
 export type DamageListItem = {
@@ -384,19 +383,20 @@ export const Transaction_TYPE_MODELS = [
 ] as const;
 export type TransactionListItem = {
   id: number;
-  type: (typeof TRANSACTION_TYPES)[number];
-  amount?: number;
-  fromAccount?: string;
-  fromAccountName?: string;
-  typeID?: string;
-  typeModel?: (typeof Transaction_TYPE_MODELS)[number];
-  toAccount?: string;
-  toAccountName?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  note?: string;
-  date?: Date;
-  status: "pending" | "completed" | "failed";
+  txNo: string;
+  accountID: number;
+  amount: number;
+  source: "sale" | "purchase" | "sale_return" | "purchase_return" | "expense" | "warranty" | "balance_transfer" | "deposit" | "withdraw";
+  type: "credit" | "debit";
+  saleID?: number;
+  purchaseID?: number;
+  purchaseReturnID?: number;
+  saleReturnID?: number;
+  balanceTransferID?: number;
+  warrantyID?: number;
+  expenseID?: number;
+  date: Date;
+  account?: { id: number; name: string };
 };
 
 
@@ -420,13 +420,14 @@ export type Batch = {
 
 export type ExpenseListItem = {
   id: number;
-  expenseTypeID: string;
-  expenseTypeName?: string | null;
+  expenseTypeID: number;
+  expenseType: {id:number, name:string};
   paid: number;
   note?: string | null;
   documentImage?: string | null;
   expenseDate: Date;
   createdAt: string;
+
 };
 
 export type QuotationStatus = "approved" | "pending" | "cancelled";
@@ -461,6 +462,7 @@ export type Variant = {
     name: string;
     value: string;
   }[];
+  images?: string[];
 }
 
 export type VariantPayload = {
@@ -472,6 +474,7 @@ export type VariantPayload = {
     name: string;
     value: string;
   }[];
+  images?: string[];
 }
 
 
@@ -541,3 +544,56 @@ export interface VariantListItem {
     };
   };
 }
+
+export type ParcelStatus =
+  | "pending"
+  | "picked"
+  | "in_transit"
+  | "delivered"
+  | "returned"
+  | "cancelled";
+
+export type ParcelListItem = {
+  id: number;
+  saleID: number;
+  customerID: number | null;
+  parcelType: "local" | "international";
+  address: string;
+  courierName: string | null;
+  thirdPartyTrackingNo: string | null;
+  localParcelNo: string | null;
+  status: ParcelStatus;
+  note: string | null;
+  shippingCost: number;
+  codAmount: number;
+  dueAmount: number;
+  parcelDate: Date;
+  deletable: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  sale?: {
+    id: number;
+    invoiceNo: number;
+    totalAmount: number;
+    paid: number;
+  };
+  customer?: {
+    id: number;
+    name: string;
+    mobile: string;
+  } | null;
+};
+
+export type SaleForParcel = {
+  id: number;
+  invoiceNo: number;
+  totalAmount: number;
+  paid: number;
+  customerID: number | null;
+  customer?: {
+    id: number;
+    name: string;
+    mobile: string;
+    address: string | null;
+  } | null;
+};

@@ -23,6 +23,28 @@ export const variantItemSchema = z.object({
   attributes: z
     .array(variantAttributeSchema)
     .default([{ name: "base", value: "none" }]),
+
+  images: z.array(z.string()).default([]).optional(),
+});
+
+export const updateVariantItemSchema = z.object({
+  id: z.number().optional(),
+
+  salePrice: z.coerce
+    .number()
+    .min(0, "Sale price cannot be negative")
+    .optional(),
+
+  weight: z.coerce
+    .number()
+    .min(0, "Weight cannot be negative")
+    .optional(),
+
+  barcode: z.string().trim().optional(),
+
+  attributes: z.array(variantAttributeSchema).optional(),
+
+  images: z.array(z.string()).optional(),
 });
 
 export const createProductSchema = z.object({
@@ -135,5 +157,5 @@ export const updateProductSchema = z.object({
 
   sortOrder: z.coerce.number().optional(),
 
-  variants: z.array(variantItemSchema, "must requird 1 variant").optional(),
+  variants: z.array(updateVariantItemSchema).optional(),
 });

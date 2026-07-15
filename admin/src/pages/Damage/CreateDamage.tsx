@@ -391,8 +391,9 @@ export default function CreateDamage() {
 
                 return p.selectedSerials.map(serial => ({
                     productID: p.id,
-                    batchID: serial.value, // serial batch id
-                    damageQty: 1,
+                    variantID: (serial as any).variantID || null,
+                    batchID: Number(serial.value), // serial batch id
+                    damagedQty: 1,
                     purchasePrice: p.salePrice,
                     reason: p.reason,
                 }));
@@ -401,8 +402,9 @@ export default function CreateDamage() {
             // Normal batch product
             return [{
                 productID: p.id,
+                variantID: p.selectedBatch?.variantID || null,
                 batchID: p.selectedBatch?.id || null,
-                damageQty: p.soldQty,
+                damagedQty: p.soldQty,
                 purchasePrice: p.purchasePrice,
                 reason: p.reason,
             }];
@@ -415,7 +417,7 @@ export default function CreateDamage() {
         // ✅ Sale object - backend অনুযায়ী
         const damage = {
             note: note || null,
-            DamageDate: saleDate, // ✅ Date object
+            damageDate: saleDate, // ✅ Date object
         };
 
         // ✅ Validate

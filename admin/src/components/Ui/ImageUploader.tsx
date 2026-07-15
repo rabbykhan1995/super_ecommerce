@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
-import { X, Loader2 } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { X, Loader2, Upload } from "lucide-react";
+import toast from "react-hot-toast";
 import api from "../../lib/axios";
 
 interface ImageUploaderProps {
@@ -8,7 +9,7 @@ interface ImageUploaderProps {
   multiple?: boolean;
   label?: string;
   maxFiles?: number;
-  id?: string; // optional, for multiple instances
+  id?: string;
 }
 
 const ImageUploader = ({
@@ -23,14 +24,14 @@ const ImageUploader = ({
     multiple ? (value as string[]) || [] : value ? [value as string] : [],
   );
   const [loading, setLoading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // File Upload Handler
   const handleFileUpload = async (files: FileList) => {
     if (!files.length) return;
 
     if (multiple && images.length + files.length > maxFiles) {
-      alert(`You can upload up to ${maxFiles} images`);
+      toast.error(`You can upload up to ${maxFiles} images`);
       return;
     }
 
@@ -40,8 +41,7 @@ const ImageUploader = ({
     Array.from(files).forEach((file) => formData.append("files", file));
 
     try {
-      const res = await api.post("/image/upload", formData
-      );
+      const res = await api.post("/image/upload", formData);
 
       const uploadedUrls = (res.data.data as { url: string }[]).map(
         (i) => i.url,
@@ -55,13 +55,12 @@ const ImageUploader = ({
       onChange(multiple ? updatedImages : uploadedUrls[0]);
     } catch (err) {
       console.error("Upload failed", err);
-      alert("Upload failed");
+      toast.error("Upload failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // Remove image handler
   const handleRemove = async (imgUrl: string) => {
     try {
       await api.post("/image/delete", { imageUrl: imgUrl });
@@ -70,13 +69,45 @@ const ImageUploader = ({
       onChange(multiple ? updated : "");
     } catch (err) {
       console.error("Delete failed", err);
-      alert("Delete failed");
+      toast.error("Delete failed");
     }
   };
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+
+      const droppedFiles = e.dataTransfer.files;
+      if (droppedFiles.length) {
+        handleFileUpload(droppedFiles);
+      }
+    },
+    [images, multiple, maxFiles],
+  );
+
+  const handleClick = () => {
+    inputRef.current?.click();
+  };
+
   return (
-    <div className="bg-white p-5 rounded-xl border border-gray-300 shadow-sm space-y-4">
-      <label className="text-sm font-semibold block">{label}</label>
+    <div className="bg-white dark:bg-zinc-900 p-5 rounded-xl border border-gray-300 dark:border-zinc-700 shadow-sm space-y-4">
+      <label className="text-sm font-semibold block text-gray-900 dark:text-gray-100">
+        {label}
+      </label>
 
       {/* Hidden File Input */}
       <input
@@ -88,18 +119,48 @@ const ImageUploader = ({
         onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
       />
 
-      {/* Upload Button */}
-      <label htmlFor={id} className="global_button cursor-pointer flex items-center justify-center">
+      {/* Drag & Drop Zone */}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={handleClick}
+        className={`
+          flex flex-col items-center justify-center gap-3 p-8 rounded-lg border-2 border-dashed cursor-pointer transition-all duration-200
+          ${
+            isDragOver
+              ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30"
+              : "border-gray-300 dark:border-zinc-600 hover:border-gray-400 dark:hover:border-zinc-500 bg-gray-50 dark:bg-zinc-800/50 hover:bg-gray-100 dark:hover:bg-zinc-800"
+          }
+        `}
+      >
         {loading ? (
-          <span className="flex items-center gap-2">
-            <Loader2 className="animate-spin h-4 w-4" /> Uploading...
+          <span className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+            <Loader2 className="animate-spin h-5 w-5" /> Uploading...
           </span>
-        ) : multiple ? (
-          "Upload Images"
         ) : (
-          "Upload Image"
+          <>
+            <Upload
+              size={28}
+              className={`${
+                isDragOver
+                  ? "text-blue-500 dark:text-blue-400"
+                  : "text-gray-400 dark:text-zinc-500"
+              }`}
+            />
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {isDragOver
+                ? "Drop images here"
+                : multiple
+                  ? "Drag & drop images here, or click to browse"
+                  : "Drag & drop an image here, or click to browse"}
+            </span>
+            <span className="text-xs text-gray-400 dark:text-zinc-500">
+              {multiple ? `Up to ${maxFiles} files` : "Single image"}
+            </span>
+          </>
         )}
-      </label>
+      </div>
 
       {/* Preview Section */}
       {images.length > 0 && (
@@ -111,21 +172,21 @@ const ImageUploader = ({
           {images.map((img, idx) => (
             <div
               key={idx}
-              className={`relative w-full border border-gray-300 rounded-lg overflow-hidden ${
+              className={`relative w-full border border-gray-200 dark:border-zinc-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-zinc-800 ${
                 multiple ? "h-40" : "h-[40vh]"
               }`}
             >
-              {/* <Image
+              <img
                 src={img}
                 alt={`Preview ${idx}`}
-                fill
-                className="object-contain"
-              /> */}
-
-              <img src={img} alt={`Preview ${idx}`}  className="object-contain h-full w-full"  />
+                className="object-contain h-full w-full"
+              />
               <button
                 type="button"
-                onClick={() => handleRemove(img)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemove(img);
+                }}
                 className="absolute top-2 right-2 bg-black/60 text-white p-1 rounded-full hover:bg-black transition"
               >
                 <X size={14} />

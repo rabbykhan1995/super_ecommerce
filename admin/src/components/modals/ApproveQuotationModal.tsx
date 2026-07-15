@@ -52,7 +52,7 @@ export default function ApproveQuotationModal({ isOpen, close, quotation }: Appr
     };
 
     const fetchContact = async (customerID: string) => {
-        const res = await api(`/contact/contact-by-id/${customerID}`);
+        const res = await api(`/contact/contactByID/${customerID}`);
         if (res.data.success) {
             setSelectedCustomer(res.data.data);
         }

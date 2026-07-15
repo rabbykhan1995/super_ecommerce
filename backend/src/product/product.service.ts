@@ -185,9 +185,23 @@ export default class ProductService {
     const result = await ProductRepository.variantList(query);
     return result;
   }
+      static async ecomProductList(query: any) {
+    const result = await ProductRepository.ecomProductList(query);
+    return result;
+  }
 
   static async structuredProductByID(id: number) {
     const product = await ProductRepository.FullStructuredProductByID(id);
+
+    if (!product) {
+      throw new ApiError(404, "Product not found");
+    }
+
+    return product;
+  }
+
+  static async findBySlug(slug: string) {
+    const product = await ProductRepository.FullStructuredProductBySlug(slug);
 
     if (!product) {
       throw new ApiError(404, "Product not found");

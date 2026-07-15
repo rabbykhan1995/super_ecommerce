@@ -33,3 +33,38 @@ export type StockFlowColumn =
   | "purchaseReturnID"
   | "saleID"
   | "saleReturnID";
+
+
+  export interface EcomProductQuery {
+  page?: number;
+  limit?: number;
+
+  // Search
+  search?: string;
+
+  // Filter
+  categoryID?: number[];
+  brandID?: number[];
+  unitID?: number[];
+
+  featured?: boolean;
+  inStock?: boolean;
+  published?: boolean;
+
+  // Price
+  minPrice?: number;
+  maxPrice?: number;
+
+  // Rating
+  minRating?: number;
+
+  // Sort
+  sort?:
+    | "latest"
+    | "oldest"
+    | "priceAsc"
+    | "priceDesc"
+    | "nameAsc"
+    | "nameDesc"
+    | "bestSelling";
+}

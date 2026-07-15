@@ -41,6 +41,8 @@ import NewSaleQuotation from "../pages/quotation/NewSaleQuotation";
 import SaleQuotationList from "../pages/quotation/SaleQuotationList";
 import GenerateBarcode from "../pages/Barcode/GenerateBarcode";
 import SaleQuotationInvoice from "../pages/quotation/SaleQuotationInvoice";
+import CreateParcel from "../pages/Parcel/CreateParcel";
+import ParcelList from "../pages/Parcel/ParcelList";
 
 export const router = createBrowserRouter([
 
@@ -265,6 +267,20 @@ export const router = createBrowserRouter([
           {
             path: "barcode",
             Component: GenerateBarcode,
+          },
+        ],
+      },
+      // Parcel
+      {
+        path: "parcel",
+        children: [
+          {
+            path: "create",
+            Component: CreateParcel,
+          },
+          {
+            path: "list",
+            Component: ParcelList,
           },
         ],
       },

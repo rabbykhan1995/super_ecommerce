@@ -26,6 +26,7 @@ router
   .get("/list", authMiddleware, asyncHandler(ProductController.list))
     .get("/variant-list", authMiddleware, asyncHandler(ProductController.variantList))
   .get("/productByID/:id", authMiddleware, asyncHandler(ProductController.productByID))
+  .get("/productBySlug/:slug", asyncHandler(ProductController.productBySlug))
   .get("/productByBarcode", authMiddleware, asyncHandler(ProductController.productByBarcode))
   .get("/batchByVariant/:id", authMiddleware, asyncHandler(ProductController.batchByVariant))
   .get("/batchBySerial", authMiddleware, asyncHandler(ProductController.findBatchBySerial))
@@ -33,5 +34,6 @@ router
   .get("/getSaleProduct/:productID/:variantID", authMiddleware, asyncHandler(ProductController.getSaleProduct))
   .get("/getPosProducts", authMiddleware, asyncHandler(ProductController.getPosProducts))
   .get("/updatePosProduct/:id", authMiddleware, asyncHandler(ProductController.updatePosProduct))
+  .get("/ecom-product-list", asyncHandler(ProductController.ecomProductList))
 
 export default router;
