@@ -5,6 +5,8 @@ import {
 import { ApiError } from "../../utils/ApiError";
 
 import ProductService from "./product.service";
+import ProductRepository from "./product.repository";
+import axios from "axios";
 
 export class ProductController {
   constructor() {
@@ -29,6 +31,21 @@ export class ProductController {
       productInput,
       variants: variants || [],
     });
+
+    const revalidateUrl = process.env.NEXTJS_REVALIDATE_URL;
+    const secret = process.env.REVALIDATE_SECRET;
+    if (revalidateUrl && secret) {
+      const updatedProduct = await ProductRepository.findByField("id", Number(id));
+      if (updatedProduct?.slug) {
+        axios
+          .post(`${revalidateUrl}/api/revalidate`, {
+            slug: updatedProduct.slug,
+            secret,
+          })
+          .catch((err) => console.error("Revalidation webhook failed:", err.message));
+      }
+    }
+
     res.status(201).json({
       success: true,
       data: product,
@@ -42,13 +59,20 @@ export class ProductController {
     return res.status(200).json({ success: true, data: result });
   }
 
-    static async variantList(req: Request, res: Response) {
+  static async variantList(req: Request, res: Response) {
 
     const result = await ProductService.variantList(req.query);
     //  I want to send response with the unitname, categoryname and brandname including..
     return res.status(200).json({ success: true, data: result });
   }
-      static async ecomProductList(req: Request, res: Response) {
+  
+  static async getVariantsByProduct(req: Request, res: Response) {
+    const { productID } = req.params;
+    const variants = await ProductService.getVariantsByProductID(Number(productID));
+    return res.status(200).json({ success: true, data: variants });
+  }
+
+  static async ecomProductList(req: Request, res: Response) {
 
     const q = req.query;
 

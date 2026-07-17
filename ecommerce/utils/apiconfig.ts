@@ -41,11 +41,9 @@ api.interceptors.response.use(
   (error) => {
     loadingStore.getState().setGlobalLoader(false);
 
-    // এরর মেসেজের ক্ষেত্রেও msg বা message চেক করুন
-    const errorMessage =
-      error.response?.data?.msg ||
-      error.response?.data?.message ||
-      "Something went wrong!";
+    const url = error.config?.url || "";
+    const silentEndpoints = ["/auth/get-profile", "/cart/list"];
+    const isSilent = silentEndpoints.some((ep) => url.includes(ep));
 
     if (error.response?.status === 401) {
       const currentPath =
@@ -55,7 +53,7 @@ api.interceptors.response.use(
         currentPath.startsWith("/admin") || currentPath.startsWith("/user");
 
       if (isProtectedRoute) {
-        toast.error("Session Expired. Please login again.");
+        if (!isSilent) toast.error("Session Expired. Please login again.");
         Helper.clearToken();
         userStore.getState().setUser(null);
 
@@ -63,7 +61,11 @@ api.interceptors.response.use(
           window.location.href = "/login";
         }
       }
-    } else {
+    } else if (!isSilent) {
+      const errorMessage =
+        error.response?.data?.msg ||
+        error.response?.data?.message ||
+        "Something went wrong!";
       toast.error(errorMessage);
     }
 

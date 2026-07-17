@@ -338,29 +338,68 @@ export default class ProductRepository {
 
     return batch ?? null;
   }
+static async list(query: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}) {
 
-  static async list(query: { page?: number; limit?: number; search?: string }) {
-    return paginateQuery({
-      db,
+  return paginateQuery({
+    db,
+    query: db.query.productTable,
+    countTable: productTable,
 
-      query: db.query.productTable,
+    page: query.page,
+    limit: query.limit,
+    search: query.search,
+    searchColumns: [productTable.name],
 
-      countTable: productTable,
+    columns: {
+      id: true,
+      name: true,
+      slug: true,
+      thumbnail: true,
+      stock: true,
+      salePrice: true,
+      purchasePrice: true,
+      status: true,
+      featured: true,
+      isPublished: true,
+      inPosList: true,
+      manageStock: true,
+      manageWarranty: true,
+      averageRating: true,
+      totalReviews: true,
+      totalSold: true,
+      createdAt: true,
+    },
 
-      page: query.page,
-      limit: query.limit,
-
-      search: query.search,
-
-      searchColumns: [productTable.name],
-
-      with: {
-        brand: true,
-        unit: true,
-        category: true,
+    with: {
+      brand: {
+        columns: {
+          id: true,
+          name: true,
+        },
       },
-    });
-  }
+      unit: {
+        columns: {
+          id: true,
+          name: true,
+        },
+      },
+      category: {
+        columns: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+}
+
+
+
+
 
   static async variantList(query: { page?: number; limit?: number; search?: string }) {
     let searchCondition: SQL | undefined = undefined;
@@ -420,261 +459,150 @@ export default class ProductRepository {
     });
   }
 
- static async ecomProductList(query: EcomProductQuery) {
+static async ecomProductList(query: EcomProductQuery) {
 
   const conditions: SQL[] = [];
 
   // ===================================
   // Search
   // ===================================
-
   if (query.search?.trim()) {
-
     const keyword = `%${query.search.trim()}%`;
-
     conditions.push(
-
       or(
-
         ilike(productTable.name, keyword),
-
         ilike(productTable.slug, keyword),
-
         ilike(productTable.sku, keyword)
-
       )!
-
     );
-
   }
 
   // ===================================
   // Category
   // ===================================
-
   if (query.categoryID?.length) {
-
-    conditions.push(
-
-      inArray(productTable.categoryID, query.categoryID)
-
-    );
-
+    conditions.push(inArray(productTable.categoryID, query.categoryID));
   }
 
   // ===================================
   // Brand
   // ===================================
-
   if (query.brandID?.length) {
-
-    conditions.push(
-
-      inArray(productTable.brandID, query.brandID)
-
-    );
-
+    conditions.push(inArray(productTable.brandID, query.brandID));
   }
 
   // ===================================
   // Unit
   // ===================================
-
   if (query.unitID?.length) {
-
-    conditions.push(
-
-      inArray(productTable.unitID, query.unitID)
-
-    );
-
+    conditions.push(inArray(productTable.unitID, query.unitID));
   }
 
   // ===================================
   // Featured
   // ===================================
-
   if (query.featured !== undefined) {
-
-    conditions.push(
-
-      eq(productTable.featured, query.featured)
-
-    );
-
+    conditions.push(eq(productTable.featured, query.featured));
   }
 
   // ===================================
   // Published
   // ===================================
-
   if (query.published !== undefined) {
-
-    conditions.push(
-
-      eq(productTable.isPublished, query.published)
-
-    );
-
+    conditions.push(eq(productTable.isPublished, query.published));
   }
 
   // ===================================
   // Stock
   // ===================================
-
   if (query.inStock) {
-
-    conditions.push(
-
-      gt(productTable.stock, 0)
-
-    );
-
+    conditions.push(gt(productTable.stock, 0));
   }
 
   // ===================================
   // Rating
   // ===================================
-
   if (query.minRating) {
-
-    conditions.push(
-
-      gte(productTable.averageRating, query.minRating)
-
-    );
-
+    conditions.push(gte(productTable.averageRating, query.minRating));
   }
 
   // ===================================
-  // Variant Price
+  // Variant Price (filter এর জন্য এখনো variantTable লাগবে, কিন্তু response-এ আনবো না)
   // ===================================
-
   if (query.minPrice != null || query.maxPrice != null) {
-
     const variantConditions: SQL[] = [];
 
     if (query.minPrice != null) {
-
-      variantConditions.push(
-
-        gte(variantTable.salePrice, query.minPrice)
-
-      );
-
+      variantConditions.push(gte(variantTable.salePrice, query.minPrice));
     }
-
     if (query.maxPrice != null) {
-
-      variantConditions.push(
-
-        lte(variantTable.salePrice, query.maxPrice)
-
-      );
-
+      variantConditions.push(lte(variantTable.salePrice, query.maxPrice));
     }
 
     conditions.push(
-
       sql`${productTable.id} IN (
-
         SELECT product_id
-
         FROM ${variantTable}
-
         WHERE ${and(...variantConditions)}
-
       )`
-
     );
-
   }
 
   // ===================================
   // Sort
   // ===================================
-
   let orderBy;
 
   switch (query.sort) {
-
     case "oldest":
       orderBy = asc(productTable.createdAt);
       break;
-
     case "priceAsc":
       orderBy = asc(productTable.salePrice);
       break;
-
     case "priceDesc":
       orderBy = desc(productTable.salePrice);
       break;
-
     case "nameAsc":
       orderBy = asc(productTable.name);
       break;
-
     case "nameDesc":
       orderBy = desc(productTable.name);
       break;
-
     case "bestSelling":
       orderBy = desc(productTable.totalSold);
       break;
-
     default:
       orderBy = desc(productTable.createdAt);
-
   }
 
   return paginateQuery({
-
     db,
-
     query: db.query.productTable,
-
     countTable: productTable,
-
     page: query.page,
-
     limit: query.limit,
-
     where: conditions,
-
     orderBy,
 
-    with: {
-
-      brand: true,
-
-      category: true,
-
-      unit: true,
-
-      variants: {
-
-        columns: {
-
-          id: true,
-
-          salePrice: true,
-
-          stock: true,
-
-          barcode: true,
-
-          attributes: true,
-
-          createdAt: true,
-
-        },
-
-      },
-
+    // 👇 শুধু card-এ লাগবে এমন কলামগুলোই আসবে
+    columns: {
+      id: true,
+      name: true,
+      slug: true,
+      thumbnail: true,
+      video: true,
+      stock: true,
+      totalSold: true,
+      salePrice: true,
+      manageStock: true,
+      decimal: true,
+      averageRating: true,
+      totalReviews: true,
+      shortDescription:true
     },
-
   });
- }
+}
   static async findSaleBatches(
     variantID: number,
     client: QueryClient = db,
@@ -957,7 +885,30 @@ export default class ProductRepository {
       );
   }
 
- static async getSaleProduct(
+  static async findVariantsByProductID(
+    productID: number,
+    client: QueryClient = db,
+  ) {
+    return client
+      .select({
+        id: variantTable.id,
+        productID: variantTable.productID,
+        salePrice: variantTable.salePrice,
+        stock: variantTable.stock,
+        barcode: variantTable.barcode,
+        weight: variantTable.weight,
+        attributes: variantTable.attributes,
+        images: variantTable.images,
+        imageFileIds: variantTable.imageFileIds,
+        createdAt: variantTable.createdAt,
+        updatedAt: variantTable.updatedAt,
+      })
+      .from(variantTable)
+      .where(eq(variantTable.productID, productID))
+      .orderBy(asc(variantTable.id));
+  }
+
+  static async getSaleProduct(
     variantID: number,
     client: QueryClient = db,
   ) {

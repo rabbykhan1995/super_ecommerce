@@ -6,6 +6,7 @@ import type {
   ApiResponse,
   CategoryListItem,
   BrandListItem,
+  EcomVariantDetail,
 } from "@/types/product.types";
 
 const productApi = axios.create({
@@ -56,5 +57,12 @@ export async function fetchCategories(): Promise<CategoryListItem[]> {
 
 export async function fetchBrands(): Promise<BrandListItem[]> {
   const res = await productApi.get<ApiResponse<BrandListItem[]>>("/brand/list");
+  return res.data.data;
+}
+
+export async function fetchVariantsByProduct(productID: number): Promise<EcomVariantDetail[]> {
+  const res = await productApi.get<ApiResponse<EcomVariantDetail[]>>(
+    `/product/ecom-variants/${productID}`,
+  );
   return res.data.data;
 }

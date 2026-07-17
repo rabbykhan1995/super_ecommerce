@@ -45,7 +45,50 @@ export type Product = {
   manageWarranty: boolean;
   posEnabled: boolean;
   thumbnail?: string;
+  thumbnailFileId?: string | null;
 };
+
+export interface EcomProductListItem {
+  id: number;
+  name: string;
+  slug: string;
+  thumbnail: string | null;
+
+  stock: number;
+  salePrice: number;
+  purchasePrice: number;
+
+  status: "active" | "inactive" | "draft" | "archived";
+
+  featured: boolean;
+  isPublished: boolean;
+  inPosList: boolean;
+
+  manageStock: boolean;
+  manageWarranty: boolean;
+
+  averageRating: number;
+  totalReviews: number;
+  totalSold: string;
+
+  createdAt: string;
+
+  brand: {
+    id: number;
+    name: string;
+  } | null;
+
+  unit: {
+    id: number;
+    name: string;
+  };
+
+  category: {
+    id: number;
+    name: string;
+  } | null;
+}
+
 
 export type PurchaseProduct = {
   id: number;
@@ -463,6 +506,7 @@ export type Variant = {
     value: string;
   }[];
   images?: string[];
+  imageFileIds?: string[];
 }
 
 export type VariantPayload = {
@@ -475,6 +519,7 @@ export type VariantPayload = {
     value: string;
   }[];
   images?: string[];
+  imageFileIds?: string[];
 }
 
 
@@ -596,4 +641,53 @@ export type SaleForParcel = {
     mobile: string;
     address: string | null;
   } | null;
+};
+
+// ---- Ecommerce Types ----
+
+export type BannerListItem = {
+  id: number;
+  title: string;
+  photo: string;
+  link: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+};
+
+export type FlashSaleListItem = {
+  id: number;
+  name: string;
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  createdAt: Date;
+};
+
+export type FlashSaleProductItem = {
+  id: number;
+  productID: number;
+  discountPrice: number;
+  sortOrder: number;
+  productName: string;
+  productSlug: string;
+  productThumbnail: string | null;
+  productSalePrice: number;
+  productStock: number;
+};
+
+export type FeaturedProductItem = {
+  id: number;
+  productID: number;
+  sortOrder: number;
+  createdAt: Date;
+  product: {
+    id: number;
+    name: string;
+    slug: string;
+    thumbnail: string | null;
+    salePrice: number;
+    stock: number;
+    isPublished: boolean;
+  };
 };

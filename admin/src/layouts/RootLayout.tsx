@@ -40,8 +40,8 @@ export default function RootLayout() {
       <DahboardLayout />
 
       {/* Main Content */}
-      <div className="flex flex-col overflow-y-auto bg-[#f8faef] dark:bg-[#1d1d1d]">
-        <div className="min-h-screen lg:pt-18 pt-14 px-2">
+      <div className="flex flex-col min-h-screen overflow-y-auto bg-[#f8faef] dark:bg-[#1d1d1d]">
+        <div className="lg:pt-18 pt-14 px-2">
           <Outlet />
           <FullScreenLoader />
         </div>

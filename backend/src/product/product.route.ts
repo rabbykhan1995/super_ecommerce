@@ -34,6 +34,7 @@ router
   .get("/getSaleProduct/:productID/:variantID", authMiddleware, asyncHandler(ProductController.getSaleProduct))
   .get("/getPosProducts", authMiddleware, asyncHandler(ProductController.getPosProducts))
   .get("/updatePosProduct/:id", authMiddleware, asyncHandler(ProductController.updatePosProduct))
+  .get("/ecom-variants/:productID", asyncHandler(ProductController.getVariantsByProduct))
   .get("/ecom-product-list", asyncHandler(ProductController.ecomProductList))
 
 export default router;

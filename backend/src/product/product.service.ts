@@ -190,6 +190,11 @@ export default class ProductService {
     return result;
   }
 
+  static async getVariantsByProductID(productID: number) {
+    const variants = await ProductRepository.findVariantsByProductID(productID);
+    return variants;
+  }
+
   static async structuredProductByID(id: number) {
     const product = await ProductRepository.FullStructuredProductByID(id);
 

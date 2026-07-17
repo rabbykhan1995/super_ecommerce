@@ -43,6 +43,11 @@ import GenerateBarcode from "../pages/Barcode/GenerateBarcode";
 import SaleQuotationInvoice from "../pages/quotation/SaleQuotationInvoice";
 import CreateParcel from "../pages/Parcel/CreateParcel";
 import ParcelList from "../pages/Parcel/ParcelList";
+import EcomProductList from "../pages/Ecommerce/EcomProductList";
+import EditEcomProduct from "../pages/Ecommerce/EditEcomProduct";
+import Banner from "../pages/Ecommerce/Banner";
+import FeatureProduct from "../pages/Ecommerce/FeatureProduct";
+import FlashProduct from "../pages/Ecommerce/FlashProduct";
 
 export const router = createBrowserRouter([
 
@@ -114,9 +119,13 @@ export const router = createBrowserRouter([
             path: "category",
             Component: Category,
           },
+           {
+            path: "featured-products",
+            Component: FeatureProduct,
+          },
           {
-            path: "pos-products",
-            Component: PosProducts,
+            path: "flash-products",
+            Component: FlashProduct,
           },
         ],
       },
@@ -284,6 +293,33 @@ export const router = createBrowserRouter([
           },
         ],
       },
+           // Ecommerce
+      {
+        path: "ecom",
+        children: [
+          {
+            path: "product-list",
+            Component: EcomProductList,
+          },
+          {
+            path: "orders",
+            Component: ParcelList,
+          },
+              {
+            path: "edit-product/:id",
+            Component: EditEcomProduct,
+          },
+           {
+            path: "banners",
+            Component: Banner,
+          },{
+            path: "featured-products",
+            Component: FeatureProduct,
+          },
+
+        ],
+      },
+
     ],
   },
 

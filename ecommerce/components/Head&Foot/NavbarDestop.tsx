@@ -36,7 +36,7 @@ const NavbarDestop = () => {
               ) : (
                 <Link
                   href="/user"
-                  className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-white/60 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-white/60 rounded-lg transition-color/s"
                 >
                   <User size={16} />
                   Profile

@@ -272,6 +272,99 @@ input[type="number"] {
 }
 
 
+/* ===== MDX Editor Fixes ===== */
+
+/* Restore heading sizing (Tailwind preflight resets font-size/font-weight to inherit) */
+.mdxeditor h1 { font-size: 2em; font-weight: 700; margin: 0.67em 0; }
+.mdxeditor h2 { font-size: 1.5em; font-weight: 700; margin: 0.83em 0; }
+.mdxeditor h3 { font-size: 1.17em; font-weight: 700; margin: 1em 0; }
+.mdxeditor h4 { font-size: 1em; font-weight: 700; margin: 1.33em 0; }
+.mdxeditor h5 { font-size: 0.83em; font-weight: 700; margin: 1.67em 0; }
+.mdxeditor h6 { font-size: 0.67em; font-weight: 700; margin: 2.33em 0; }
+
+/* Restore list markers (Tailwind preflight sets list-style: none on ol, ul, menu) */
+.mdxeditor ul { list-style-type: disc; margin: 1em 0; padding-left: 2em; }
+.mdxeditor ol { list-style-type: decimal; margin: 1em 0; padding-left: 2em; }
+.mdxeditor li { margin: 0.25em 0; }
+
+/* ===== MDX Editor Dark Mode ===== */
+
+html.dark .mdxeditor [class*="editorRoot"],
+html.dark .mdxeditor-root > div > div {
+  --basePageBg: #1e1e2e;
+  --baseBase: var(--slate-1);
+  --baseBgSubtle: var(--slate-2);
+  --baseBg: var(--slate-3);
+  --baseBgHover: var(--slate-4);
+  --baseBgActive: var(--slate-5);
+  --baseLine: var(--slate-6);
+  --baseBorder: var(--slate-7);
+  --baseBorderHover: var(--slate-8);
+  --baseSolid: var(--slate-9);
+  --baseSolidHover: var(--slate-10);
+  --baseText: var(--slate-11);
+  --baseTextContrast: var(--slate-12);
+  --accentBase: var(--blue-1);
+  --accentBgSubtle: var(--blue-2);
+  --accentBg: var(--blue-3);
+  --accentBgHover: var(--blue-4);
+  --accentBgActive: var(--blue-5);
+  --accentLine: var(--blue-6);
+  --accentBorder: var(--blue-7);
+  --accentBorderHover: var(--blue-8);
+  --accentSolid: var(--blue-9);
+  --accentSolidHover: var(--blue-10);
+  --accentText: var(--blue-11);
+  --accentTextContrast: var(--blue-12);
+}
+
+html.dark .mdxeditor .cm-content {
+  color: var(--baseTextContrast);
+}
+
+html.dark [data-radix-popper-content-wrapper] {
+  background-color: var(--basePageBg, #1e1e2e);
+  color: var(--baseText, #b0b4ba);
+}
+
+html.dark [role="listbox"],
+html.dark [role="menu"],
+html.dark [data-radix-dropdown-menu-content],
+html.dark [data-radix-select-viewport] {
+  background-color: var(--basePageBg, #1e1e2e);
+  color: var(--baseText, #b0b4ba);
+  border-color: var(--baseBorder, #43484e);
+}
+
+html.dark [role="option"],
+html.dark [role="menuitem"],
+html.dark [data-radix-select-item] {
+  color: var(--baseText, #b0b4ba);
+}
+
+html.dark [role="option"]:hover,
+html.dark [role="menuitem"]:hover,
+html.dark [data-radix-select-item]:hover,
+html.dark [role="option"][data-highlighted],
+html.dark [role="menuitem"][data-highlighted],
+html.dark [data-radix-select-item][data-highlighted] {
+  background-color: var(--baseBgHover, #272a2d);
+  color: var(--baseTextContrast, #edeef0);
+}
+
+html.dark .mdxeditor .mdxeditor-toolbar {
+  background-color: var(--baseBg, #212225);
+}
+
+html.dark .mdxeditor .mdxeditor-toolbar button:hover {
+  background-color: var(--baseBgHover, #272a2d);
+}
+
+html.dark .mdxeditor .mdxeditor-toolbar button[data-state="on"] {
+  background-color: var(--baseBgActive, #2e3135);
+  color: var(--accentText, #70b8ff);
+}
+
 @media print {
 
   /* ---------------------------

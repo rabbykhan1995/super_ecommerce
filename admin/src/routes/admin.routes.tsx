@@ -29,7 +29,6 @@ import {
     Verified,
     Wallet,
     Quote,
-    ScanBarcode,
     QrCode,
     BarcodeIcon,
     QrCodeIcon
@@ -182,6 +181,37 @@ export const AdminRoutes: NavItem[] = [
 
         ],
     },
+        {
+        name: "Ecommece",
+        icon: <PackageX size={18} />,
+        subItems: [
+            {
+                name: "Product List",
+                link: "/ecom/product-list/",
+                icon: <SquarePlus size={16} />,
+            }, {
+                name: "Orders",
+                link: "/ecom/orders/",
+                icon: <Scroll size={16} />,
+            },
+            {
+                name: "Banners",
+                link: "/ecom/banners/",
+                icon: <Scroll size={16} />,
+            },
+            {
+                name: "Featured Products",
+                link: "/ecom/featured-products/",
+                icon: <Scroll size={16} />,
+            },
+            {
+                    name: "Flash Products",
+                link: "/ecom/flash-products/",
+                icon: <Scroll size={16} />,
+            }
+
+        ],
+    },
 
     {
         name: "Warranty",
@@ -277,4 +307,5 @@ export const AdminRoutes: NavItem[] = [
         ],
 
     },
+
 ];

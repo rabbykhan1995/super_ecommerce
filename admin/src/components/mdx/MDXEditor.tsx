@@ -30,7 +30,7 @@ import {
   Separator,
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
-import {type FC, type ForwardedRef } from "react";
+import {type FC, type ForwardedRef, useEffect, useMemo, useState } from "react";
 
 interface EditorProps {
   markdown: string;
@@ -39,84 +39,80 @@ interface EditorProps {
 }
 
 const Editor: FC<EditorProps> = ({ markdown, editorRef, onChange }) => {
+  const initialMarkdown = useMemo(() => markdown, []);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const plugins = useMemo(
+    () => [
+      headingsPlugin(),
+      listsPlugin(),
+      quotePlugin(),
+      thematicBreakPlugin(),
+      markdownShortcutPlugin(),
+      linkPlugin(),
+      linkDialogPlugin(),
+      tablePlugin(),
+      frontmatterPlugin(),
+      imagePlugin({
+        imageUploadHandler: async (file: File) => URL.createObjectURL(file),
+      }),
+      codeBlockPlugin({ defaultCodeBlockLanguage: "js" }),
+      codeMirrorPlugin({
+        codeBlockLanguages: {
+          js: "JavaScript",
+          ts: "TypeScript",
+          css: "CSS",
+          html: "HTML",
+          python: "Python",
+          rust: "Rust",
+        },
+      }),
+      diffSourcePlugin({ viewMode: "rich-text", diffMarkdown: "" }),
+      directivesPlugin({ directiveDescriptors: [AdmonitionDirectiveDescriptor] }),
+      toolbarPlugin({
+        toolbarContents: () => (
+          <DiffSourceToggleWrapper>
+            <div className="flex flex-wrap items-center gap-1">
+              <UndoRedo />
+              <Separator />
+              <BlockTypeSelect />
+              <Separator />
+              <BoldItalicUnderlineToggles />
+              <Separator />
+              <ListsToggle />
+              <Separator />
+              <CreateLink />
+              <InsertImage />
+              <InsertTable />
+              <Separator />
+              <InsertCodeBlock />
+              <InsertFrontmatter />
+            </div>
+          </DiffSourceToggleWrapper>
+        ),
+      }),
+    ],
+    [] // ⚠️ এই খালি array-টাই মূল ফিক্স — একবারই তৈরি হবে
+  );
+
   return (
-    <MDXEditor
-      ref={editorRef}
-      markdown={markdown}
-      onChange={onChange}
-      className="mdxe-theme flex-1 min-h-0"
-      plugins={[
-        // 1. Core Plugins
-        headingsPlugin(),
-        listsPlugin(),
-        quotePlugin(),
-        thematicBreakPlugin(),
-        markdownShortcutPlugin(),
-
-        // 2. Advanced Features
-        linkPlugin(),
-        linkDialogPlugin(),
-        tablePlugin(),
-        frontmatterPlugin(), // Blog er metadata (SEO) er jonno
-        imagePlugin({
-          imageUploadHandler: async (file) => {
-            // Ekhane image upload logic hobe
-            return URL.createObjectURL(file);
-          },
-        }),
-
-        // 3. Code Blocks with Highlighting
-        codeBlockPlugin({ defaultCodeBlockLanguage: "js" }),
-        codeMirrorPlugin({
-          codeBlockLanguages: {
-            js: "JavaScript",
-            ts: "TypeScript",
-            css: "CSS",
-            html: "HTML",
-            python: "Python",
-            rust: "Rust",
-          },
-        }),
-
-        // 4. Source vs Visual view switch করার জন্য
-        diffSourcePlugin({ viewMode: "rich-text", diffMarkdown: "" }),
-
-        // 5. Directives (Alert/Admonitions er moto advanced jinish)
-        directivesPlugin({
-          directiveDescriptors: [AdmonitionDirectiveDescriptor],
-        }),
-
-        // 6. Complete Toolbar Setup
-        toolbarPlugin({
-          toolbarContents: () => (
-            <DiffSourceToggleWrapper>
-              <div className="flex flex-wrap items-center gap-1">
-                <UndoRedo />
-                <Separator />
-
-                <BlockTypeSelect />
-                <Separator />
-
-                <BoldItalicUnderlineToggles />
-                <Separator />
-
-                <ListsToggle />
-                <Separator />
-
-                <CreateLink />
-                <InsertImage />
-                <InsertTable />
-                <Separator />
-
-                <InsertCodeBlock />
-                <InsertFrontmatter />
-                {/* Markdown short-hand guide ba alert box add korar jonno niche buttons thakbe */}
-              </div>
-            </DiffSourceToggleWrapper>
-          ),
-        }),
-      ]}
-    />
+    <div className={`mdxeditor-root flex-1 ${isDark ? "dark" : ""}`}>
+      <MDXEditor
+        ref={editorRef}
+        markdown={initialMarkdown}
+        onChange={onChange}
+        className="mdxe-theme flex-1 border border-gray-300 dark:border-gray-700 p-2"
+        plugins={plugins}
+      />
+    </div>
   );
 };
 

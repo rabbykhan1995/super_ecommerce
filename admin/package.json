@@ -10,8 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mdx-js/mdx": "^3.1.1",
-    "@mdx-js/react": "^3.1.1",
     "@mdxeditor/editor": "^4.0.4",
     "@preact/signals-react": "^3.9.1",
     "@tailwindcss/vite": "^4.2.1",

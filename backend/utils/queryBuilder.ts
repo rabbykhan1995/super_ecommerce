@@ -36,6 +36,7 @@ interface PaginateOptions<T> {
   with?: Record<string, any>;
 
   orderBy?: any | any[];
+  columns?: Record<string, boolean>;
 }
 
 export const paginateQuery = async <T>({
@@ -53,9 +54,10 @@ export const paginateQuery = async <T>({
 
   with: relations,
 
+  columns,
   orderBy,
 }: PaginateOptions<T>): Promise<PaginatedResult<T>> => {
-  const offset = (page - 1) * limit;
+  const offset = (Number(page) - 1) * Number(limit);
 
   const conditions: SQL[] = [...(where ?? [])];
 
@@ -76,10 +78,11 @@ export const paginateQuery = async <T>({
 
   const [items, totalRows] = await Promise.all([
     query.findMany({
+      columns,
       where: finalWhere,
       with: relations,
       orderBy,
-      limit,
+      limit: Number(limit),
       offset,
     }),
 

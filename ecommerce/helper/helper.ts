@@ -42,8 +42,8 @@ class Helper {
       .replace(/\n/g, " ")
       .slice(0, 150);
   }
-  static getImage(image:string | null | ""):string{
-        if (
+  static getImage(image: string | null | ""): string {
+    if (
       !image ||
       typeof image !== "string" ||
       image.trim() === "" ||
@@ -53,20 +53,27 @@ class Helper {
       return "/no-image.png";
     }
 
-    // ✅ valid image extension check
+    const trimmed = image.trim();
+    const lower = trimmed.toLowerCase();
+
+    // ✅ If it's a full HTTP(S) URL, accept it directly (ImageKit, S3, Cloudinary, etc. don't always have extensions)
+    if (lower.startsWith("http://") || lower.startsWith("https://")) {
+      return encodeURI(trimmed);
+    }
+
+    // ✅ For local/relative paths, check valid image extensions
     const validExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
-    const lower = image.toLowerCase();
+    const pathname = lower.split("?")[0];
 
     const hasValidExtension = validExtensions.some((ext) =>
-      lower.endsWith(ext),
+      pathname.endsWith(ext),
     );
 
     if (!hasValidExtension) {
       return "/no-image.png";
     }
 
-    // সব কিছু ঠিক থাকলে encoded image return করো
-    return encodeURI(image.trim());
+    return encodeURI(trimmed);
   }
 }
 

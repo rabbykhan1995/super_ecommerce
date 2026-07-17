@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 // @ts-ignore
 import "./globals.css"
-import FetchInitialData from "@/components/FetchInitialData/FetchInitialData";
+import InitialStarter from "@/components/InitialStarter/InitialStarter";
 import FullScreenLoader from "@/utils/globalLoader";
 import { Toaster } from "react-hot-toast";
 import AnalyticsHandler from "@/components/AnalyticsHandler/AnalyticsHandler";
 import NavbarDestop from "@/components/Head&Foot/NavbarDestop";
 import NavbarMobile from "@/components/Head&Foot/NavbarMobile";
 import CartSlider from "@/components/Sliders/CartSlider";
+import VariantModal from "@/components/Modals/VariantModal";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -70,8 +71,9 @@ export default function RootLayout({
             },
           }}
         />
+        <VariantModal />
         <FullScreenLoader />
-        <FetchInitialData />
+        <InitialStarter />
         <div >
           {children}
         </div>

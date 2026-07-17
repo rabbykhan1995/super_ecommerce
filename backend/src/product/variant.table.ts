@@ -51,12 +51,15 @@ export const variantTable = pgTable(
       .$type<string[]>()
       .default(sql`'[]'::jsonb`),
 
+    imageFileIds: jsonb("image_file_ids")
+      .$type<string[]>()
+      .default(sql`'[]'::jsonb`),
+
     updatedAt: timestamp("updated_at", {
       withTimezone: true,
     })
       .defaultNow()
       .notNull(),
-
   },
   (table) => [index("variants_product_id_idx").on(table.productID)],
 );

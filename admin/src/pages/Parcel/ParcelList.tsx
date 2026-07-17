@@ -216,36 +216,26 @@ export default function ParcelList() {
             className: "text-center",
             headerClassName: "text-center",
           },
-          {
-            header: "Status",
-            accessor: (row) => (
-              <div className="relative group inline-block">
-                <button
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer ${STATUS_COLORS[row.status]}`}
-                >
-                  {STATUS_LABELS[row.status]}
-                  <ChevronDown size={12} />
-                </button>
-                <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover:block bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[130px]">
-                  {STATUS_OPTIONS.map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => handleStatusChange(row.id, status)}
-                      className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                        row.status === status
-                          ? "font-bold text-blue-600 dark:text-blue-400"
-                          : ""
-                      }`}
-                    >
-                      {STATUS_LABELS[status]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ),
-            className: "text-center",
-            headerClassName: "text-center",
-          },
+{
+  header: "Status",
+  accessor: (row) => (
+    <Dropdown
+      value={STATUS_LABELS[row.status]}
+      options={STATUS_OPTIONS.map((status) => STATUS_LABELS[status])}
+      onChange={(selectedLabel) => {
+        const status = STATUS_OPTIONS.find(
+          (s) => STATUS_LABELS[s] === selectedLabel
+        );
+
+        if (status) {
+          handleStatusChange(row.id, status);
+        }
+      }}
+      usePortal
+
+    />
+  ),
+},
           {
             header: "Date",
             accessor: (row) => <TimeAgo date={row.parcelDate} />,

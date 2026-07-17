@@ -21,6 +21,9 @@ import quotationRoute from "../src/quotation/quotation.route"
 import cartRoute from "../src/cart/cart.route"
 import adminRoute from "../src/admin/role.route"
 import parcelRoute from "../src/parcel/parcel.route"
+import bannerRoute from "../src/ecom/banner.route"
+import flashSaleRoute from "../src/ecom/flash_sale.route"
+import featuredProductRoute from "../src/ecom/featured_product.route"
 
 const router = Router();
 router.use("/product", productRoute);
@@ -44,6 +47,8 @@ router.use("/cart", cartRoute)
 router.use("/admin/role", adminRoute)
 router.use("/parcel", parcelRoute)
 router.use("/image", imageRoute)
-// router.use("/quotation", quotationRoute)
+router.use("/ecom/banner", bannerRoute)
+router.use("/ecom/flash-sale", flashSaleRoute)
+router.use("/ecom/featured-product", featuredProductRoute)
 
 export default router;

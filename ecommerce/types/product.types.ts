@@ -5,6 +5,7 @@ export type FullProduct = {
   description: string | null;
   shortDescription: string | null;
   thumbnail: string | null;
+  thumbnailFileId: string | null;
   video: string | null;
   stock: number;
   salePrice: number;
@@ -33,15 +34,22 @@ export type ProductVariant = {
   barcode: string;
   weight: number | null;
   attributes: { name: string; value: string }[];
+  images?: string[];
+  imageFileIds?: string[];
   createdAt: Date;
   updatedAt: Date;
 };
 
 export type CardProduct = {
+  id: number;
   thumbnail: string | null;
   averageRating: number;
   name: string;
   slug: string;
+  shortDescription?: string | null;
+  totalReviews?: number;
+  salePrice?: number;
+  discountPrice?: number;
 };
 
 // ---- Ecom Product Types (for /ecom-product-list) ----
@@ -70,11 +78,24 @@ export type EcomVariant = {
   createdAt: Date;
 };
 
+export type EcomVariantDetail = {
+  id: number;
+  productID: number;
+  salePrice: number | null;
+  stock: number | null;
+  barcode: string;
+  weight: number | null;
+  attributes: Array<{ name: string; value: string }>;
+  images: string[];
+  imageFileIds: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type EcomProduct = {
   id: number;
   name: string;
   slug: string;
-  description: string | null;
   shortDescription: string | null;
   thumbnail: string | null;
   salePrice: number;
@@ -82,15 +103,8 @@ export type EcomProduct = {
   totalSold: number;
   averageRating: number;
   totalReviews: number;
-  featured: boolean;
-  isPublished: boolean;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-  brand: EcomBrand | null;
-  category: EcomCategory | null;
-  unit: EcomUnit | null;
-  variants: EcomVariant[];
+  discountPrice:number;
+  video?:string;
 };
 
 export type EcomProductFilters = {

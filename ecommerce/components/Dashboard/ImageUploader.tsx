@@ -8,24 +8,34 @@ import api from "@/utils/apiconfig";
 
 interface ImageUploaderProps {
   value: string | string[];
+  fileIds?: string[];
   onChange: (value: string | string[]) => void;
+  onFileIdsChange?: (fileIds: string[]) => void;
   multiple?: boolean;
   label?: string;
   maxFiles?: number;
   id?: string; // optional, for multiple instances
 }
 
+interface TrackedImage {
+  url: string;
+  fileId: string;
+}
+
 const ImageUploader = ({
   value,
+  fileIds = [],
   onChange,
+  onFileIdsChange,
   multiple = false,
   label = "Upload Image",
   maxFiles = 10,
   id = "image-uploader",
 }: ImageUploaderProps) => {
-  const [images, setImages] = useState<string[]>(
-    multiple ? (value as string[]) || [] : value ? [value as string] : [],
-  );
+  const [images, setImages] = useState<TrackedImage[]>(() => {
+    const urls = multiple ? (value as string[]) || [] : value ? [value as string] : [];
+    return urls.map((url, i) => ({ url, fileId: fileIds[i] || "" }));
+  });
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -47,16 +57,27 @@ const ImageUploader = ({
       const res = await api.post("/image/upload", formData
       );
 
-      const uploadedUrls = (res.data.data as { url: string }[]).map(
-        (i) => i.url,
-      );
+      const uploaded = res.data.data as { url: string; imageId: string }[];
+      const newImages: TrackedImage[] = uploaded.map((i) => ({
+        url: i.url,
+        fileId: i.imageId,
+      }));
 
       const updatedImages = multiple
-        ? [...images, ...uploadedUrls]
-        : uploadedUrls;
+        ? [...images, ...newImages]
+        : newImages;
 
       setImages(updatedImages);
-      onChange(multiple ? updatedImages : uploadedUrls[0]);
+      onChange(
+        multiple
+          ? updatedImages.map((i) => i.url)
+          : updatedImages[0]?.url || "",
+      );
+      onFileIdsChange?.(
+        multiple
+          ? updatedImages.map((i) => i.fileId)
+          : updatedImages.map((i) => i.fileId),
+      );
     } catch (err) {
       console.error("Upload failed", err);
       toast.error("Upload failed");
@@ -66,12 +87,19 @@ const ImageUploader = ({
   };
 
   // Remove image handler
-  const handleRemove = async (imgUrl: string) => {
+  const handleRemove = async (img: TrackedImage) => {
     try {
-      await api.post("/image/delete", { imageUrl: imgUrl });
-      const updated = images.filter((i) => i !== imgUrl);
+      if (img.fileId) {
+        await api.post("/image/delete", { fileId: img.fileId });
+      }
+      const updated = images.filter((i) => i.url !== img.url);
       setImages(updated);
-      onChange(multiple ? updated : "");
+      onChange(
+        multiple ? updated.map((i) => i.url) : updated[0]?.url || "",
+      );
+      onFileIdsChange?.(
+        multiple ? updated.map((i) => i.fileId) : updated.map((i) => i.fileId),
+      );
     } catch (err) {
       console.error("Delete failed", err);
       toast.error("Delete failed");
@@ -120,7 +148,7 @@ const ImageUploader = ({
               }`}
             >
               <Image
-                src={img}
+                src={img.url}
                 alt={`Preview ${idx}`}
                 fill
                 className="object-contain"

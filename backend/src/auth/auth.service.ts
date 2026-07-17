@@ -160,9 +160,16 @@ export class AuthService {
       checkOut = true
     }
 
-    const contact = await ContactService.findOne({mobile:user.mobile!});
+    if (checkOut) {
+      return { ...user, checkoutMobile: true };
+    }
 
-    return { ...user, ...(checkOut ? { checkoutMobile: true } :{ ...contact }) };
+    if (user.mobile) {
+      const contact = await ContactService.findOne({ mobile: user.mobile });
+      return { ...user, ...(contact ? { ...contact } : {}) };
+    }
+
+    return { ...user };
 
   }
 

@@ -1,6 +1,6 @@
 import express from "express";
 import { ImageController } from "./image.controller";
-import { upload } from "../../config/cloudinary.config";
+import { upload } from "../../config/imagekit.config";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 import { adminMiddleware } from "../../middlewares/admin.middleware";
 import { asyncHandler } from "../../utils/asyncHandler";

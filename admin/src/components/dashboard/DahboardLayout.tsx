@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { useState } from "react";
+import { NavLink } from "react-router";
 import {
   LogOut,
   Menu,
@@ -20,7 +20,7 @@ export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const [activeSubmenu, setActiveSubmenu] = useState<number | null>(null);
   const { sidePanel, setSidePanel } = dashboardStore();
-  const navigate = useNavigate();
+
   const { logout } = userStore();
   
   const handleLogout = (): void => {
@@ -35,7 +35,7 @@ export default function DashboardLayout() {
   const navItems = AdminRoutes;
 
   return (
-    <div className=" text-[rgb(var(--primary-text))]">
+    <div className="text-[rgb(var(--primary-text))]">
       {/* Top Navbar */}
       <nav className="fixed top-0 left-0 w-full flex items-center justify-between px-4 py-3 z-50 border-b border-[rgb(var(--primary-border))] bg-[rgb(var(--primary-bg))]">
 

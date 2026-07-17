@@ -27,7 +27,7 @@ export default function NewProduct() {
   const [stock, setStock] = useState<number | "">("");
   const [purchasePrice, setPurchasePrice] = useState<number | "">("");
   const [salePrice, setSalePrice] = useState<number | "">("");
-  const [variants, setVariants] = useState<VariantPayload[]>([{ salePrice: 0, barcode: "", weight: 0, attributes: [{ name: "base", value: "none" }], images: [] }]);
+  const [variants, setVariants] = useState<VariantPayload[]>([{ salePrice: 0, barcode: "", weight: 0, attributes: [{ name: "base", value: "none" }], images: [], imageFileIds: [] }]);
   const [brandParams, setBrandParams] = useState<SearchParams>({
     search: "",
     page: 1,
@@ -156,7 +156,8 @@ export default function NewProduct() {
       barcode: "",
       weight: 0,
       attributes: [],
-      images: []
+      images: [],
+      imageFileIds: []
     }
 
     setVariants(prev => [...prev, newVariant]);
@@ -378,10 +379,12 @@ export default function NewProduct() {
                 <ImageUploader
                   id={`variant-image-${i}`}
                   value={row.images || []}
+                  fileIds={row.imageFileIds || []}
                   multiple
                   label="Variant Images"
                   maxFiles={5}
                   onChange={(val) => changeVariant(i as number, "images", val)}
+                  onFileIdsChange={(ids) => changeVariant(i as number, "imageFileIds", ids)}
                 />
 
               , className: "text-center"

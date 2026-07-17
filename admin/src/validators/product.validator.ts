@@ -25,6 +25,8 @@ export const variantItemSchema = z.object({
     .default([{ name: "base", value: "none" }]),
 
   images: z.array(z.string()).default([]).optional(),
+
+  imageFileIds: z.array(z.string()).default([]).optional(),
 });
 
 export const updateVariantItemSchema = z.object({
@@ -45,6 +47,8 @@ export const updateVariantItemSchema = z.object({
   attributes: z.array(variantAttributeSchema).optional(),
 
   images: z.array(z.string()).optional(),
+
+  imageFileIds: z.array(z.string()).optional(),
 });
 
 export const createProductSchema = z.object({
@@ -71,6 +75,8 @@ export const createProductSchema = z.object({
   manageWarranty: z.boolean().default(false),
 
   thumbnail: z.string().nullable().optional(),
+
+  thumbnailFileId: z.string().nullable().optional(),
 
   video: z.string().nullable().optional(),
 
@@ -127,6 +133,8 @@ export const updateProductSchema = z.object({
   manageWarranty: z.boolean().optional(),
 
   thumbnail: z.string().nullable().optional(),
+
+  thumbnailFileId: z.string().nullable().optional(),
 
   video: z.string().nullable().optional(),
 

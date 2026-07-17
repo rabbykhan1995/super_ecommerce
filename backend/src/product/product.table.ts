@@ -15,6 +15,8 @@ import { brandTable } from "../brand/brand.table";
 import { categoryTable } from "../category/category.table";
 import { unitTable } from "../unit/unit.table";
 import { stockFlowTable } from "./stock_flow.table";
+import { flashSaleProductTable } from "../ecom/flash_sale.table";
+import { featuredProductTable } from "../ecom/featured_product.table";
 
 export const productTable = pgTable(
   "products",
@@ -46,6 +48,8 @@ export const productTable = pgTable(
     manageWarranty: boolean("manage_warranty").default(false).notNull(),
 
     thumbnail: text("thumbnail"),
+
+    thumbnailFileId: text("thumbnail_file_id"),
 
     video: text("video"),
 
@@ -135,4 +139,6 @@ export const productRelations = relations(productTable, ({ one, many }) => ({
   variants: many(variantTable),
   batches: many(batchTable),
   stockFlows: many(stockFlowTable),
+  flashSaleProducts: many(flashSaleProductTable),
+  featuredProducts: many(featuredProductTable),
 }));

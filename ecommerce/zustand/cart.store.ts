@@ -1,4 +1,5 @@
 import api from "@/utils/apiconfig";
+import Helper from "@/helper/helper";
 import { create } from "zustand";
 import { CartItem, AddToCartPayload, UpdateCartPayload } from "@/types/cart.types";
 
@@ -35,6 +36,12 @@ export const cartStore = create<CartStore>((set, get) => ({
 
   fetchCart: async () => {
     try {
+      const token = Helper.getToken();
+      if (!token) {
+        set({ cart: [], totalCartItems: 0, cartTotal: 0, isFetching: false });
+        return;
+      }
+
       set({ isFetching: true });
       const res = await api("/cart/list");
 
