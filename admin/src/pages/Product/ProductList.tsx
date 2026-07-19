@@ -99,6 +99,10 @@ export default function ProductList() {
           { header: "Category", accessor: (row) =>
            
                 <span>{row.product.category.name}</span>, className: "text-center" },
+
+                      { header: "Featured", accessor: (row) =>
+           row.product.featured? <span className="text-green-400 text-xs">Yes</span>: <span className="text-red-400 text-xs">No</span>
+               , className: "text-center" },
           {
             header: "Action",
             headerClassName: "text-right",

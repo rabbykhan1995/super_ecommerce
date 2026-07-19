@@ -9,7 +9,16 @@ interface OfferProductsProps {
 }
 
 const OfferProducts = ({ products }: OfferProductsProps) => {
-  if (!products.length) return null;
+  if (!products.length) {
+    return (
+      <div className="p-2 border border-gray-200">
+        <h1 className="py-4 flex w-fit">
+          <OfferLogo label="%" /> Offers
+        </h1>
+        <p className="text-gray-400 text-sm text-center py-10">No offer products available at the moment.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-2 border border-gray-200">

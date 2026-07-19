@@ -27,7 +27,8 @@ export default function NewProduct() {
   const [stock, setStock] = useState<number | "">("");
   const [purchasePrice, setPurchasePrice] = useState<number | "">("");
   const [salePrice, setSalePrice] = useState<number | "">("");
-  const [variants, setVariants] = useState<VariantPayload[]>([{ salePrice: 0, barcode: "", weight: 0, attributes: [{ name: "base", value: "none" }], images: [], imageFileIds: [] }]);
+  const [discountPrice, setDiscountPrice] = useState<number | "">("");
+  const [variants, setVariants] = useState<VariantPayload[]>([{ salePrice: 0, discountPrice: null, barcode: "", weight: 0, attributes: [{ name: "base", value: "none" }], images: [], imageFileIds: [] }]);
   const [brandParams, setBrandParams] = useState<SearchParams>({
     search: "",
     page: 1,
@@ -127,6 +128,7 @@ export default function NewProduct() {
       decimal,
       salePrice: salePrice === "" ? 0 : Number(salePrice),
       purchasePrice: purchasePrice === "" ? 0 : Number(purchasePrice),
+      discountPrice: discountPrice === "" ? null : Number(discountPrice),
       manageWarranty,
       ...(stock && !!manageStock && { stock }),
       variants:formattedVariant,
@@ -153,6 +155,7 @@ export default function NewProduct() {
   const handleAddVariant = () => {
     const newVariant: VariantPayload = {
       salePrice: 0,
+      discountPrice: null,
       barcode: "",
       weight: 0,
       attributes: [],
@@ -283,9 +286,20 @@ export default function NewProduct() {
             type="number"
             value={salePrice}
             onChange={(e) => setSalePrice(e.target.value === "" ? "" : Number(e.target.value))}
-            placeholder="Stock quantity"
+            placeholder="Sale price"
             className="global_input"
             required={!manageStock}
+          />
+        </div>
+        {/* Discount Price */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Discount Price</label>
+          <input
+            type="number"
+            value={discountPrice}
+            onChange={(e) => setDiscountPrice(e.target.value === "" ? "" : Number(e.target.value))}
+            placeholder="Discount price"
+            className="global_input"
           />
         </div>
       </div>
@@ -368,6 +382,18 @@ export default function NewProduct() {
                   value={row.salePrice || 0}
                   onChange={(e) => changeVariant(i as number,"salePrice" ,e.target.value)}
                   placeholder="sale price"
+                  className="global_input"
+                />
+
+              , className: "text-center"
+            },
+            {
+              header: "discount price", accessor: (row,i) =>
+                <input
+                  type="number"
+                  value={row.discountPrice ?? ""}
+                  onChange={(e) => changeVariant(i as number,"discountPrice" ,e.target.value === "" ? null : Number(e.target.value))}
+                  placeholder="discount price"
                   className="global_input"
                 />
 

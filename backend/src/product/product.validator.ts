@@ -12,6 +12,12 @@ export const variantItemSchema = z.object({
     .min(0, "Sale price cannot be negative")
     .default(0),
 
+  discountPrice: z.coerce
+    .number()
+    .min(0, "Discount price cannot be negative")
+    .optional()
+    .nullable(),
+
   // Weight in KG
   weight: z.coerce
     .number()
@@ -36,6 +42,12 @@ export const updateVariantItemSchema = z.object({
     .number()
     .min(0, "Sale price cannot be negative")
     .optional(),
+
+  discountPrice: z.coerce
+    .number()
+    .min(0, "Discount price cannot be negative")
+    .optional()
+    .nullable(),
 
   weight: z.coerce
     .number()

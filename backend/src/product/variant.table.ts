@@ -28,6 +28,7 @@ export const variantTable = pgTable(
     productID: integer("product_id").notNull().references(() => productTable.id),
 
     salePrice: numeric("sale_price", { mode: "number", precision: 12, scale: 2  }).default(0),
+    discountPrice: numeric("discount_price", { mode: "number", precision: 12, scale: 2 }),
     stock:numeric("stock", { mode: "number", precision: 12, scale: 2}).default(0),
     barcode: varchar("barcode", { length: 50 })
       .default(sql`'VAR-' || nextval('variant_barcode_seq')`)

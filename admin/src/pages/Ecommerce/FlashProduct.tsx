@@ -1,232 +1,207 @@
 import { useEffect, useState } from "react";
+import type { FlashSaleListItem, FlashSaleProductItem, Product, SelectOption, PaginatedResult } from "../../types/type";
 import api from "../../lib/axios";
 import Table from "../../components/tables/Table";
-import TableFilterBar from "../../components/filters/TableFilterBar";
-import Pagination from "../../components/filters/Pagination";
-import { Edit, Trash2, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import Select from "react-select";
+import { getReactSelectStyles } from "../../utils/reactSelectStyles";
+import { Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
-import type { FlashSaleListItem, FlashSaleProductItem, PaginatedResult } from "../../types/type";
-import ToggleSwitch from "../../components/buttons/ToggleSwitch";
 
-export default function FlashProduct() {
-  const [data, setData] = useState<PaginatedResult<FlashSaleListItem>>({ items: [], total: 0, page: 1, limit: 10 });
-  const [search, setSearch] = useState("");
-  const [limit, setLimit] = useState(10);
-  const [page, setPage] = useState(1);
-  const [showForm, setShowForm] = useState(false);
-  const [editItem, setEditItem] = useState<FlashSaleListItem | null>(null);
-  const [form, setForm] = useState({ name: "", startDate: "", endDate: "", isActive: true });
+export default function FlashProducts() {
+  const [flashSales, setFlashSales] = useState<SelectOption<FlashSaleListItem>[]>([]);
+  const [selectedSale, setSelectedSale] = useState<SelectOption<FlashSaleListItem> | null>(null);
 
-  const [expandedSale, setExpandedSale] = useState<number | null>(null);
-  const [saleProducts, setSaleProducts] = useState<FlashSaleProductItem[]>([]);
-  const [addProductForm, setAddProductForm] = useState({ productID: 0, discountPrice: 0, sortOrder: 0 });
+  const [products, setProducts] = useState<SelectOption<Product>[]>([]);
   const [productSearch, setProductSearch] = useState("");
-  const [productOptions, setProductOptions] = useState<{ id: number; name: string; salePrice: number }[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<SelectOption<Product> | null>(null);
 
-  const fetchData = async () => {
-    const res = await api("/ecom/flash-sale/list", { params: { search, limit, page } });
-    if (res.data.success) setData(res.data.data);
-  };
+  const [discountPrice, setDiscountPrice] = useState<number>(0);
+  const [sortOrder, setSortOrder] = useState<number>(0);
 
-  useEffect(() => { fetchData(); }, [limit, page]);
-  useEffect(() => {
-    const timer = setTimeout(() => { fetchData(); }, 400);
-    return () => clearTimeout(timer);
-  }, [search]);
+  const [saleProducts, setSaleProducts] = useState<FlashSaleProductItem[]>([]);
 
-  const resetForm = () => {
-    setForm({ name: "", startDate: "", endDate: "", isActive: true });
-    setEditItem(null);
-    setShowForm(false);
-  };
-
-  const handleSubmit = async () => {
-    if (!form.name.trim() || !form.startDate || !form.endDate) {
-      toast.error("Name, start date and end date are required");
-      return;
-    }
-    if (editItem) {
-      const res = await api.put(`/ecom/flash-sale/update/${editItem.id}`, form);
-      if (res.data.success) { resetForm(); fetchData(); }
-    } else {
-      const res = await api.post("/ecom/flash-sale/create", form);
-      if (res.data.success) { resetForm(); fetchData(); }
+  const fetchFlashSales = async () => {
+    const res = await api("/ecom/flash-sale/list", { params: { limit: 100 } });
+    if (res.data.success) {
+      setFlashSales(
+        res.data.data.items.map((s: FlashSaleListItem) => ({
+          value: String(s.id),
+          label: `${s.name} (${new Date(s.startDate).toLocaleDateString()} - ${new Date(s.endDate).toLocaleDateString()})`,
+          ...s,
+        }))
+      );
     }
   };
 
-  const handleEdit = (item: FlashSaleListItem) => {
-    const startDate = new Date(item.startDate).toISOString().slice(0, 16);
-    const endDate = new Date(item.endDate).toISOString().slice(0, 16);
-    setForm({ name: item.name, startDate, endDate, isActive: item.isActive });
-    setEditItem(item);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: number) => {
-    toast("Are you sure?", {
-      action: { label: "Delete", onClick: async () => { await api.delete(`/ecom/flash-sale/delete/${id}`); fetchData(); } },
-      cancel: { label: "Cancel" },
-    });
-  };
-
-  const handleActiveToggle = async (id: number, isActive: boolean) => {
-    await api.put(`/ecom/flash-sale/update/${id}`, { isActive });
-    fetchData();
-  };
-
-  const toggleExpand = async (saleID: number) => {
-    if (expandedSale === saleID) {
-      setExpandedSale(null);
-      return;
+  const fetchProducts = async () => {
+    const res = await api("/product/list", { params: { search: productSearch, limit: 20 } });
+    if (res.data.success) {
+      setProducts(
+        res.data.data.items.map((p: Product) => ({
+          value: String(p.id),
+          label: `${p.name} - stock: ${p.stock}`,
+          ...p,
+        }))
+      );
     }
-    setExpandedSale(saleID);
-    const res = await api(`/ecom/flash-sale/products/${saleID}`);
+  };
+
+  const fetchSaleProducts = async (saleId: number) => {
+    const res = await api(`/ecom/flash-sale/products/${saleId}`);
     if (res.data.success) setSaleProducts(res.data.data);
   };
 
-  const searchProducts = async (q: string) => {
-    setProductSearch(q);
-    if (q.length < 2) { setProductOptions([]); return; }
-    const res = await api("/product/list", { params: { search: q, limit: 20 } });
-    if (res.data.success) setProductOptions(res.data.data.items.map((p: any) => ({ id: p.id, name: p.name, salePrice: p.salePrice })));
-  };
+  useEffect(() => { fetchFlashSales(); }, []);
 
-  const addProduct = async (flashSaleID: number) => {
-    if (!addProductForm.productID || addProductForm.discountPrice <= 0) {
-      toast.error("Select a product and set discount price");
+  useEffect(() => {
+    const timer = setTimeout(() => fetchProducts(), 400);
+    return () => clearTimeout(timer);
+  }, [productSearch]);
+
+  useEffect(() => {
+    if (selectedSale) fetchSaleProducts(selectedSale.id);
+  }, [selectedSale]);
+
+  const handleAddProduct = async () => {
+    if (!selectedSale || !selectedProduct) {
+      toast.error("Select a flash sale and a product");
       return;
     }
-    const res = await api.post("/ecom/flash-sale/add-product", { ...addProductForm, flashSaleID });
+    if (discountPrice <= 0) {
+      toast.error("Discount price must be greater than 0");
+      return;
+    }
+    const res = await api.post("/ecom/flash-sale/add-product", {
+      flashSaleID: selectedSale.id,
+      productID: selectedProduct.id,
+      discountPrice,
+      sortOrder,
+    });
     if (res.data.success) {
-      setAddProductForm({ productID: 0, discountPrice: 0, sortOrder: 0 });
-      setProductSearch("");
-      setProductOptions([]);
-      const prodRes = await api(`/ecom/flash-sale/products/${flashSaleID}`);
-      if (prodRes.data.success) setSaleProducts(prodRes.data.data);
+      toast.success("Product added to flash sale");
+      setSelectedProduct(null);
+      setDiscountPrice(0);
+      setSortOrder(0);
+      fetchSaleProducts(selectedSale.id);
     }
   };
 
-  const removeProduct = async (productID: number, flashSaleID: number) => {
-    toast("Remove product?", {
+  const handleRemoveProduct = async (productId: number) => {
+    toast("Remove product from flash sale?", {
       action: {
-        label: "Remove", onClick: async () => {
-          await api.delete(`/ecom/flash-sale/remove-product/${productID}`);
-          const prodRes = await api(`/ecom/flash-sale/products/${flashSaleID}`);
-          if (prodRes.data.success) setSaleProducts(prodRes.data.data);
+        label: "Remove",
+        onClick: async () => {
+          await api.delete(`/ecom/flash-sale/remove-product/${productId}`);
+          if (selectedSale) fetchSaleProducts(selectedSale.id);
         },
       },
       cancel: { label: "Cancel" },
     });
   };
 
+  const handleSaleChange = (option: SelectOption<FlashSaleListItem> | null) => {
+    setSelectedSale(option);
+    setSaleProducts([]);
+  };
+
   return (
     <div className="space-y-4">
-      <TableFilterBar
-        title="Flash Sales"
-        subtitle={`Total: ${data.total}`}
-        search={search}
-        onSearchChange={(val) => { setSearch(val); setPage(1); }}
-        limit={limit}
-        onLimitChange={(val) => { setLimit(val); setPage(1); }}
-        disableSearch={showForm}
-      />
+      <div className="global_container p-4 space-y-4">
+        <h2 className="text-lg font-semibold">Assign Products to Flash Sale</h2>
 
-      {showForm && (
-        <div className="global_container p-4 space-y-3">
-          <h2 className="text-lg font-semibold">{editItem ? "Edit Flash Sale" : "Add Flash Sale"}</h2>
-          <input className="global_input" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm text-gray-500 mb-1 block">Start Date</label>
-              <input className="global_input" type="datetime-local" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-sm text-gray-500 mb-1 block">End Date</label>
-              <input className="global_input" type="datetime-local" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Flash Sale</label>
+            <Select
+              options={flashSales}
+              value={selectedSale}
+              onChange={handleSaleChange}
+              placeholder="Select Flash Sale"
+              isClearable
+              filterOption={() => true}
+              styles={getReactSelectStyles<SelectOption<FlashSaleListItem>>()}
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <ToggleSwitch label="Active" value={form.isActive} onChange={(val) => setForm({ ...form, isActive: val })} />
-          </div>
-          <div className="flex gap-2">
-            <button className="global_button" onClick={handleSubmit}>{editItem ? "Update" : "Create"}</button>
-            <button className="global_button_red" onClick={resetForm}>Cancel</button>
+          <div>
+            <label className="block text-sm font-medium mb-1">Product</label>
+            <Select
+              options={products}
+              value={selectedProduct}
+              onChange={(val) => {
+                setSelectedProduct(val as SelectOption<Product> | null);
+                if (val) setDiscountPrice((val as SelectOption<Product>).salePrice || 0);
+              }}
+              onInputChange={(e) => setProductSearch(e)}
+              placeholder="Search and select product"
+              isClearable
+              filterOption={() => true}
+              styles={getReactSelectStyles<SelectOption<Product>>()}
+            />
           </div>
         </div>
-      )}
 
-      {!showForm && (
-        <button className="global_button flex items-center gap-2" onClick={() => { resetForm(); setShowForm(true); }}>
-          <Plus size={16} /> Add Flash Sale
-        </button>
-      )}
-
-      <div className="space-y-2">
-        {data.items.map((sale) => (
-          <div key={sale.id} className="global_container">
-            <div className="flex items-center justify-between p-3">
-              <div className="flex items-center gap-3">
-                <button onClick={() => toggleExpand(sale.id)} className="text-gray-500">
-                  {expandedSale === sale.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                </button>
-                <div>
-                  <h3 className="font-semibold">{sale.name}</h3>
-                  <p className="text-xs text-gray-500">
-                    {new Date(sale.startDate).toLocaleDateString()} - {new Date(sale.endDate).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <ToggleSwitch label="" value={sale.isActive} onChange={(val) => handleActiveToggle(sale.id, val)} />
-                <button onClick={() => handleEdit(sale)} className="global_button"><Edit size={14} /></button>
-                <button onClick={() => handleDelete(sale.id)} className="global_button_red"><Trash2 size={14} /></button>
-              </div>
+        {selectedSale && selectedProduct && (
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">Discount Price</label>
+              <input
+                className="global_input w-40"
+                type="number"
+                min={0}
+                step={0.01}
+                value={discountPrice || ""}
+                onChange={(e) => setDiscountPrice(Number(e.target.value))}
+              />
             </div>
-
-            {expandedSale === sale.id && (
-              <div className="border-t p-3 space-y-3">
-                <div className="flex gap-2 items-end flex-wrap">
-                  <input className="global_input flex-1 min-w-[200px]" placeholder="Search product..." value={productSearch} onChange={(e) => searchProducts(e.target.value)} />
-                  {productOptions.length > 0 && (
-                    <select className="global_input" value={addProductForm.productID} onChange={(e) => {
-                      const prod = productOptions.find((p) => p.id === Number(e.target.value));
-                      setAddProductForm({ ...addProductForm, productID: Number(e.target.value), discountPrice: prod?.salePrice || 0 });
-                    }}>
-                      <option value={0}>Select product</option>
-                      {productOptions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  )}
-                  <input className="global_input w-28" type="number" placeholder="Discount Price" value={addProductForm.discountPrice || ""} onChange={(e) => setAddProductForm({ ...addProductForm, discountPrice: Number(e.target.value) })} />
-                  <input className="global_input w-20" type="number" placeholder="Order" value={addProductForm.sortOrder} onChange={(e) => setAddProductForm({ ...addProductForm, sortOrder: Number(e.target.value) })} />
-                  <button className="global_button" onClick={() => addProduct(sale.id)}>Add</button>
-                </div>
-
-                {saleProducts.length > 0 ? (
-                  <Table
-                    data={saleProducts}
-                    keyExtractor={(row) => row.id}
-                    columns={[
-                      { header: "#", accessor: (_, i) => (i ?? 0) + 1, className: "w-10 text-center", headerClassName: "text-center" },
-                      { header: "Product", accessor: (row) => <span>{row.productName}</span> },
-                      { header: "Sale Price", accessor: (row) => <span>${row.productSalePrice.toFixed(2)}</span>, className: "text-center", headerClassName: "text-center" },
-                      { header: "Discount Price", accessor: (row) => <span className="text-red-600 font-semibold">${row.discountPrice.toFixed(2)}</span>, className: "text-center", headerClassName: "text-center" },
-                      { header: "Stock", accessor: (row) => <span className="text-center">{row.productStock}</span>, className: "text-center", headerClassName: "text-center" },
-                      {
-                        header: "Action", headerClassName: "text-right", className: "text-right",
-                        accessor: (row) => <button onClick={() => removeProduct(row.id, sale.id)} className="global_button_red"><Trash2 size={14} /></button>,
-                      },
-                    ]}
-                  />
-                ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">No products added yet</p>
-                )}
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium mb-1">Sort Order</label>
+              <input
+                className="global_input w-24"
+                type="number"
+                min={0}
+                value={sortOrder}
+                onChange={(e) => setSortOrder(Number(e.target.value))}
+              />
+            </div>
+            <button className="global_button flex items-center gap-1" onClick={handleAddProduct}>
+              <Plus size={16} /> Add
+            </button>
           </div>
-        ))}
+        )}
       </div>
 
-      <Pagination total={data.total} page={page} limit={limit} onPageChange={setPage} />
+      {selectedSale && (
+        <div className="global_container p-4">
+          <h3 className="font-semibold mb-3">
+            Products in "{selectedSale.name}" ({saleProducts.length})
+          </h3>
+
+          {saleProducts.length > 0 ? (
+            <Table
+              data={saleProducts}
+              keyExtractor={(row) => row.id}
+              columns={[
+                { header: "#", accessor: (_, i) => (i ?? 0) + 1, className: "w-10 text-center", headerClassName: "text-center" },
+                { header: "Product", accessor: (row) => row.productName, headerClassName: "min-w-[200px]" },
+                { header: "Sale Price", accessor: (row) => <span>${row.productSalePrice.toFixed(2)}</span>, className: "text-center", headerClassName: "text-center" },
+                { header: "Discount Price", accessor: (row) => <span className="text-red-600 font-semibold">${row.discountPrice.toFixed(2)}</span>, className: "text-center", headerClassName: "text-center" },
+                { header: "Stock", accessor: (row) => <span className="text-center">{row.productStock}</span>, className: "text-center", headerClassName: "text-center" },
+                { header: "Order", accessor: (row) => <span className="text-center">{row.sortOrder}</span>, className: "text-center", headerClassName: "text-center" },
+                {
+                  header: "Action", headerClassName: "text-right", className: "text-right",
+                  accessor: (row) => (
+                    <button onClick={() => handleRemoveProduct(row.id)} className="global_button_red">
+                      <Trash2 size={14} />
+                    </button>
+                  ),
+                },
+              ]}
+            />
+          ) : (
+            <p className="text-sm text-gray-500 text-center py-4">No products assigned yet</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

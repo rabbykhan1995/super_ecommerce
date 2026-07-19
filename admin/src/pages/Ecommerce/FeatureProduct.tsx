@@ -1,105 +1,165 @@
 import { useEffect, useState } from "react";
+import type { Product, SearchParams, SelectOption, FeaturedProductItem, PaginatedResult } from "../../types/type";
 import api from "../../lib/axios";
 import Table from "../../components/tables/Table";
-import TableFilterBar from "../../components/filters/TableFilterBar";
+import Helper from "../../utils/helper";
+import { Trash2 } from "lucide-react";
+import Select from "react-select";
+import { getReactSelectStyles } from "../../utils/reactSelectStyles";
+import ToggleSwitch from "../../components/buttons/ToggleSwitch";
+import toast from "react-hot-toast";
 import Pagination from "../../components/filters/Pagination";
-import { Trash2, Plus } from "lucide-react";
-import { toast } from "sonner";
-import type { FeaturedProductItem, PaginatedResult } from "../../types/type";
 
 export default function FeatureProduct() {
-  const [data, setData] = useState<PaginatedResult<FeaturedProductItem>>({ items: [], total: 0, page: 1, limit: 10 });
-  const [limit, setLimit] = useState(10);
-  const [page, setPage] = useState(1);
-  const [productSearch, setProductSearch] = useState("");
-  const [productOptions, setProductOptions] = useState<{ id: number; name: string; salePrice: number }[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<number>(0);
+    const [featuredData, setFeaturedData] = useState<PaginatedResult<FeaturedProductItem>>({ items: [], total: 0, page: 1, limit: 10 });
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(10);
 
-  const fetchData = async () => {
-    const res = await api("/ecom/featured-product/list", { params: { limit, page } });
-    if (res.data.success) setData(res.data.data);
-  };
+    const [products, setProducts] = useState<SelectOption<Product>[]>([]);
+    const [productParams, setProductParams] = useState<SearchParams>({ search: "", page: 1, limit: 50 });
+    const [selectedProduct, setSelectedProduct] = useState<SelectOption<Product> | null>(null);
 
-  useEffect(() => { fetchData(); }, [limit, page]);
+    const fetchFeatured = async () => {
+        const res = await api("/ecom/featured-product/list", { params: { page, limit } });
+        if (res.data.success) setFeaturedData(res.data.data);
+    };
 
-  const searchProducts = async (q: string) => {
-    setProductSearch(q);
-    if (q.length < 2) { setProductOptions([]); return; }
-    const res = await api("/product/list", { params: { search: q, limit: 20 } });
-    if (res.data.success) setProductOptions(res.data.data.items.map((p: any) => ({ id: p.id, name: p.name, salePrice: p.salePrice })));
-  };
+    const fetchProducts = async () => {
+        const res = await api("/product/list", {
+            params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
+        });
+        if (res.data.success) {
+            const featuredIds = featuredData.items.map((fp) => fp.productID);
+            setProducts(
+                res.data.data.items
+                    .filter((p: Product) => !featuredIds.includes(p.id))
+                    .map((p: Product) => ({
+                        value: String(p.id),
+                        label: `${p.name} stock-${!p.manageStock ? " ∞" : p.stock}`,
+                        ...p,
+                    }))
+            );
+        }
+    };
 
-  const handleAdd = async () => {
-    if (!selectedProduct) { toast.error("Select a product"); return; }
-    const res = await api.post("/ecom/featured-product/add", { productID: selectedProduct });
-    if (res.data.success) {
-      setSelectedProduct(0);
-      setProductSearch("");
-      setProductOptions([]);
-      fetchData();
-    }
-  };
+    useEffect(() => { fetchFeatured(); }, [page, limit]);
 
-  const handleRemove = async (id: number) => {
-    toast("Remove featured product?", {
-      action: { label: "Remove", onClick: async () => { await api.delete(`/ecom/featured-product/remove/${id}`); fetchData(); } },
-      cancel: { label: "Cancel" },
-    });
-  };
+    useEffect(() => {
+        const timer = setTimeout(() => fetchProducts(), 400);
+        return () => clearTimeout(timer);
+    }, [productParams.search]);
 
-  return (
-    <div className="space-y-4">
-      <TableFilterBar
-        title="Featured Products"
-        subtitle={`Total: ${data.total}`}
-        limit={limit}
-        onLimitChange={(val) => { setLimit(val); setPage(1); }}
-        disableSearch
-      />
+    useEffect(() => {
+        if (featuredData.items.length > 0) fetchProducts();
+    }, [featuredData]);
 
-      <div className="global_container p-4">
-        <h2 className="text-lg font-semibold mb-3">Add Featured Product</h2>
-        <div className="flex gap-2 items-end flex-wrap">
-          <input className="global_input flex-1 min-w-[200px]" placeholder="Search product..." value={productSearch} onChange={(e) => searchProducts(e.target.value)} />
-          {productOptions.length > 0 && (
-            <select className="global_input" value={selectedProduct} onChange={(e) => setSelectedProduct(Number(e.target.value))}>
-              <option value={0}>Select product</option>
-              {productOptions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          )}
-          <button className="global_button flex items-center gap-1" onClick={handleAdd}>
-            <Plus size={16} /> Add
-          </button>
-        </div>
-      </div>
+    const handleToggle = async (productID: number) => {
+        const res = await api(`/ecom/featured-product/toggle/${productID}`);
+        if (res.data.success) {
+            setSelectedProduct(null);
+            await fetchFeatured();
+        }
+    };
 
-      <Table
-        data={data.items}
-        keyExtractor={(row) => row.id}
-        columns={[
-          { header: "#", accessor: (_, i) => (i ?? 0) + 1, className: "w-10 text-center", headerClassName: "text-center" },
-          {
-            header: "Product", accessor: (row) => (
-              <div className="flex items-center gap-3">
-                {row.product.thumbnail && <img src={row.product.thumbnail} alt="" className="w-10 h-10 object-cover rounded" />}
-                <div>
-                  <p className="font-medium">{row.product.name}</p>
-                  <p className="text-xs text-gray-500">Stock: {row.product.stock}</p>
+    const handleRemove = async (id: number) => {
+        toast("Remove featured product?", {
+            action: {
+                label: "Remove",
+                onClick: async () => {
+                    await api.delete(`/ecom/featured-product/remove/${id}`);
+                    await fetchFeatured();
+                },
+            },
+            cancel: { label: "Cancel" },
+        });
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="global_container">
+                <h2 className="text-lg font-semibold mb-3">Featured Products</h2>
+
+                <div className="flex lg:flex-row flex-col w-full mb-4">
+                    <div className="flex flex-col w-full">
+                        <label className="block text-sm font-medium mb-1">Products</label>
+                        <Select
+                            options={products}
+                            value={null}
+                            onChange={(val) => setSelectedProduct(val as SelectOption<Product>)}
+                            onInputChange={(e) => setProductParams((prev) => ({ ...prev, search: e }))}
+                            placeholder="Select Product"
+                            isClearable
+                            filterOption={() => true}
+                            styles={getReactSelectStyles<SelectOption<Product>>()}
+                        />
+                    </div>
+                    <div className="w-full p-5">
+                        {!selectedProduct ? null : (
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h1 className="font-medium">{selectedProduct.name}</h1>
+                                    <p className="text-xs text-gray-500">Price: ${selectedProduct.salePrice.toFixed(2)} | Stock: {selectedProduct.stock}</p>
+                                    <ToggleSwitch
+                                        label="Featured"
+                                        value={false}
+                                        onChange={() => handleToggle(selectedProduct.id)}
+                                    />
+                                </div>
+                                <button onClick={() => setSelectedProduct(null)} className="global_button_red">X</button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-              </div>
-            ),
-          },
-          { header: "Price", accessor: (row) => <span>${row.product.salePrice.toFixed(2)}</span>, className: "text-center", headerClassName: "text-center" },
-          { header: "Order", accessor: (row) => <span className="text-center">{row.sortOrder}</span>, className: "text-center", headerClassName: "text-center" },
-          { header: "Published", accessor: (row) => <span className={row.product.isPublished ? "text-green-600" : "text-red-600"}>{row.product.isPublished ? "Yes" : "No"}</span>, className: "text-center", headerClassName: "text-center" },
-          {
-            header: "Action", headerClassName: "text-right", className: "text-right",
-            accessor: (row) => <button onClick={() => handleRemove(row.id)} className="global_button_red"><Trash2 size={14} /></button>,
-          },
-        ]}
-      />
 
-      <Pagination total={data.total} page={page} limit={limit} onPageChange={setPage} />
-    </div>
-  );
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-500">Total: {featuredData.total}</span>
+                    <select
+                        className="global_input w-auto text-sm"
+                        value={limit}
+                        onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+                    >
+                        {[10, 20, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                </div>
+
+                <Table
+                    data={featuredData.items}
+                    keyExtractor={(row) => String(row.id)}
+                    columns={[
+                        { header: "#", accessor: (_, i) => (i ?? 0) + 1, className: "w-10 text-center", headerClassName: "text-center" },
+                        { header: "Name", accessor: (row) => row.product.name, headerClassName: "min-w-[200px]" },
+                        {
+                            header: "Price", accessor: (row) =>
+                                <span className="flex justify-center">{Helper.formatLongNumber(row.product.salePrice)}</span>,
+                            className: "text-center",
+                        },
+                        {
+                            header: "Stock", className: "text-center", headerClassName: "text-center",
+                            accessor: (row) => <span className="flex justify-center">{row.product.stock}</span>,
+                        },
+                        {
+                            header: "Published", className: "text-center", headerClassName: "text-center",
+                            accessor: (row) => (
+                                <span className={row.product.isPublished ? "text-green-600" : "text-red-600"}>
+                                    {row.product.isPublished ? "Yes" : "No"}
+                                </span>
+                            ),
+                        },
+                        {
+                            header: "Action", headerClassName: "text-right", className: "text-right",
+                            accessor: (row) => (
+                                <div className="flex gap-2 justify-end">
+                                    <button onClick={() => handleRemove(row.id)} className="global_edit">
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                            ),
+                        },
+                    ]}
+                />
+
+                <Pagination total={featuredData.total} page={page} limit={limit} onPageChange={setPage} />
+            </div>
+        </div>
+    );
 }

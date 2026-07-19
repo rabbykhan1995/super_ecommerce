@@ -75,6 +75,51 @@ class Helper {
 
     return encodeURI(trimmed);
   }
+
+
+    static formatIndianNumber(num: number): string {
+    const str = num.toString();
+    const len = str.length;
+    
+    if (len <= 3) return str;
+    
+    // ✅ Last 3 digits
+    let result = str.slice(-3);
+    let remaining = str.slice(0, -3);
+    
+    // ✅ Add commas every 2 digits for remaining
+    while (remaining.length > 0) {
+        if (remaining.length <= 2) {
+            result = remaining + ',' + result;
+            break;
+        }
+        result = remaining.slice(-2) + ',' + result;
+        remaining = remaining.slice(0, -2);
+    }
+    
+    return result;
+}
+
+static formatLongNumber(n: number): string {
+    if (!n || isNaN(n)) return "0";
+    
+    // ✅ Round to 2 decimal places
+    const rounded = Math.round(n * 100) / 100;
+    
+    // ✅ Split into integer and decimal parts
+    const [integerPart, decimalPart] = rounded.toString().split('.');
+    
+    // ✅ Format integer part with commas (Indian format: lakhs, thousands)
+    const formattedInteger = this.formatIndianNumber(parseInt(integerPart));
+    
+    // ✅ Combine with decimal part if exists
+    if (decimalPart) {
+        return `${formattedInteger}.${decimalPart}`;
+    }
+    
+    return formattedInteger;
+}
+
 }
 
 export default Helper;

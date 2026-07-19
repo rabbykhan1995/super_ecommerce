@@ -40,6 +40,7 @@ export default function EditProduct() {
   const [video, setVideo] = useState("");
   const [purchasePrice, setPurchasePrice] = useState<number | "">("");
   const [salePrice, setSalePrice] = useState<number | "">("");
+  const [discountPrice, setDiscountPrice] = useState<number | "">("");
   const [stock, setStock] = useState<number | "">("");
   const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState<string>("");
@@ -104,6 +105,7 @@ export default function EditProduct() {
     setDecimal(p.decimal ?? false);
     setPurchasePrice(p.purchasePrice);
     setSalePrice(p.salePrice);
+    setDiscountPrice(p.discountPrice ?? "");
     setStock(p.stock ?? "");
     setProductThumbnail(p.thumbnail ?? "");
     setProductThumbnailFileId(p.thumbnailFileId ?? "");
@@ -164,6 +166,8 @@ export default function EditProduct() {
       if (purchasePrice !== (oldData.purchasePrice ?? "")) productFields.purchasePrice = purchasePrice;
     }
 
+    if (discountPrice !== (oldData.discountPrice ?? "")) productFields.discountPrice = discountPrice === "" ? null : discountPrice;
+
     if (stock !== (oldData.stock ?? "")) productFields.stock = stock === "" ? 0 : stock;
     if (productThumbnail !== (oldData.thumbnail ?? "")) productFields.thumbnail = productThumbnail || null;
     if (productThumbnailFileId !== (oldData.thumbnailFileId ?? "")) productFields.thumbnailFileId = productThumbnailFileId || null;
@@ -194,6 +198,7 @@ export default function EditProduct() {
         if (v.barcode !== old.barcode) { fields.barcode = v.barcode || undefined; changed = true; }
         if (v.weight !== old.weight) { fields.weight = v.weight; changed = true; }
         if (v.salePrice !== old.salePrice) { fields.salePrice = v.salePrice; changed = true; }
+        if (v.discountPrice !== old.discountPrice) { fields.discountPrice = v.discountPrice ?? null; changed = true; }
         if (JSON.stringify(v.attributes) !== JSON.stringify(old.attributes)) { fields.attributes = v.attributes; changed = true; }
         if (JSON.stringify(v.images) !== JSON.stringify(old.images)) { fields.images = v.images; changed = true; }
         if (JSON.stringify((v as any).imageFileIds) !== JSON.stringify(old.imageFileIds)) { fields.imageFileIds = (v as any).imageFileIds; changed = true; }
@@ -202,6 +207,7 @@ export default function EditProduct() {
       } else {
         changedVariants.push({
           salePrice: v.salePrice,
+          discountPrice: v.discountPrice ?? null,
           barcode: v.barcode || undefined,
           weight: v.weight,
           attributes: v.attributes,
@@ -242,6 +248,7 @@ export default function EditProduct() {
   const handleAddVariant = () => {
     const newVariant: VariantPayload = {
       salePrice: 0,
+      discountPrice: null,
       barcode: "",
       weight: 0,
       attributes: [],
@@ -365,6 +372,16 @@ export default function EditProduct() {
             placeholder="Sale price"
             className="global_input"
             disabled={manageStock}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Discount Price</label>
+          <input
+            type="number"
+            value={discountPrice}
+            onChange={(e) => setDiscountPrice(e.target.value === "" ? "" : Number(e.target.value))}
+            placeholder="Discount price"
+            className="global_input"
           />
         </div>
         {/* Sort Order */}
@@ -547,6 +564,17 @@ export default function EditProduct() {
                   value={row.salePrice || 0}
                   onChange={(e) => changeVariant(i as number, "salePrice", e.target.value)}
                   placeholder="sale price"
+                  className="global_input"
+                />
+              , className: "text-center"
+            },
+            {
+              header: "discount price", accessor: (row, i) =>
+                <input
+                  type="number"
+                  value={row.discountPrice ?? ""}
+                  onChange={(e) => changeVariant(i as number, "discountPrice", e.target.value === "" ? null : Number(e.target.value))}
+                  placeholder="discount price"
                   className="global_input"
                 />
               , className: "text-center"

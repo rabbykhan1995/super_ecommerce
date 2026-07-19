@@ -103,7 +103,7 @@ export type EcomProduct = {
   totalSold: number;
   averageRating: number;
   totalReviews: number;
-  discountPrice:number;
+  discountPrice: number | null;
   video?:string;
 };
 

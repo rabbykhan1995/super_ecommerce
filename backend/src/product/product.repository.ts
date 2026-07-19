@@ -25,6 +25,7 @@ import {
   isNotNull,
   isNull,
   lte,
+  min,
   ne,
   or,
   SQL,
@@ -361,6 +362,7 @@ static async list(query: {
       thumbnail: true,
       stock: true,
       salePrice: true,
+      discountPrice: true,
       purchasePrice: true,
       status: true,
       featured: true,
@@ -412,7 +414,7 @@ static async list(query: {
 
       // product name দিয়ে product এ search (সাবকোয়েরি ব্যবহার করে)
       const productCondition = sql`${variantTable.productID} IN (
-      SELECT id FROM ${productTable} WHERE ${ilike(productTable.name, searchTerm)}
+      SELECT "id" FROM "products" WHERE "name" ILIKE ${searchTerm}
     )`;
 
       searchCondition = or(barcodeCondition, productCondition);
@@ -433,6 +435,7 @@ static async list(query: {
             name: true,
             thumbnail: true,
             manageStock:true,
+            featured:true,
             manageWarranty:true,
             decimal:true,
           },
@@ -595,6 +598,7 @@ static async ecomProductList(query: EcomProductQuery) {
       stock: true,
       totalSold: true,
       salePrice: true,
+      discountPrice: true,
       manageStock: true,
       decimal: true,
       averageRating: true,
@@ -894,6 +898,7 @@ static async ecomProductList(query: EcomProductQuery) {
         id: variantTable.id,
         productID: variantTable.productID,
         salePrice: variantTable.salePrice,
+        discountPrice: variantTable.discountPrice,
         stock: variantTable.stock,
         barcode: variantTable.barcode,
         weight: variantTable.weight,
@@ -921,6 +926,23 @@ static async ecomProductList(query: EcomProductQuery) {
           gt(batchTable.remainingQty, 0),
         ),
       );
+  }
+
+  static async recomputeProductDiscountPrice(
+    productID: number,
+    client: QueryClient = db,
+  ): Promise<void> {
+    const [result] = await client
+      .select({ lowest: min(variantTable.discountPrice) })
+      .from(variantTable)
+      .where(eq(variantTable.productID, productID));
+
+    const lowestDiscount = result?.lowest ?? null;
+
+    await client
+      .update(productTable)
+      .set({ discountPrice: lowestDiscount })
+      .where(eq(productTable.id, productID));
   }
 
 }

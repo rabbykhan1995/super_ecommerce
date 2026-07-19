@@ -53,11 +53,12 @@ async function seed() {
         categoryID: catMap["Kitchen Appliances"],
         purchasePrice: 1500,
         salePrice: 2200,
+        discountPrice: 1980,
         stock: 50,
         sku: "SAM-RC-001",
         variants: [
-          { salePrice: 2200, stock: 30, attributes: [{ name: "Color", value: "White" }] },
-          { salePrice: 2400, stock: 20, attributes: [{ name: "Color", value: "Black" }] },
+          { salePrice: 2200, discountPrice: 1980, stock: 30, attributes: [{ name: "Color", value: "White" }] },
+          { salePrice: 2400, discountPrice: 2160, stock: 20, attributes: [{ name: "Color", value: "Black" }] },
         ],
       },
       {
@@ -70,11 +71,12 @@ async function seed() {
         categoryID: catMap["Home Appliances"],
         purchasePrice: 35000,
         salePrice: 45000,
+        discountPrice: 40500,
         stock: 15,
         sku: "LG-AC-001",
         variants: [
-          { salePrice: 45000, stock: 10, attributes: [{ name: "Capacity", value: "1.5 Ton" }] },
-          { salePrice: 55000, stock: 5, attributes: [{ name: "Capacity", value: "2 Ton" }] },
+          { salePrice: 45000, discountPrice: 40500, stock: 10, attributes: [{ name: "Capacity", value: "1.5 Ton" }] },
+          { salePrice: 55000, discountPrice: 49500, stock: 5, attributes: [{ name: "Capacity", value: "2 Ton" }] },
         ],
       },
       {
@@ -87,11 +89,12 @@ async function seed() {
         categoryID: catMap["Electronics"],
         purchasePrice: 18000,
         salePrice: 25000,
+        discountPrice: 22500,
         stock: 25,
         sku: "SONY-WH-001",
         variants: [
-          { salePrice: 25000, stock: 15, attributes: [{ name: "Color", value: "Black" }] },
-          { salePrice: 26000, stock: 10, attributes: [{ name: "Color", value: "Silver" }] },
+          { salePrice: 25000, discountPrice: 22500, stock: 15, attributes: [{ name: "Color", value: "Black" }] },
+          { salePrice: 26000, discountPrice: 23400, stock: 10, attributes: [{ name: "Color", value: "Silver" }] },
         ],
       },
       {
@@ -104,11 +107,12 @@ async function seed() {
         categoryID: catMap["Electronics"],
         purchasePrice: 28000,
         salePrice: 36000,
+        discountPrice: 32400,
         stock: 10,
         sku: "PAN-TV-001",
         variants: [
-          { salePrice: 36000, stock: 5, attributes: [{ name: "Size", value: "43 inch" }] },
-          { salePrice: 48000, stock: 5, attributes: [{ name: "Size", value: "55 inch" }] },
+          { salePrice: 36000, discountPrice: 32400, stock: 5, attributes: [{ name: "Size", value: "43 inch" }] },
+          { salePrice: 48000, discountPrice: 43200, stock: 5, attributes: [{ name: "Size", value: "55 inch" }] },
         ],
       },
       {
@@ -121,11 +125,12 @@ async function seed() {
         categoryID: catMap["Kitchen Appliances"],
         purchasePrice: 8000,
         salePrice: 12000,
+        discountPrice: 10800,
         stock: 30,
         sku: "PHI-AF-001",
         variants: [
-          { salePrice: 12000, stock: 20, attributes: [{ name: "Color", value: "Black" }] },
-          { salePrice: 13000, stock: 10, attributes: [{ name: "Color", value: "White" }] },
+          { salePrice: 12000, discountPrice: 10800, stock: 20, attributes: [{ name: "Color", value: "Black" }] },
+          { salePrice: 13000, discountPrice: 11700, stock: 10, attributes: [{ name: "Color", value: "White" }] },
         ],
       },
       {
@@ -138,11 +143,12 @@ async function seed() {
         categoryID: catMap["Electronics"],
         purchasePrice: 50000,
         salePrice: 65000,
+        discountPrice: 58500,
         stock: 20,
         sku: "XIAO-11U-001",
         variants: [
-          { salePrice: 65000, stock: 10, attributes: [{ name: "Color", value: "Black" }] },
-          { salePrice: 66000, stock: 10, attributes: [{ name: "Color", value: "White" }] },
+          { salePrice: 65000, discountPrice: 58500, stock: 10, attributes: [{ name: "Color", value: "Black" }] },
+          { salePrice: 66000, discountPrice: 59400, stock: 10, attributes: [{ name: "Color", value: "White" }] },
         ],
       },
       {
@@ -155,11 +161,12 @@ async function seed() {
         categoryID: catMap["Home Appliances"],
         purchasePrice: 1200,
         salePrice: 2000,
+        discountPrice: 1800,
         stock: 100,
         sku: "HAV-FAN-001",
         variants: [
-          { salePrice: 2000, stock: 50, attributes: [{ name: "Color", value: "Brown" }] },
-          { salePrice: 2200, stock: 30, attributes: [{ name: "Color", value: "White" }] },
+          { salePrice: 2000, discountPrice: 1800, stock: 50, attributes: [{ name: "Color", value: "Brown" }] },
+          { salePrice: 2200, discountPrice: 1980, stock: 30, attributes: [{ name: "Color", value: "White" }] },
         ],
       },
       {
@@ -172,11 +179,12 @@ async function seed() {
         categoryID: catMap["Home Appliances"],
         purchasePrice: 55000,
         salePrice: 72000,
+        discountPrice: 64800,
         stock: 8,
         sku: "SAM-FRIDGE-001",
         variants: [
-          { salePrice: 72000, stock: 5, attributes: [{ name: "Finish", value: "Stainless Steel" }] },
-          { salePrice: 70000, stock: 3, attributes: [{ name: "Finish", value: "Black" }] },
+          { salePrice: 72000, discountPrice: 64800, stock: 5, attributes: [{ name: "Finish", value: "Stainless Steel" }] },
+          { salePrice: 70000, discountPrice: 63000, stock: 3, attributes: [{ name: "Finish", value: "Black" }] },
         ],
       },
       {
@@ -189,11 +197,12 @@ async function seed() {
         categoryID: catMap["Home Appliances"],
         purchasePrice: 32000,
         salePrice: 42000,
+        discountPrice: 37800,
         stock: 12,
         sku: "LG-WM-001",
         variants: [
-          { salePrice: 42000, stock: 7, attributes: [{ name: "Color", value: "White" }] },
-          { salePrice: 44000, stock: 5, attributes: [{ name: "Color", value: "Silver" }] },
+          { salePrice: 42000, discountPrice: 37800, stock: 7, attributes: [{ name: "Color", value: "White" }] },
+          { salePrice: 44000, discountPrice: 39600, stock: 5, attributes: [{ name: "Color", value: "Silver" }] },
         ],
       },
       {
@@ -206,11 +215,12 @@ async function seed() {
         categoryID: catMap["Electronics"],
         purchasePrice: 40000,
         salePrice: 55000,
+        discountPrice: 49500,
         stock: 5,
         sku: "SONY-PS5-001",
         variants: [
-          { salePrice: 55000, stock: 3, attributes: [{ name: "Edition", value: "Standard" }] },
-          { salePrice: 65000, stock: 2, attributes: [{ name: "Edition", value: "Digital" }] },
+          { salePrice: 55000, discountPrice: 49500, stock: 3, attributes: [{ name: "Edition", value: "Standard" }] },
+          { salePrice: 65000, discountPrice: 58500, stock: 2, attributes: [{ name: "Edition", value: "Digital" }] },
         ],
       },
     ];
@@ -232,22 +242,22 @@ async function seed() {
         `INSERT INTO products (
           name, slug, description, short_description,
           brand_id, unit_id, category_id,
-          purchase_price, sale_price, stock,
+          purchase_price, sale_price, discount_price, stock,
           sku, is_published, in_pos_list, featured,
           status, total_sold, average_rating, total_reviews,
           show_stock, sort_order
         ) VALUES (
           $1, $2, $3, $4,
           $5, $6, $7,
-          $8, $9, $10,
-          $11, true, true, true,
+          $8, $9, $10, $11,
+          $12, true, true, true,
           'active', floor(random() * 50 + 10)::numeric, floor(random() * 5 * 10)::numeric / 10, floor(random() * 100 + 10)::int,
           true, 0
         ) RETURNING id`,
         [
           p.name, p.slug, p.description, p.short_description,
           p.brandID, p.unitID, p.categoryID,
-          p.purchasePrice, p.salePrice, p.stock,
+          p.purchasePrice, p.salePrice, p.discountPrice, p.stock,
           p.sku,
         ]
       );
@@ -257,11 +267,12 @@ async function seed() {
       for (const v of p.variants) {
         await client.query(
           `INSERT INTO variants (
-            product_id, sale_price, stock, attributes
-          ) VALUES ($1, $2, $3, $4::jsonb)`,
+            product_id, sale_price, discount_price, stock, attributes
+          ) VALUES ($1, $2, $3, $4, $5::jsonb)`,
           [
             productID,
             v.salePrice,
+            v.discountPrice,
             v.stock,
             JSON.stringify(v.attributes),
           ]

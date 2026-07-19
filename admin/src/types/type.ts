@@ -43,7 +43,7 @@ export type Product = {
   purchasePrice: number;
   salePrice: number;
   manageWarranty: boolean;
-  posEnabled: boolean;
+  inPosList: boolean;
   thumbnail?: string;
   thumbnailFileId?: string | null;
 };
@@ -496,6 +496,7 @@ export type Variant = {
   id: number;
   stock: number | null;
   salePrice: number | null;
+  discountPrice: number | null;
   createdAt?: Date;
   updatedAt?: Date;
   productID: number;
@@ -511,6 +512,7 @@ export type Variant = {
 
 export type VariantPayload = {
   salePrice: number | null;
+  discountPrice: number | null;
   productID?: number;
   barcode?: string;
   weight: number;

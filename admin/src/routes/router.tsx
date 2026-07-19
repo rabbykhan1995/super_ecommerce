@@ -47,6 +47,7 @@ import EcomProductList from "../pages/Ecommerce/EcomProductList";
 import EditEcomProduct from "../pages/Ecommerce/EditEcomProduct";
 import Banner from "../pages/Ecommerce/Banner";
 import FeatureProduct from "../pages/Ecommerce/FeatureProduct";
+import FlashSale from "../pages/Ecommerce/FlashSale";
 import FlashProduct from "../pages/Ecommerce/FlashProduct";
 
 export const router = createBrowserRouter([
@@ -123,9 +124,17 @@ export const router = createBrowserRouter([
             path: "featured-products",
             Component: FeatureProduct,
           },
+           {
+            path: "flash-sale",
+            Component: FlashSale,
+          },
           {
             path: "flash-products",
             Component: FlashProduct,
+          },
+          {
+            path: "pos-products",
+            Component: PosProducts,
           },
         ],
       },
@@ -315,6 +324,12 @@ export const router = createBrowserRouter([
           },{
             path: "featured-products",
             Component: FeatureProduct,
+          },{
+            path: "flash-sale",
+            Component: FlashSale,
+          },{
+            path: "flash-products",
+            Component: FlashProduct,
           },
 
         ],

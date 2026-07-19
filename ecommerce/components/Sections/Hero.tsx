@@ -6,43 +6,41 @@ import { Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import api from "@/utils/apiconfig";
+import BannerSkeleton from "../Skeletons/BannerSkeleton";
+
+interface Banner {
+  id: number;
+  title: string;
+  photo: string;
+  link: string | null;
+}
 
 const Hero = () => {
-  const [banners] = useState([
-    {
-      id: 1,
-      photo:
-        "https://smartpressblog.imgix.net/wp-content/uploads/2024/05/types-of-banners.jpg?w=1920&h=1080&fit=crop&auto=format,compress",
-      alt: "Fashion Collection Banner",
-    },
-    {
-      id: 2,
-      photo:
-        "https://cdn.dribbble.com/userupload/15563221/file/original-5b936ac74761833ae32d72516a0f5174.jpg?resize=752x&vertical=center",
-      alt: "Modern Ecommerce Banner",
-    },
-    {
-      id: 3,
-      photo:
-        "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1920&q=80",
-      alt: "Lifestyle Shopping Banner",
-    },
-    {
-      id: 4,
-      photo:
-        "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1920&q=80",
-      alt: "New Arrival Fashion Banner",
-    },
-  ]);
-  const [bannerLoading] = useState(false);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .get("/ecom/banner/active")
+      .then((res) => {
+        if (res.data.success) setBanners(res.data.data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleBannerClick = (link: string | null) => {
+    if (link) window.open(link, "_blank");
+  };
 
   return (
     <div className="flex flex-col lg:flex-row gap-1 w-full font-medium lg:py-2 pt-10">
       {/* Left / Top with Swiper */}
-      {bannerLoading ? (
-        <div className="bg-[#e6e6e6] w-full lg:w-4/5 h-[35vh] lg:h-[40vh]"></div>
-      ) : (
+      {loading ? (
+        <BannerSkeleton />
+      ) : banners.length > 0 ? (
         <Swiper
           modules={[Pagination, Autoplay]}
           pagination={{
@@ -50,47 +48,39 @@ const Hero = () => {
             el: ".custom-pagination",
             bulletClass: "custom-bullet",
             bulletActiveClass: "custom-bullet-active",
-            renderBullet: (index, className) =>
+            renderBullet: (_index, className) =>
               `<span class="${className}"></span>`,
           }}
           spaceBetween={20}
-          autoplay={{
-            delay: 3000,
-            disableOnInteraction: false,
-          }}
-          loop={true}
+          autoplay={{ delay: 3000, disableOnInteraction: false }}
+          loop={banners.length > 1}
           className="relative w-full lg:w-4/5 h-[35vh] lg:h-[40vh] rounded-sm overflow-hidden"
         >
           {banners.map((item, i) => (
-            <SwiperSlide
-              key={item.id}
-              className="rounded-md bg-contain bg-no-repeat relative"
-            >
+            <SwiperSlide key={item.id} className="rounded-md relative">
               <Image
-                src={item?.photo}
-                alt={item?.alt || "banner"}
-                onClick={() => {
-                  window.open("http://localhost:3000/", "_blank");
-                }}
+                src={item.photo}
+                alt={item.title}
+                onClick={() => handleBannerClick(item.link)}
                 fill
                 priority={i === 0}
                 className="object-cover cursor-pointer"
               />
             </SwiperSlide>
           ))}
-
-          {/* custom pagination container */}
           <div className="custom-pagination"></div>
         </Swiper>
+      ) : (
+        <div className="bg-[#e6e6e6] w-full lg:w-4/5 h-[35vh] lg:h-[40vh] rounded-sm" />
       )}
 
-      {/* Right/ bottom - Coupon Section (unchanged from before) */}
+      {/* Right/ bottom - Coupon Section */}
       <div className="lg:w-1/5 hidden lg:flex p-1 flex-col gap-4 justify-center rounded-sm border border-gray-200">
         <h1 className="text-[15px] font-semibold text-[#c81e1e] tracking-wide">
           🔥 Latest Super Discount
         </h1>
         <div className="flex flex-col gap-4">
-          {[1, 2].map((e, i) => (
+          {[1, 2].map((_e, i) => (
             <div
               key={i}
               className="relative flex gap-3 bg-white rounded-xl border border-gray-200 duration-300 p-2 overflow-hidden group"
@@ -141,37 +131,7 @@ const Hero = () => {
         </div>
       </div>
 
-      {/* Mobile Swiper (unchanged) */}
-      <div className="w-full flex lg:hidden">
-        <Swiper
-          modules={[Autoplay]}
-          pagination={{ clickable: true }}
-          spaceBetween={20}
-          autoplay={{ delay: 4000, disableOnInteraction: false }}
-          loop={true}
-          className="w-full flex h-[15vh]"
-        >
-          {[1, 2].map((item, i) => (
-            <SwiperSlide
-              key={i}
-              className="h-full rounded-md flex items-center justify-center gap-3"
-            >
-              <Link href={`/hello`} className="flex h-full items-center gap-5">
-                <div
-                  className="h-full w-1/4 bg-center bg-contain bg-no-repeat"
-                  style={{
-                    backgroundImage:
-                      'url("https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExNjJoNDh6emI1ODVtbXZrbHZwM3JjYWIxYWljNzM3b2FtZXF0N3I3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/sgTMINOA908LfcmUWh/giphy.gif")',
-                  }}
-                />
-                <h1 className="w-3/4 font-bold">hello 50% off</h1>
-              </Link>
-            </SwiperSlide>
-          ))}
-        </Swiper>
-      </div>
-
-      {/* ✅ FIXED + STYLISH PAGINATION CSS */}
+      {/* Pagination CSS */}
       <style jsx global>{`
         .custom-pagination {
           position: absolute !important;

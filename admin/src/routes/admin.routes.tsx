@@ -205,7 +205,12 @@ export const AdminRoutes: NavItem[] = [
                 icon: <Scroll size={16} />,
             },
             {
-                    name: "Flash Products",
+                name: "Flash Sale",
+                link: "/ecom/flash-sale/",
+                icon: <Scroll size={16} />,
+            },
+            {
+                name: "Flash Products",
                 link: "/ecom/flash-products/",
                 icon: <Scroll size={16} />,
             }

@@ -15,8 +15,8 @@ import { brandTable } from "../brand/brand.table";
 import { categoryTable } from "../category/category.table";
 import { unitTable } from "../unit/unit.table";
 import { stockFlowTable } from "./stock_flow.table";
-import { flashSaleProductTable } from "../ecom/flash_sale.table";
-import { featuredProductTable } from "../ecom/featured_product.table";
+import { featuredProductTable, flashSaleProductTable } from "../ecom/ecom.table";
+
 
 export const productTable = pgTable(
   "products",
@@ -74,6 +74,12 @@ export const productTable = pgTable(
       scale: 2,
       mode: "number"
     }).default(0).notNull(),
+
+    discountPrice: numeric("discount_price", {
+      precision: 12,
+      scale: 2,
+      mode: "number"
+    }),
 
     isPublished: boolean("is_published").default(false).notNull(),
 

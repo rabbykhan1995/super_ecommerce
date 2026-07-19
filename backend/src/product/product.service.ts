@@ -69,6 +69,8 @@ export default class ProductService {
           }
         }),
       );
+
+      await ProductRepository.recomputeProductDiscountPrice(product.id, tx);
     });
   }
 
@@ -174,6 +176,8 @@ export default class ProductService {
           );
         }
       }
+
+      await ProductRepository.recomputeProductDiscountPrice(id, tx);
     });
   }
 

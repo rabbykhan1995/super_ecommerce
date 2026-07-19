@@ -6,7 +6,13 @@ import { ApiError } from "../../utils/ApiError";
 
 import ProductService from "./product.service";
 import ProductRepository from "./product.repository";
-import axios from "axios";
+import { triggerRevalidation } from "../../utils/revalidate";
+
+const HOME_SECTION_TAGS = [
+  "home-flash-products",
+  "home-featured-products",
+  "home-offer-products",
+];
 
 export class ProductController {
   constructor() {
@@ -15,6 +21,8 @@ export class ProductController {
   // Create Product
   static async create(req: Request, res: Response) {
     const product = await ProductService.create(req.body);
+
+    triggerRevalidation(HOME_SECTION_TAGS);
 
     res.status(201).json({
       success: true,
@@ -32,19 +40,12 @@ export class ProductController {
       variants: variants || [],
     });
 
-    const revalidateUrl = process.env.NEXTJS_REVALIDATE_URL;
-    const secret = process.env.REVALIDATE_SECRET;
-    if (revalidateUrl && secret) {
-      const updatedProduct = await ProductRepository.findByField("id", Number(id));
-      if (updatedProduct?.slug) {
-        axios
-          .post(`${revalidateUrl}/api/revalidate`, {
-            slug: updatedProduct.slug,
-            secret,
-          })
-          .catch((err) => console.error("Revalidation webhook failed:", err.message));
-      }
+    const updatedProduct = await ProductRepository.findByField("id", Number(id));
+    const tags = [...HOME_SECTION_TAGS];
+    if (updatedProduct?.slug) {
+      tags.push(`product-${updatedProduct.slug}`);
     }
+    triggerRevalidation(tags);
 
     res.status(201).json({
       success: true,
@@ -197,7 +198,7 @@ export class ProductController {
   }
 
   static async updatePosProduct(req: Request, res: Response) {
-    await ProductService.updatePosProduct(req.params.id.toString());
+    await ProductService.updatePosProduct(Number(req.params.id));
     return res.status(201).json({
       success: true,
       msg: "Product added to pos list successfully"

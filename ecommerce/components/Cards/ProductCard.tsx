@@ -124,7 +124,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       <div className="flex justify-between items-center h-[20px] z-10 relative">
         {hasDiscount && inStock ? (
           <span className="bg-[#F7311E] text-white text-[11px] font-bold px-2 py-[2px] rounded-sm">
-            {discountPercent}% OFF
+            -{discountPercent}%
           </span>
         ) :(
           <div />
@@ -132,7 +132,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
         {inStock ? (
           <h1 className="text-xs text-white right-[-8px] top-0 absolute px-2 py-1 bg-green-500 rounded-xs">
-            Total Sold: {product.totalSold}
+            Sold: {product.totalSold}
           </h1>
         ) : (
           <h1 className="text-xs w-full text-center text-white px-2 py-1 rounded-sm font-[600] bg-[#919191]">
@@ -225,11 +225,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
       <div className="flex justify-between items-center">
         <div className="flex gap-2 items-center text-sm font-bold">
           <span className="text-green-600 text-xs sm:text-sm">
-            ৳ {product.salePrice.toFixed(2)}
+            ৳ {(hasDiscount? Helper.formatLongNumber(product.discountPrice!):Helper.formatLongNumber(product.salePrice))}
           </span>
           {hasDiscount && (
             <del className="text-zinc-400 font-medium text-xs sm:text-sm">
-              ৳ {product.salePrice}
+              ৳ {Helper.formatLongNumber(product.salePrice)}
             </del>
           )}
         </div>
@@ -244,7 +244,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         ) : (
           <Link
             href={`/product/${product.slug}`}
-            className="px-1 shadow-md border border-gray-300 py-1 text-xs sm:text-sm hover:text-[#f7311e] rounded-md transition"
+            className="px-1 shadow-md border border-gray-300 py-0.5 text-xs hover:text-[#f7311e] rounded-md transition"
           >
             Read More
           </Link>
@@ -255,7 +255,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       <div className="flex items-center justify-center gap-1 mt-1 pb-1">
         {renderStars(product.averageRating)}
         <span className="text-xs text-gray-500">
-          {product.averageRating.toFixed(1)} ({product.totalReviews})
+          {product.averageRating.toFixed(1)} ({Helper.formatLongNumber(product.totalReviews)})
         </span>
       </div>
     </div>
