@@ -43,6 +43,12 @@ export const cartTable = pgTable(
       .default(0)
       .notNull(),
 
+    discountPrice: numeric("discount_price", {
+      precision: 12,
+      scale: 2,
+      mode: "number",
+    }),
+
     slug: varchar("slug", { length: 300 }).notNull(),
 
     thumbnail: text("thumbnail"),

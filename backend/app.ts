@@ -13,6 +13,7 @@ app.use(
   }),
 );
 
+app.use("/api/ecom/stripe/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(cookieParser());
 // Routes

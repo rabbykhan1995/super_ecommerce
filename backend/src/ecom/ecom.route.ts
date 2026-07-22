@@ -2,12 +2,15 @@ import express from "express";
 import { validate } from "../../middlewares/validation.middleware";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { authMiddleware } from "../../middlewares/auth.middleware";
+import { adminMiddleware } from "../../middlewares/admin.middleware";
 import {
     createBannerSchema, updateBannerSchema,
     createFlashSaleSchema, updateFlashSaleSchema, createFlashSaleProductSchema,
     createFeaturedProductSchema,
+    createEcomOrderSchema,
+    updateOrderStatusSchema,
 } from "./ecom.validator";
-import { BannerController, FlashSaleController, FeaturedProductController, EcomProductListController } from "./ecom.controller";
+import { BannerController, FlashSaleController, FeaturedProductController, EcomProductListController, EcomOrderController } from "./ecom.controller";
 
 const router = express.Router();
 
@@ -47,5 +50,26 @@ router
     .get("/featured", asyncHandler(EcomProductListController.featured))
     .get("/flash-products", asyncHandler(EcomProductListController.flash))
     .get("/offers", asyncHandler(EcomProductListController.offers));
+
+// ─── Ecom Orders ─────────────────────────────────────────────────────────────
+
+router
+    .post("/checkout", authMiddleware, validate(createEcomOrderSchema), asyncHandler(EcomOrderController.checkout))
+    .get("/my-orders", authMiddleware, asyncHandler(EcomOrderController.myOrders))
+    .get("/my-orders/:orderNo", authMiddleware, asyncHandler(EcomOrderController.myOrderDetail))
+    .post("/cancel/:orderNo", authMiddleware, asyncHandler(EcomOrderController.cancelOrder))
+    .get("/order-success", authMiddleware, asyncHandler(EcomOrderController.orderSuccess))
+    .get("/order/:orderNo", asyncHandler(EcomOrderController.publicOrderTracking));
+
+// ─── Stripe Webhook (no auth -- raw body) ────────────────────────────────────
+
+router.post("/stripe/webhook", asyncHandler(EcomOrderController.stripeWebhook));
+
+// ─── Admin Order Management ──────────────────────────────────────────────────
+
+router
+    .patch("/admin/order/:orderNo/status", authMiddleware, adminMiddleware, validate(updateOrderStatusSchema), asyncHandler(EcomOrderController.adminUpdateOrderStatus))
+    .post("/admin/order/:orderNo/confirm-sale", authMiddleware, adminMiddleware, asyncHandler(EcomOrderController.adminConfirmSale))
+    .delete("/admin/order/:orderNo", authMiddleware, adminMiddleware, asyncHandler(EcomOrderController.adminDeleteOrder));
 
 export default router;

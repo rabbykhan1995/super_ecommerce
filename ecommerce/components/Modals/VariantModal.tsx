@@ -239,7 +239,7 @@ const VariantModal = () => {
                   src="/no-image.png"
                   alt="No image"
                   fill
-                  className="object-contain p-8"
+                  className="object-contain p-4"
                 />
               )}
 
@@ -339,15 +339,15 @@ const VariantModal = () => {
             {/* Price */}
             <div className="flex items-baseline gap-3">
               <span className="text-2xl lg:text-3xl font-bold text-green-600">
-                ৳ {selectedVariant?.salePrice ?? product.salePrice ?? 0}
+                ৳ {selectedVariant?.discountPrice && selectedVariant.discountPrice < selectedVariant.salePrice ? selectedVariant.discountPrice : selectedVariant?.salePrice ?? 0}
               </span>
-              {product.discountPrice &&
-                product.salePrice &&
-                product.discountPrice < product.salePrice && (
+              {selectedVariant?.discountPrice  &&
+                selectedVariant.salePrice &&
+                selectedVariant?.discountPrice < selectedVariant?.salePrice ?(
                   <del className="text-gray-400 text-sm font-medium">
-                    ৳ {product.salePrice}
+                    ৳ {selectedVariant?.salePrice}
                   </del>
-                )}
+                ):null}
             </div>
 
             {/* Stock */}
@@ -377,12 +377,9 @@ const VariantModal = () => {
                       <button
                         key={v.id}
                         onClick={() => setSelectedVariant(v)}
-                        disabled={v.stock === 0}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
                           selectedVariant?.id === v.id
                             ? "bg-[#F7311E] text-white border-[#F7311E] shadow-md"
-                            : v.stock === 0
-                              ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through"
                               : "bg-white text-gray-700 border-gray-300 hover:border-[#F7311E] hover:text-[#F7311E]"
                         }`}
                       >

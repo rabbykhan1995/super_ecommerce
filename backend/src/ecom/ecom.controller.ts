@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
-import { BannerService, FlashSaleService, FeaturedProductService, EcomProductListService } from "./ecom.service";
+import { BannerService, FlashSaleService, FeaturedProductService, EcomProductListService, EcomOrderService } from "./ecom.service";
 import { EcomProductListQuery } from "./ecom.repository";
 import { triggerRevalidation } from "../../utils/revalidate";
+import stripe from "../../config/stripe.config";
+import Stripe from "stripe";
 
 // ─── Banner Controller ───────────────────────────────────────────────────────
 
@@ -182,5 +184,90 @@ export class EcomProductListController {
             sort: (q.sort ? String(q.sort) : "bestSelling") as EcomProductListQuery["sort"],
         });
         return res.status(200).json({ success: true, data: result });
+    }
+}
+
+// ─── Ecom Order Controller ──────────────────────────────────────────────────
+
+export class EcomOrderController {
+    static async checkout(req: Request, res: Response) {
+        const userID = (req as any).user!.id;
+        const result = await EcomOrderService.createOrder(userID, req.body);
+        res.status(201).json({ success: true, data: result });
+    }
+
+    static async myOrders(req: Request, res: Response) {
+        const userID = (req as any).user!.id;
+        const { page, limit } = req.query;
+        const data = await EcomOrderService.getMyOrders(userID, Number(page) || 1, Number(limit) || 10);
+        return res.status(200).json({ success: true, data });
+    }
+
+    static async myOrderDetail(req: Request, res: Response) {
+        const userID = (req as any).user!.id;
+        const orderNo = req.params.orderNo as string;
+        const data = await EcomOrderService.getMyOrderDetail(userID, orderNo);
+        return res.status(200).json({ success: true, data });
+    }
+
+    static async cancelOrder(req: Request, res: Response) {
+        const userID = (req as any).user!.id;
+        const orderNo = req.params.orderNo as string;
+        const result = await EcomOrderService.cancelOrder(userID, orderNo);
+        return res.status(200).json({ success: true, ...result });
+    }
+
+    static async orderSuccess(req: Request, res: Response) {
+        const userID = (req as any).user!.id;
+        const { session_id, orderNo } = req.query;
+        const data = await EcomOrderService.confirmOrderSuccess(
+            userID,
+            session_id as string | undefined,
+            orderNo as string | undefined,
+        );
+        return res.status(200).json({ success: true, data });
+    }
+
+    static async publicOrderTracking(req: Request, res: Response) {
+        const orderNo = req.params.orderNo as string;
+        const data = await EcomOrderService.getPublicOrder(orderNo);
+        return res.status(200).json({ success: true, data });
+    }
+
+    static async stripeWebhook(req: Request, res: Response) {
+        const sig = req.headers["stripe-signature"] as string;
+        let event: Stripe.Event;
+
+        try {
+            event = stripe.webhooks.constructEvent(
+                req.body,
+                sig,
+                process.env.STRIPE_WEBHOOK_SECRET!,
+            );
+        } catch (err: any) {
+            return res.status(400).send(`Webhook Error: ${err.message}`);
+        }
+
+        await EcomOrderService.handleStripeWebhook(event);
+        res.status(200).json({ received: true });
+    }
+
+    static async adminUpdateOrderStatus(req: Request, res: Response) {
+        const orderNo = req.params.orderNo as string;
+        const { status } = req.body;
+        const result = await EcomOrderService.updateOrderStatus(orderNo, status);
+        return res.status(200).json({ success: true, ...result });
+    }
+
+    static async adminConfirmSale(req: Request, res: Response) {
+        const orderNo = req.params.orderNo as string;
+        const result = await EcomOrderService.createSaleForCodOrder(orderNo);
+        return res.status(200).json({ success: true, ...result });
+    }
+
+    static async adminDeleteOrder(req: Request, res: Response) {
+        const orderNo = req.params.orderNo as string;
+        const result = await EcomOrderService.deleteOrder(orderNo);
+        return res.status(200).json({ success: true, ...result });
     }
 }

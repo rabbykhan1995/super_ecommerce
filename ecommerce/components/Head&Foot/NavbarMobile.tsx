@@ -17,7 +17,7 @@ const NavbarMobile = () => {
     <>
       <div className="top-0 sticky w-full h-20 block lg:hidden border-b border-gray-300 bg-white z-20">
         {/* Top Container */}
-        <div className="flex items-center justify-between h-full px-7">
+        <div className="flex items-center justify-between h-full px-3">
           <div className="flex gap-5">
             <button onClick={() => setMenuSlider(true)}>
               <Menu size={20} color="#242424" />

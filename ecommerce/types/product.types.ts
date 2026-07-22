@@ -30,6 +30,7 @@ export type ProductVariant = {
   id: number;
   productID: number;
   salePrice: number | null;
+  discountPrice: number | null;
   stock: number | null;
   barcode: string;
   weight: number | null;
@@ -81,7 +82,8 @@ export type EcomVariant = {
 export type EcomVariantDetail = {
   id: number;
   productID: number;
-  salePrice: number | null;
+  salePrice: number;
+  discountPrice:number;
   stock: number | null;
   barcode: string;
   weight: number | null;

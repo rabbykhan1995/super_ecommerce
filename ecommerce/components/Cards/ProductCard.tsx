@@ -118,12 +118,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
   return (
     <div
       ref={cardRef}
-      className="Product_Card flex text-center flex-col gap-1 col-span-1 rounded-md shadow-md max-w-[400px] pb-2 pt-0 px-2 bg-white justify-between"
+      className="Product_Card flex text-center flex-col gap-1 col-span-1 rounded-sm border border-gray-200 hover:shadow-md max-w-[400px] pt-0 bg-white justify-between"
     >
       {/* Top Badges */}
       <div className="flex justify-between items-center h-[20px] z-10 relative">
         {hasDiscount && inStock ? (
-          <span className="bg-[#F7311E] text-white text-[11px] font-bold px-2 py-[2px] rounded-sm">
+          <span className="bg-[#F7311E] text-white text-[11px] font-bold px-1 py-[2px] absolute left-[0px]">
             -{discountPercent}%
           </span>
         ) :(
@@ -131,11 +131,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
         )}
 
         {inStock ? (
-          <h1 className="text-xs text-white right-[-8px] top-0 absolute px-2 py-1 bg-green-500 rounded-xs">
+          <h1 className="text-xs text-white right-[0px] top-0 absolute px-1 py-[2px] bg-green-500 rounded-xs">
             Sold: {product.totalSold}
           </h1>
         ) : (
-          <h1 className="text-xs w-full text-center text-white px-2 py-1 rounded-sm font-[600] bg-[#919191]">
+          <h1 className="text-xs w-full text-center text-white px-2 py-1 rounded-t-sm font-[600] bg-[#919191]">
             Out Of Stock
           </h1>
         )}
@@ -217,12 +217,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
       </div>
 
       {/* Name */}
-      <h1 className="text-zinc-500 tracking-tight font-base text-md text-center leading-snug h-[3rem] overflow-hidden">
+      <h1 className="text-zinc-500 tracking-tight font-base text-md text-center leading-snug h-[3rem] overflow-hidden px-1">
         {product.name}
       </h1>
 
       {/* Price + Cart */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center px-1">
         <div className="flex gap-2 items-center text-sm font-bold">
           <span className="text-green-600 text-xs sm:text-sm">
             ৳ {(hasDiscount? Helper.formatLongNumber(product.discountPrice!):Helper.formatLongNumber(product.salePrice))}
@@ -244,7 +244,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         ) : (
           <Link
             href={`/product/${product.slug}`}
-            className="px-1 shadow-md border border-gray-300 py-0.5 text-xs hover:text-[#f7311e] rounded-md transition"
+            className="px-1 shadow-xs border border-gray-300 py-0.5 text-xs hover:text-[#035da7] rounded-xs transition"
           >
             Read More
           </Link>

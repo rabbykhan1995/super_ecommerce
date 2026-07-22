@@ -1,8 +1,10 @@
 import { count, desc, eq, ilike, and, gte, lte, asc, sql, gt, inArray, or, isNotNull } from "drizzle-orm";
 import db from "../../drizzle/src";
-import { bannerTable, flashSaleTable, flashSaleProductTable, featuredProductTable } from "./ecom.table";
+import { bannerTable, flashSaleTable, flashSaleProductTable, featuredProductTable, ecomOrderTable, ecomOrderItemTable } from "./ecom.table";
 import { productTable } from "../product/product.table";
-import { CreateBannerInput, CreateFlashSaleInput, CreateFlashSaleProductInput, CreateFeaturedProductInput } from "./ecom.type";
+import { variantTable } from "../product/variant.table";
+import { CreateBannerInput, CreateFlashSaleInput, CreateFlashSaleProductInput, CreateFeaturedProductInput, EcomOrderPayload, EcomOrderItemPayload } from "./ecom.type";
+import { QueryClient } from "../../drizzle/src";
 
 // ─── Banner Repository ───────────────────────────────────────────────────────
 
@@ -339,4 +341,123 @@ export class EcomProductListRepository {
     }
 }
 
+// ─── Ecom Order Repository ──────────────────────────────────────────────────
 
+export class EcomOrderRepository {
+    static async createOrder(payload: EcomOrderPayload, client: QueryClient = db) {
+        const [order] = await client.insert(ecomOrderTable).values(payload).returning();
+        return order;
+    }
+
+    static async createOrderItem(payload: EcomOrderItemPayload, client: QueryClient = db) {
+        const [item] = await client.insert(ecomOrderItemTable).values(payload).returning();
+        return item;
+    }
+
+    static async findOrderByOrderNo(orderNo: string, client: QueryClient = db) {
+        const result = await client.query.ecomOrderTable.findFirst({
+            where: eq(ecomOrderTable.orderNo, orderNo),
+            with: {
+                items: true,
+                user: {
+                    columns: { id: true, name: true, email: true },
+                },
+            },
+        });
+        return result || null;
+    }
+
+    static async findOrderByStripeSessionID(stripeSessionID: string, client: QueryClient = db) {
+        const result = await client.query.ecomOrderTable.findFirst({
+            where: eq(ecomOrderTable.stripeSessionID, stripeSessionID),
+            with: { items: true },
+        });
+        return result || null;
+    }
+
+    static async findOrderByStripePaymentIntent(stripePaymentIntent: string, client: QueryClient = db) {
+        const result = await client.query.ecomOrderTable.findFirst({
+            where: eq(ecomOrderTable.stripePaymentIntent, stripePaymentIntent),
+            with: { items: true },
+        });
+        return result || null;
+    }
+
+    static async updateOrder(orderNo: string, data: Partial<typeof ecomOrderTable.$inferInsert>, client: QueryClient = db) {
+        const [updated] = await client
+            .update(ecomOrderTable)
+            .set({ ...data, updatedAt: new Date() })
+            .where(eq(ecomOrderTable.orderNo, orderNo))
+            .returning();
+        return updated;
+    }
+
+    static async updateOrderByID(id: number, data: Partial<typeof ecomOrderTable.$inferInsert>, client: QueryClient = db) {
+        const [updated] = await client
+            .update(ecomOrderTable)
+            .set({ ...data, updatedAt: new Date() })
+            .where(eq(ecomOrderTable.id, id))
+            .returning();
+        return updated;
+    }
+
+    static async deleteOrder(orderNo: string, client: QueryClient = db) {
+        return await client.delete(ecomOrderTable).where(eq(ecomOrderTable.orderNo, orderNo));
+    }
+
+    static async deleteOrderItems(orderID: number, client: QueryClient = db) {
+        return await client.delete(ecomOrderItemTable).where(eq(ecomOrderItemTable.orderID, orderID));
+    }
+
+    static async findVariantByID(variantID: number, client: QueryClient = db) {
+        const result = await client.select().from(variantTable).where(eq(variantTable.id, variantID)).limit(1);
+        return result[0] || null;
+    }
+
+    static async listOrdersByUser(userID: string, page = 1, limit = 10, client: QueryClient = db) {
+        const offset = (page - 1) * limit;
+        const whereClause = eq(ecomOrderTable.userID, userID);
+
+        const [items, totalResult] = await Promise.all([
+            db.select().from(ecomOrderTable)
+                .where(whereClause)
+                .orderBy(desc(ecomOrderTable.createdAt))
+                .limit(limit)
+                .offset(offset),
+            db.select({ total: count() }).from(ecomOrderTable).where(whereClause),
+        ]);
+
+        return {
+            orders: items,
+            total: Number(totalResult[0].total),
+            page,
+            limit,
+            totalPages: Math.ceil(Number(totalResult[0].total) / limit),
+        };
+    }
+
+    static async findOrderItemsByOrderID(orderID: number, client: QueryClient = db) {
+        return await client.select().from(ecomOrderItemTable).where(eq(ecomOrderItemTable.orderID, orderID));
+    }
+
+    static async generateOrderNo(): Promise<string> {
+        const today = new Date();
+        const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
+        const prefix = `ORD-${dateStr}-`;
+
+        const [lastOrder] = await db
+            .select({ orderNo: ecomOrderTable.orderNo })
+            .from(ecomOrderTable)
+            .where(ilike(ecomOrderTable.orderNo, `${prefix}%`))
+            .orderBy(desc(ecomOrderTable.orderNo))
+            .limit(1);
+
+        let seq = 1;
+        if (lastOrder) {
+            const lastSeq = parseInt(lastOrder.orderNo.split("-")[2] || "0", 10);
+            seq = lastSeq + 1;
+        }
+
+        return `${prefix}${String(seq).padStart(6, "0")}`;
+    }
+}

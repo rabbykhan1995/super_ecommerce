@@ -43,6 +43,7 @@ export default class CartService {
       variantID,
       name: product.name,
       price: variant.salePrice as number,
+      discountPrice: (variant.discountPrice as number) ?? null,
       slug: product.slug,
       thumbnail: product.thumbnail,
       attributes: variant.attributes,

@@ -455,7 +455,7 @@ export type Batch = {
   remainingQty: number;
   cost: number;
   purchasePrice: number;
-  PurchaseDate: Date;
+  purchaseDate: Date;
   expireDate?: Date;
   isActive: boolean;
   warranty: number;

@@ -147,9 +147,18 @@ const AddToCartButton = ({ product }: Props) => {
                               </p>
                               <div className="flex items-center gap-3 mt-1">
                                 {variant.salePrice !== null && variant.salePrice > 0 && (
-                                  <span className="text-sm font-bold text-gray-900">
-                                    {variant.salePrice} TK
-                                  </span>
+                                  <>
+                                    <span className="text-sm font-bold text-gray-900">
+                                      {variant.discountPrice && variant.discountPrice > 0 && variant.discountPrice < variant.salePrice
+                                        ? variant.discountPrice
+                                        : variant.salePrice} TK
+                                    </span>
+                                    {variant.discountPrice && variant.discountPrice > 0 && variant.discountPrice < variant.salePrice && (
+                                      <span className="text-xs text-gray-400 line-through">
+                                        {variant.salePrice} TK
+                                      </span>
+                                    )}
+                                  </>
                                 )}
                                 <span className={`text-xs ${outOfStock ? "text-red-500" : "text-gray-500"}`}>
                                   {outOfStock ? "Out of stock" : `${variant.stock} in stock`}

@@ -15,12 +15,14 @@ type InventoryListModalProps = {
 export default function InventoryListModal({ isOpen, close, variant }: InventoryListModalProps) {
     const [batches, setBatches] = useState<Batch[] | []>([]);
     const fetchBatches = async () => {
-        const res = await api(`/variant/batchByVariant/${variant.id}`);
+        const res = await api(`/product/batchByVariant/${variant.id}`);
         if (res.data.success) setBatches(res.data.data);
     }
 
 
-    useEffect(() => { fetchBatches() }, [variant]);
+    useEffect(() => { fetchBatches();
+        console.log(variant)
+     }, [variant]);
 
     if (!isOpen) {
         return null
@@ -36,7 +38,7 @@ export default function InventoryListModal({ isOpen, close, variant }: Inventory
                 onClick={(e) => e.stopPropagation()}
             >
                 <h2 className="text-lg font-semibold mb-4">Product Inventory</h2>
-                <h1 className="text-lg font-medium uppercase">{variant.product.name}</h1>
+                <h1 className="text-lg font-medium uppercase">{variant.product.name} ({variant.attributes.map(a=> <span className="text-sm lowercase">{a.name}-{a.value}</span>)})</h1>
 
                 <Table
                     data={batches}
@@ -46,7 +48,7 @@ export default function InventoryListModal({ isOpen, close, variant }: Inventory
                         {
                             header: "Purchase Date", accessor: (row) =>
 
-                                <h1 className="flex justify-center">{Helper.formatDate(row.PurchaseDate)} | <TimeAgo date={row.PurchaseDate} /></h1>, headerClassName: "min-w-[200px]"
+                                <h1 className="flex justify-center">{Helper.formatDate(row.purchaseDate)} | <TimeAgo date={row.purchaseDate} /></h1>, headerClassName: "min-w-[200px]"
                         },
                         {
                             header: "Stock", accessor: (row) =>
