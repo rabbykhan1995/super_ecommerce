@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { ChevronRight, LayoutGrid, Package } from "lucide-react";
+import { ChevronRight, LayoutGrid, Package, Truck } from "lucide-react";
 import { fetchCategories } from "@/utils/productApi";
 import type { CategoryListItem } from "@/types/product.types";
 
 const quickLinks = [
   { label: "All Products", href: "/products", icon: Package },
+  { label: "Track Order", href: "/track-order", icon: Truck },
 ];
 
 const CategoryBar = () => {

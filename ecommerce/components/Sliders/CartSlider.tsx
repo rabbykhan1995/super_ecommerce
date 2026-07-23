@@ -141,9 +141,20 @@ const CartSlider = () => {
                               {formatAttributes(item.attributes)}
                             </p>
                           )}
-                          <p className="text-sm font-bold text-gray-900 mt-1">
-                            {item.price} TK
-                          </p>
+                          {item.discountPrice && item.discountPrice > 0 && item.discountPrice < item.price ? (
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-400 line-through">
+                                {item.price} TK
+                              </span>
+                              <span className="text-sm font-bold text-red-600">
+                                {item.discountPrice} TK
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="text-sm font-bold text-gray-900 mt-1">
+                              {item.price} TK
+                            </p>
+                          )}
 
                           {/* Quantity Controls */}
                           <div className="flex items-center justify-between mt-2">
@@ -175,7 +186,9 @@ const CartSlider = () => {
 
                         {/* Line Total */}
                         <div className="text-sm font-bold text-gray-900 flex-shrink-0">
-                          {item.price * item.quantity} TK
+                          {(item.discountPrice && item.discountPrice > 0 && item.discountPrice < item.price
+                            ? item.discountPrice
+                            : item.price) * item.quantity} TK
                         </div>
                       </div>
                     ))}
@@ -201,7 +214,7 @@ const CartSlider = () => {
                     View Cart
                   </Link>
                   <Link
-                    href="/cart"
+                    href="/checkout"
                     className="block w-full text-center global_button"
                     onClick={() => setOpenCartSlider(false)}
                   >

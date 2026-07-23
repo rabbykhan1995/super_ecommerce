@@ -43,14 +43,14 @@ const NavbarDestop = () => {
                 </Link>
               )}
 
-              {user && (
+              {/* {user && (
                 <button
                   onClick={logout}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-white/60 rounded-lg transition-colors"
                 >
                   <LogOut size={15} />
                 </button>
-              )}
+              )} */}
 
               <button
                 onClick={() => setOpenCartSlider(!openCartSlider)}

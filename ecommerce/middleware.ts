@@ -5,7 +5,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const token = req.cookies.get("token")?.value;
 
-  if (pathname.startsWith("/user") || pathname.startsWith("/cart")) {
+  if (pathname.startsWith("/user") || pathname.startsWith("/cart") || pathname.startsWith("/checkout")) {
     if (!token) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
@@ -38,5 +38,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/user/:path*", "/cart"],
+  matcher: ["/user/:path*", "/cart", "/checkout"],
 };

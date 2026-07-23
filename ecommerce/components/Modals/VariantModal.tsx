@@ -171,7 +171,7 @@ const VariantModal = () => {
   return (
     <>
       <div className="fixed inset-0 z-39 bg-[#0000006c] flex items-center justify-center">
-        <div className="flex relative flex-col md:flex-row gap-4 bg-white rounded-2xl p-3 lg:p-5 max-w-5xl w-full mx-2 md:mx-auto overflow-y-auto max-h-[92vh] shadow-2xl">
+        <div className="flex relative flex-col md:flex-row gap-4 bg-white rounded-md p-3 lg:p-5 max-w-5xl w-full mx-2 md:mx-auto overflow-y-auto max-h-[82vh] lg:max-h-[92vh] shadow-2xl">
 
           {/* Close Button */}
           <button

@@ -1,20 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 
-import NavbarDestop from "@/components/Head&Foot/NavbarDestop";
-import NavbarMobile from "@/components/Head&Foot/NavbarMobile";
 import Footer from "@/components/Head&Foot/Footer";
-import CartSlider from "@/components/Sliders/CartSlider";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -28,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <div className="w-full flex items-center flex-col">
-      <main className="w-full lg:w-250 xl:w-7xl px-2 xl:px-4"> {children}</main>
+      <main className="w-full lg:w-250 xl:w-7xl px-2 xl:px-4 pb-20 lg:pb-0"> {children}</main>
       <Footer />
     </div>
   );

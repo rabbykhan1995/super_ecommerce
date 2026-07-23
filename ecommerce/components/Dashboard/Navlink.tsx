@@ -8,9 +8,10 @@ interface Props {
   children: React.ReactNode;
   exact?: boolean;
   className?: string;
+  onClick?: () => void;
 }
 
-const NavLink = ({ href, children, exact = false, className = "" }: Props) => {
+const NavLink = ({ href, children, exact = false, className = "", onClick }: Props) => {
   const pathname = usePathname();
 
   const isActive = exact ? pathname === href : pathname.startsWith(href);
@@ -18,11 +19,12 @@ const NavLink = ({ href, children, exact = false, className = "" }: Props) => {
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative
+      onClick={onClick}
+      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 text-sm
         ${
           isActive
-            ? "bg-blue-600 text-white shadow-md before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-blue-400"
-            : "hover:bg-slate-800 text-slate-300"
+            ? "bg-orange-500/20 text-orange-300 shadow-sm"
+            : "text-stone-400 hover:text-stone-200 hover:bg-white/[0.04]"
         } ${className}`}
     >
       {children}

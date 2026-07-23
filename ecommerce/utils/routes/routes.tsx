@@ -4,6 +4,9 @@ import {
   ShoppingBag,
   GraduationCap,
   Users,
+  ShoppingCart,
+  User,
+  Settings,
 } from "lucide-react";
 
 export type SidebarRoute = {
@@ -78,15 +81,26 @@ export const userRoutes:SidebarRoute[] = [
     name: "Dashboard",
     icon: <LayoutDashboard size={20} />,
     href: "/user",
+    exact: true,
   },
   {
-    name: "My Trainings",
-    icon: <GraduationCap size={20} />,
-    href: "/user/my-trainings",
+    name: "My Profile",
+    icon: <User size={20} />,
+    href: "/user/profile",
   },
   {
     name: "My Orders",
     icon: <ShoppingBag size={20} />,
     href: "/user/my-orders",
+  },
+  {
+    name: "My Cart",
+    icon: <ShoppingCart size={20} />,
+    href: "/user/my-cart",
+  },
+  {
+    name: "Settings",
+    icon: <Settings size={20} />,
+    href: "/user/settings",
   },
 ];

@@ -16,7 +16,7 @@ import BrandLogo from "../Logos/BrandLogo";
 
 const Footer = () => {
   return (
-    <div className="flex justify-center w-full bg-[#1a1c1e] text-[#c9cbcc] py-5">
+    <div className="flex justify-center w-full bg-[#1a1c1e] text-[#c9cbcc] py-5 pb-20 lg:pb-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 text-sm w-full lg:w-250 xl:w-7xl px-2 xl:px-4 gap-y-10">
         {/* Brand & About */}
         <div className="flex flex-col gap-4 col-span-2 lg:col-span-1">
@@ -72,6 +72,9 @@ const Footer = () => {
           </Link>
           <Link href="/return-refund-policy" className="hover:text-white transition-colors">
             Return &amp; Refund
+          </Link>
+          <Link href="/track-order" className="hover:text-white transition-colors">
+            Track Order
           </Link>
         </div>
 

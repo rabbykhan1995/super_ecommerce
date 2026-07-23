@@ -142,7 +142,16 @@ const CartPage = () => {
                 )}
 
                 <p className="text-base sm:text-lg font-bold text-gray-900 mt-2">
-                  {item.price} TK
+                  {item.discountPrice && item.discountPrice > 0 && item.discountPrice < item.price ? (
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm text-gray-400 line-through font-normal">
+                        {item.price} TK
+                      </span>
+                      <span className="text-red-600">{item.discountPrice} TK</span>
+                    </span>
+                  ) : (
+                    <>{item.price} TK</>
+                  )}
                 </p>
 
                 {/* Quantity Controls - Mobile */}
@@ -173,7 +182,9 @@ const CartPage = () => {
                       <Trash2 size={18} />
                     </button>
                     <span className="text-sm sm:text-base font-bold text-gray-900">
-                      {item.price * item.quantity} TK
+                      {(item.discountPrice && item.discountPrice > 0 && item.discountPrice < item.price
+                        ? item.discountPrice
+                        : item.price) * item.quantity} TK
                     </span>
                   </div>
                 </div>
@@ -205,7 +216,7 @@ const CartPage = () => {
             </div>
 
             <Link
-              href="/cart"
+              href="/checkout"
               className="block w-full text-center global_button text-base py-3"
             >
               <span className="flex items-center justify-center gap-2">
@@ -231,7 +242,7 @@ const CartPage = () => {
           <span className="text-lg font-bold text-gray-900">{cartTotal} TK</span>
         </div>
         <Link
-          href="/cart"
+          href="/checkout"
           className="block w-full text-center global_button py-3"
         >
           Proceed to Checkout

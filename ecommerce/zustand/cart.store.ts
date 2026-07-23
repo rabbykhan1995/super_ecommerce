@@ -52,7 +52,15 @@ export const cartStore = create<CartStore>((set, get) => ({
 
       const items: CartItem[] = res.data.data;
       const totalCartItems = items.reduce((sum, item) => sum + 1, 0);
-      const cartTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const cartTotal = items.reduce((sum, item) => {
+        const effectivePrice =
+          item.discountPrice &&
+          item.discountPrice > 0 &&
+          item.discountPrice < item.price
+            ? item.discountPrice
+            : item.price;
+        return sum + effectivePrice * item.quantity;
+      }, 0);
 
       set({
         cart: items,

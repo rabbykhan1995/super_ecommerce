@@ -47,3 +47,39 @@ yarn-error.log*
 next-env.d.ts
 .git
 **/pgdata/
+
+
+
+# ==========================================
+# React Native & Android
+# ==========================================
+
+# Android build outputs & local config
+/android/app/build
+/android/build
+/android/.gradle
+/android/captures
+/android/local.properties
+
+# Android Studio / IntelliJ files
+.idea/
+*.iml
+*.iws
+*.ipr
+.gradle/
+
+# Android Keystores & Signing Keys (Khub-i important! Keys kakhono Git-e diben na)
+*.keystore
+*.jks
+*.pepk
+
+# Fastlane (Jodi deployment tool use keren)
+/android/fastlane/report.xml
+/android/fastlane/Preview.html
+
+# Bundle outputs / Metro bundler
+*.jsbundle
+android/app/src/main/assets/index.android.bundle
+
+# Metro cache
+.metro-health-check*

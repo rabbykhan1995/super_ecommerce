@@ -7,7 +7,7 @@ import FullScreenLoader from "@/utils/globalLoader";
 import { Toaster } from "react-hot-toast";
 import AnalyticsHandler from "@/components/AnalyticsHandler/AnalyticsHandler";
 import NavbarDestop from "@/components/Head&Foot/NavbarDestop";
-import NavbarMobile from "@/components/Head&Foot/NavbarMobile";
+import MobileNavigation from "@/components/Head&Foot/MobileNavigation";
 import CartSlider from "@/components/Sliders/CartSlider";
 import VariantModal from "@/components/Modals/VariantModal";
 
@@ -53,7 +53,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <NavbarDestop />
-        <NavbarMobile />
+        <MobileNavigation />
         <CartSlider />
         {/* eta click ba spa event check korar jonno, mane kon route a beshi jacche egula */}
         {/* <AnalyticsHandler />{" "} */}
