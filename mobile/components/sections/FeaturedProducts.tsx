@@ -1,4 +1,5 @@
-import { View, Text, FlatList } from "react-native";
+// components/sections/FeaturedProducts.tsx
+import { Text, View } from "react-native";
 import ProductCard from "../product/ProductCard";
 
 interface FeaturedProductsProps {
@@ -9,24 +10,24 @@ export default function FeaturedProducts({ products }: FeaturedProductsProps) {
   if (!products || products.length === 0) return null;
 
   return (
-    <View className="mb-6 px-4">
-      <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-lg font-bold text-gray-900">Featured Products</Text>
-        <Text className="text-primary text-sm font-medium">View All</Text>
-      </View>
+    <View className="px-3 py-4">
+      <Text className="text-lg font-bold text-gray-900 mb-3 px-1">
+        Featured Products
+      </Text>
 
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item._id}
-        numColumns={2}
-        scrollEnabled={false}
-        columnWrapperStyle={{ gap: 8 }}
-        renderItem={({ item }) => (
-          <View className="flex-1">
-            <ProductCard product={item} />
-          </View>
-        )}
-      />
+      {/* Grid container mapping 2 columns */}
+      <View className="flex-row flex-wrap">
+        {products.map((item) => {
+          // Extract product directly since API returns flat array
+          const productData = item?.product || item;
+
+          return (
+            <View key={productData?.id || productData?._id} className="w-1/2">
+              <ProductCard product={productData} />
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 }

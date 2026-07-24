@@ -13,7 +13,7 @@ export default function ProductImageGallery({ images }: ProductImageGalleryProps
   return (
     <View>
       <ExpoImage
-        source={{ uri: getImageUrl(images[activeIndex]) }}
+        source={getImageUrl(images[activeIndex])}
         className="w-full aspect-square rounded-xl"
         contentFit="contain"
         transition={300}
@@ -28,7 +28,7 @@ export default function ProductImageGallery({ images }: ProductImageGalleryProps
               className={`rounded-lg overflow-hidden border-2 ${activeIndex === index ? "border-primary" : "border-gray-200"}`}
             >
               <ExpoImage
-                source={{ uri: getImageUrl(img) }}
+                source={getImageUrl(img)}
                 className="w-16 h-16"
                 contentFit="cover"
                 transition={200}

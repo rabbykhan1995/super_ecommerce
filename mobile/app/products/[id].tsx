@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
-import { ScrollView, View, Text, Pressable } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Heart, Share2, Star } from "lucide-react-native";
-import ProductImageGallery from "../../components/product/ProductImageGallery";
-import VariantModal from "../../components/ui/VariantModal";
-import Button from "../../components/ui/Button";
-import { useCartStore } from "../../store/cart.store";
-import api from "../../lib/api";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import ProductImageGallery from "../../components/product/ProductImageGallery";
+import Button from "../../components/ui/Button";
+import VariantModal from "../../components/ui/VariantModal";
+import api from "../../lib/api";
+import { useCartStore } from "../../store/cart.store";
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -26,6 +26,7 @@ export default function ProductDetailScreen() {
           api.get(`/product/productBySlug/${id}`),
           api.get(`/product/ecom-variants/${id}`),
         ]);
+
         setProduct(productRes.data?.data);
         setVariants(variantRes.data?.data || []);
       } catch (err) {

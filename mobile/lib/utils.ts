@@ -1,9 +1,27 @@
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import { Asset } from "expo-asset";
 
-export function getImageUrl(path: string | null | undefined): string {
-  if (!path) return "https://via.placeholder.com/300";
-  if (path.startsWith("http")) return path;
-  return `${API_URL}${path}`;
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+const NO_IMAGE_ASSET = Asset.fromModule(require("../assets/images/no-image.png"));
+export const NO_IMAGE_URI = NO_IMAGE_ASSET.uri;
+
+// lib/utils.ts
+
+export function getImageUrl(path: string | null | undefined): { uri: string } {
+  // Use placehold.co instead of via.placeholder.com
+  const fallback = "https://placehold.co/400x400/png?text=No+Image";
+
+  if (!path || typeof path !== "string" || path.trim() === "") {
+    return { uri: fallback };
+  }
+
+  const trimmed = path.trim();
+
+  // Return ImageKit / Remote HTTP URLs directly as-is
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return { uri: trimmed };
+  }
+
+  return { uri: `${API_URL}${trimmed.startsWith("/") ? "" : "/"}${trimmed}` };
 }
 
 export function formatPrice(amount: number): string {

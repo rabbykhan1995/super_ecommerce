@@ -1,28 +1,29 @@
-import { useEffect, useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  runOnJS,
-} from "react-native-reanimated";
-import { GestureDetector, Gesture } from "react-native-gesture-handler";
+import { useRouter } from "expo-router";
 import {
-  X,
-  Home,
-  Package,
-  Info,
-  Phone,
+  ChevronRight,
   ClipboardList,
   HelpCircle,
+  Home,
+  Info,
   LogIn,
   LogOut,
-  ChevronRight,
+  Package,
+  Phone,
+  X,
 } from "lucide-react-native";
-import { useRouter } from "expo-router";
-import { useUserStore } from "../../store/user.store";
-import useOpenCloseState from "../../store/openclose.store";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming, // withSpring এর জায়গায় withTiming ব্যবহার করা হলো
+} from "react-native-reanimated";
 import api from "../../lib/api";
+import useOpenCloseState from "../../store/openclose.store";
+import { useUserStore } from "../../store/user.store";
 
 export default function MenuSlider() {
   const router = useRouter();
@@ -34,8 +35,19 @@ export default function MenuSlider() {
 
   const translateX = useSharedValue(-320);
 
+  // ১. withTiming দিয়ে স্মুথ প্রবেশ ও প্রস্থান নিয়ন্ত্রণ
   useEffect(() => {
-    translateX.value = openMenuSlider ? 0 : -320;
+    if (openMenuSlider) {
+      translateX.value = withTiming(0, {
+        duration: 250,
+        easing: Easing.out(Easing.quad),
+      });
+    } else {
+      translateX.value = withTiming(-320, {
+        duration: 200,
+        easing: Easing.in(Easing.quad),
+      });
+    }
   }, [openMenuSlider]);
 
   useEffect(() => {
@@ -47,17 +59,12 @@ export default function MenuSlider() {
     }
   }, [openMenuSlider]);
 
+  // ২. রি-রেন্ডারের ঝামেলা ছাড়াই শেয়ার্ড ভ্যালু থেকে ক্লিন অ্যানিমেটেড স্টাইল
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX: withSpring(translateX.value, {
-          damping: 25,
-          stiffness: 300,
-        }),
-      },
-    ],
+    transform: [{ translateX: translateX.value }],
   }));
 
+  // ৩. ড্র্যাগিং বা প্যান জেসচার ফিক্সিং
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
       if (e.translationX < 0) {
@@ -66,10 +73,11 @@ export default function MenuSlider() {
     })
     .onEnd((e) => {
       if (e.translationX < -100) {
-        translateX.value = -320;
-        runOnJS(setOpenMenuSlider)(false);
+        translateX.value = withTiming(-320, { duration: 200 }, () => {
+          runOnJS(setOpenMenuSlider)(false);
+        });
       } else {
-        translateX.value = 0;
+        translateX.value = withTiming(0, { duration: 200 });
       }
     });
 
@@ -146,9 +154,9 @@ export default function MenuSlider() {
                 </Text>
                 {categories.map((cat: any) => (
                   <Pressable
-                    key={cat.id}
+                    key={cat.id || cat._id}
                     onPress={() =>
-                      navigate(`/products?category=${cat.id}`)
+                      navigate(`/products?category=${cat.id || cat._id}`)
                     }
                     className="py-2"
                   >

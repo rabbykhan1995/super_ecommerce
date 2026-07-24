@@ -20,7 +20,7 @@ export default function FlashProductsSlider({ products }: FlashProductsSliderPro
 
       <FlatList
         data={products}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item) => String(item._id || item.id)}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 12 }}

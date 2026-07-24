@@ -37,11 +37,13 @@ export default function Home() {
           <FlashProductsSection />
         </Suspense>
       </div>
-      <Suspense fallback={<FeaturedProductsSkeleton />}>
-        <FeaturedProductsSection />
-      </Suspense>
+
       <Suspense fallback={<OfferProductsSkeleton />}>
         <OfferProductsSection />
+      </Suspense>
+
+            <Suspense fallback={<FeaturedProductsSkeleton />}>
+        <FeaturedProductsSection />
       </Suspense>
     </div>
   );

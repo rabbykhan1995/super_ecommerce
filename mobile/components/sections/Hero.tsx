@@ -1,18 +1,25 @@
-import { useRef } from "react";
-import { View, Pressable, Dimensions } from "react-native";
-import Carousel from "react-native-reanimated-carousel";
 import { Image as ExpoImage } from "expo-image";
-import { useSharedValue } from "react-native-reanimated";
+import { useRef, useState } from "react";
+import { Dimensions, Pressable, View } from "react-native";
+import Carousel from "react-native-reanimated-carousel";
 import { getImageUrl } from "../../lib/utils";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CAROUSEL_HEIGHT = SCREEN_WIDTH * 0.5;
+
+interface BannerItem {
+  id: number;
+  link?: string;
+  photo: string;
+  title?: string;
+}
 
 interface HeroProps {
-  banners: any[];
+  banners: BannerItem[];
 }
 
 export default function Hero({ banners }: HeroProps) {
-  const progressValue = useSharedValue(0);
+  const [activeIndex, setActiveIndex] = useState(0);
   const ref = useRef(null);
 
   if (!banners || banners.length === 0) return null;
@@ -23,32 +30,57 @@ export default function Hero({ banners }: HeroProps) {
         ref={ref}
         data={banners}
         width={SCREEN_WIDTH}
-        height={SCREEN_WIDTH * 0.5}
+        height={CAROUSEL_HEIGHT}
         autoPlay
         autoPlayInterval={4000}
         loop
+        // 1. Math.round handles index calculation reliably even during fast manual swipes
         onProgressChange={(_, absoluteProgress) => {
-          progressValue.value = absoluteProgress;
+          const index = Math.round(absoluteProgress) % banners.length;
+          if (index !== activeIndex) {
+            setActiveIndex(index);
+          }
         }}
-        renderItem={({ item }) => (
-          <Pressable className="flex-1">
-            <ExpoImage
-              source={{ uri: getImageUrl(item.image) }}
-              className="w-full h-full"
-              contentFit="cover"
-              transition={300}
-            />
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const imageSource = getImageUrl(item?.photo);
+
+          return (
+            <Pressable
+              style={{
+                width: SCREEN_WIDTH,
+                height: CAROUSEL_HEIGHT,
+                backgroundColor: "#F3F4F6",
+              }}
+            >
+              <ExpoImage
+                source={imageSource}
+                style={{
+                  width: SCREEN_WIDTH,
+                  height: CAROUSEL_HEIGHT,
+                }}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="disk"
+              />
+            </Pressable>
+          );
+        }}
       />
 
-      <View className="flex-row justify-center mt-2">
+      {/* Indicators */}
+      <View className="flex-row justify-center items-center mt-3">
         {banners.map((_, index) => {
-          const isActive = Math.round(progressValue.value) === index;
+          const isActive = activeIndex === index;
           return (
             <View
               key={index}
-              className={`h-2 rounded-full mx-1 ${isActive ? "bg-primary w-6" : "bg-gray-300 w-2"}`}
+              style={{
+                height: 8,
+                width: isActive ? 24 : 8, // Expanded width for active dot
+                borderRadius: 4,
+                marginHorizontal: 4,
+              }}
+              className={isActive ? "bg-primary" : "bg-gray-300"}
             />
           );
         })}

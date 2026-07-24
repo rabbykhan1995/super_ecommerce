@@ -1,17 +1,18 @@
+import { useRouter } from "expo-router";
+import { Minus, Plus, Trash2, X } from "lucide-react-native";
 import { useEffect } from "react";
-import { View, Text, Pressable, FlatList, Image } from "react-native";
+import { FlatList, Image, Pressable, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
+  Easing,
   runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming, // withSpring এর বদলে withTiming ব্যবহার করা হয়েছে
 } from "react-native-reanimated";
-import { GestureDetector, Gesture } from "react-native-gesture-handler";
-import { X, Trash2, Plus, Minus } from "lucide-react-native";
+import { getImageUrl } from "../../lib/utils";
 import { useCartStore } from "../../store/cart.store";
 import useOpenCloseState from "../../store/openclose.store";
-import { getImageUrl } from "../../lib/utils";
-import { useRouter } from "expo-router";
 import { CartItem } from "../../types/cart.types";
 
 export default function CartSlider() {
@@ -27,19 +28,24 @@ export default function CartSlider() {
 
   const translateX = useSharedValue(400);
 
+  // ১. অ্যানিমেশন এখন সরাসরি useEffect-এ controlled হচ্ছে
   useEffect(() => {
-    translateX.value = openCartSlider ? 0 : 400;
+    if (openCartSlider) {
+      translateX.value = withTiming(0, {
+        duration: 250,
+        easing: Easing.out(Easing.quad),
+      });
+    } else {
+      translateX.value = withTiming(400, {
+        duration: 200,
+        easing: Easing.in(Easing.quad),
+      });
+    }
   }, [openCartSlider]);
 
+  // ২. animatedStyle এখন ক্লিনভাবে শুধুমাত্র শেয়ার্ড ভ্যালু ট্র্যাকিং করছে
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX: withSpring(translateX.value, {
-          damping: 25,
-          stiffness: 300,
-        }),
-      },
-    ],
+    transform: [{ translateX: translateX.value }],
   }));
 
   const panGesture = Gesture.Pan()
@@ -50,10 +56,11 @@ export default function CartSlider() {
     })
     .onEnd((e) => {
       if (e.translationX > 100) {
-        translateX.value = 400;
-        runOnJS(setOpenCartSlider)(false);
+        translateX.value = withTiming(400, { duration: 200 }, () => {
+          runOnJS(setOpenCartSlider)(false);
+        });
       } else {
-        translateX.value = 0;
+        translateX.value = withTiming(0, { duration: 200 });
       }
     });
 
@@ -104,7 +111,10 @@ export default function CartSlider() {
                     {item.name}
                   </Text>
                   <Text className="text-primary font-semibold mt-1">
-                    ৳{item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.price}
+                    ৳
+                    {item.discountPrice && item.discountPrice > 0
+                      ? item.discountPrice
+                      : item.price}
                   </Text>
                   <View className="flex-row items-center mt-2 gap-2">
                     <Pressable

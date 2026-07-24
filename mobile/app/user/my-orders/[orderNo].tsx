@@ -74,7 +74,7 @@ export default function OrderDetailScreen() {
           <Text className="font-bold text-gray-900 mb-3">Items</Text>
           {order.items?.map((item: any, index: number) => (
             <View key={index} className={`flex-row items-center gap-3 ${index < order.items.length - 1 ? "pb-3 mb-3 border-b border-gray-50" : ""}`}>
-              <ExpoImage source={{ uri: getImageUrl(item.product?.image) }} className="w-14 h-14 rounded-lg" contentFit="contain" />
+              <ExpoImage source={getImageUrl(item.product?.image)} className="w-14 h-14 rounded-lg" contentFit="contain" />
               <View className="flex-1">
                 <Text className="font-medium text-gray-900" numberOfLines={1}>{item.product?.name}</Text>
                 <Text className="text-xs text-gray-500">Qty: {item.quantity}</Text>

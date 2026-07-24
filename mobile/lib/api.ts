@@ -1,5 +1,5 @@
-import * as SecureStore from "expo-secure-store";
 import axios from "axios";
+import AuthHelper from "./auth";
 import Toast from "react-native-toast-message";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -12,7 +12,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync("token");
+  const token = await AuthHelper.getToken();
   if (token) {
     config.headers.token = token;
   }
@@ -26,7 +26,7 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      await SecureStore.deleteItemAsync("token");
+      await AuthHelper.clearToken();
       Toast.show({
         type: "error",
         text1: "Session expired",

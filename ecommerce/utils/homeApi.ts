@@ -13,7 +13,7 @@ export type FlashSaleInfo = {
 export async function getActiveFlashSale(): Promise<FlashSaleInfo | null> {
   try {
     const res = await fetch(`${API_URL}/ecom/flash-sale/active`, {
-      next: { tags: ["home-flash-products"], revalidate: 60 },
+      next: { tags: ["home-flash-products"] },
     });
 
     if (!res.ok) return null;
@@ -28,7 +28,7 @@ export async function getActiveFlashSale(): Promise<FlashSaleInfo | null> {
 export async function getFlashProducts(): Promise<EcomProduct[]> {
   try {
     const res = await fetch(`${API_URL}/ecom/flash-products`, {
-      next: { tags: ["home-flash-products"], revalidate: 3600 },
+      next: { tags: ["home-flash-products"] },
     });
 
     if (!res.ok) return [];
@@ -43,7 +43,7 @@ export async function getFlashProducts(): Promise<EcomProduct[]> {
 export async function getFeaturedProducts(): Promise<EcomProduct[]> {
   try {
     const res = await fetch(`${API_URL}/ecom/featured`, {
-      next: { tags: ["home-featured-products"], revalidate: 3600 },
+      next: { tags: ["home-featured-products"] },
     });
 
     if (!res.ok) return [];
@@ -58,7 +58,7 @@ export async function getFeaturedProducts(): Promise<EcomProduct[]> {
 export async function getOfferProducts(): Promise<PaginatedResponse<EcomProduct>> {
   try {
     const res = await fetch(`${API_URL}/ecom/offers?limit=10&sort=bestSelling`, {
-      next: { tags: ["home-offer-products"], revalidate: 3600 },
+      next: { tags: ["home-offer-products"]},
     });
 
     if (!res.ok) {

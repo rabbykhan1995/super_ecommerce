@@ -110,6 +110,7 @@ export class FlashSaleRepository {
                 },
             },
         });
+
         return sale || null;
     }
 

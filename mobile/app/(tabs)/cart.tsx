@@ -1,8 +1,7 @@
-import { useEffect } from "react";
-import { View, Text, FlatList } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import Header from "../../components/layout/Header";
+import { useEffect } from "react";
+import { FlatList, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import CartItem from "../../components/cart/CartItem";
 import Button from "../../components/ui/Button";
 import { useCartStore } from "../../store/cart.store";
@@ -15,8 +14,6 @@ export default function CartScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
-      <Header />
-
       <View className="flex-1">
         {cart.length === 0 ? (
           <View className="flex-1 items-center justify-center">
