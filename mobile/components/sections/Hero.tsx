@@ -1,4 +1,5 @@
 import { Image as ExpoImage } from "expo-image";
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Dimensions, Pressable, View } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
@@ -9,7 +10,7 @@ const CAROUSEL_HEIGHT = SCREEN_WIDTH * 0.5;
 
 interface BannerItem {
   id: number;
-  link?: string;
+  slug?: string;
   photo: string;
   title?: string;
 }
@@ -21,6 +22,7 @@ interface HeroProps {
 export default function Hero({ banners }: HeroProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const ref = useRef(null);
+  const router = useRouter();
 
   if (!banners || banners.length === 0) return null;
 
@@ -50,6 +52,11 @@ export default function Hero({ banners }: HeroProps) {
                 width: SCREEN_WIDTH,
                 height: CAROUSEL_HEIGHT,
                 backgroundColor: "#F3F4F6",
+              }}
+              onPress={() => {
+                if (item.slug) {
+                  router.push(`/product/${item.slug}`);
+                }
               }}
             >
               <ExpoImage

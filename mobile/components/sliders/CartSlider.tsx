@@ -103,7 +103,7 @@ export default function CartSlider() {
             renderItem={({ item }: { item: CartItem }) => (
               <View className="flex-row p-4 border-b border-gray-50">
                 <Image
-                  source={{ uri: getImageUrl(item.thumbnail) }}
+                  source={getImageUrl(item.thumbnail)}
                   className="w-16 h-16 rounded-lg"
                 />
                 <View className="flex-1 ml-3">

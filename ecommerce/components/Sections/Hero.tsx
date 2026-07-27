@@ -14,7 +14,7 @@ interface Banner {
   id: number;
   title: string;
   photo: string;
-  link: string | null;
+  slug: string | null;
 }
 
 const Hero = () => {
@@ -31,8 +31,8 @@ const Hero = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleBannerClick = (link: string | null) => {
-    if (link) window.open(link, "_blank");
+  const handleBannerClick = (slug: string | null) => {
+    if (slug) window.location.href = `/product/${slug}`;
   };
 
   return (
@@ -61,7 +61,7 @@ const Hero = () => {
               <Image
                 src={item.photo}
                 alt={item.title}
-                onClick={() => handleBannerClick(item.link)}
+                onClick={() => handleBannerClick(item.slug)}
                 fill
                 priority={i === 0}
                 className="object-cover cursor-pointer"

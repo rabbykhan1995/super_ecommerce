@@ -3,7 +3,7 @@ import { z } from "zod";
 export const createBannerSchema = z.object({
     title: z.string().min(1, "Title is required"),
     photo: z.string().min(1, "Photo is required"),
-    link: z.string().optional(),
+    slug: z.string().optional(),
     sortOrder: z.number().int().default(0),
     isActive: z.boolean().default(true),
 });
@@ -11,7 +11,7 @@ export const createBannerSchema = z.object({
 export const updateBannerSchema = z.object({
     title: z.string().min(1).optional(),
     photo: z.string().min(1).optional(),
-    link: z.string().optional(),
+    slug: z.string().optional(),
     sortOrder: z.number().int().optional(),
     isActive: z.boolean().optional(),
 });

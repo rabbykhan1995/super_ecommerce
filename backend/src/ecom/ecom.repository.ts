@@ -48,7 +48,7 @@ export class BannerRepository {
             id: bannerTable.id,
             title: bannerTable.title,
             photo: bannerTable.photo,
-            link: bannerTable.link,
+            slug: bannerTable.slug,
         }).from(bannerTable).where(eq(bannerTable.isActive, true)).orderBy(desc(bannerTable.sortOrder));
     }
 }

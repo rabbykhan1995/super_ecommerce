@@ -1,0 +1,1 @@
+ALTER TABLE "banners" RENAME COLUMN "link" TO "slug";

@@ -13,10 +13,12 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }: CartItemP
   return (
     <View className="flex-row p-4 bg-white border-b border-gray-50">
       <ExpoImage
-        source={{ uri: getImageUrl(item.thumbnail) }}
-        className="w-20 h-20 rounded-lg"
+        source={getImageUrl(item.thumbnail)}
+        style={{ width: 80, height: 80 }}
+        className="rounded-lg"
         contentFit="contain"
         transition={200}
+        cachePolicy="memory-disk"
       />
 
       <View className="flex-1 ml-3">

@@ -1,3 +1,4 @@
+import useOpenCloseState from "@/store/openclose.store";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import { ShoppingCart, Star } from "lucide-react-native";
@@ -15,7 +16,7 @@ const DEFAULT_PLACEHOLDER = "https://placehold.co/400x400/png?text=No+Image";
 export default function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
   const [imgError, setImgError] = useState(false);
-
+  const {setVariantModalOpen, setVariantModalProduct} = useOpenCloseState();
   // 1. Safe image extraction
   const rawImage = imgError
     ? null
@@ -34,13 +35,13 @@ export default function ProductCard({ product }: ProductCardProps) {
   const discountPercent = hasDiscount
     ? Math.round(((price - discountPrice) / price) * 100)
     : 0;
-
+  
   return (
     <Pressable
       onPress={() =>
         router.push({
-          pathname: "/products/[id]",
-          params: { id: product?.slug || product?._id || product?.id },
+          pathname: "/product/[slug]",
+          params: { slug: product?.slug || String(product?.id) },
         })
       }
       className="bg-white rounded-xl p-3 mb-3 flex-1 mx-1"
@@ -117,7 +118,11 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
       </View>
 
-      <Pressable className="bg-primary rounded-lg py-2 mt-2 items-center">
+      <Pressable onPress={()=>{
+        const p = product;
+        setVariantModalProduct(p);
+        setVariantModalOpen(true);
+      }} className="bg-primary rounded-lg py-2 mt-2 items-center">
         <View className="flex-row items-center gap-1">
           <ShoppingCart size={14} color="white" />
           <Text className="text-white text-sm font-semibold">Add to Cart</Text>

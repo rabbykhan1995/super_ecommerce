@@ -1,14 +1,15 @@
-import "../global.css";
-import { useEffect } from "react";
+import VariantModal from "@/components/Modals/VariantModal";
 import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import Toast from "react-native-toast-message";
-import { useUserStore } from "../store/user.store";
-import AuthHelper from "../lib/auth";
-import MenuSlider from "../components/sliders/MenuSlider";
 import CartSlider from "../components/sliders/CartSlider";
+import MenuSlider from "../components/sliders/MenuSlider";
+import "../global.css";
+import AuthHelper from "../lib/auth";
+import { useUserStore } from "../store/user.store";
 
 export default function RootLayout() {
   const fetchUser = useUserStore((s) => s.fetchUser);
@@ -34,6 +35,7 @@ export default function RootLayout() {
         <MenuSlider />
         <CartSlider />
         <Toast />
+        <VariantModal />
         <StatusBar style="auto" />
       </SafeAreaProvider>
     </GestureHandlerRootView>

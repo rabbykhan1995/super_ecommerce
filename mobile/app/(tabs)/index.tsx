@@ -23,7 +23,6 @@ export default function HomeScreen() {
         api.get("/ecom/flash-products"),
         api.get("/ecom/featured-product/active"),
       ]);
-   console.log(flashRes.data.data)
 
       // Null check + Safe Array Assignment
       setBanners(Array.isArray(bannerRes?.data?.data) ? bannerRes.data.data : []);

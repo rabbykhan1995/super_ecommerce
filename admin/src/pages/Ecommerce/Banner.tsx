@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/axios";
-import { Edit, Trash2, Plus, X, ExternalLink } from "lucide-react";
+import { Edit, Trash2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import type { BannerListItem } from "../../types/type";
 import ToggleSwitch from "../../components/buttons/ToggleSwitch";
@@ -11,12 +11,12 @@ const MAX_BANNERS = 5;
 interface BannerForm {
   title: string;
   photo: string;
-  link: string;
+  slug: string;
   sortOrder: number;
   isActive: boolean;
 }
 
-const emptyForm: BannerForm = { title: "", photo: "", link: "", sortOrder: 0, isActive: true };
+const emptyForm: BannerForm = { title: "", photo: "", slug: "", sortOrder: 0, isActive: true };
 
 export default function Banner() {
   const [banners, setBanners] = useState<BannerListItem[]>([]);
@@ -42,7 +42,7 @@ export default function Banner() {
   };
 
   const handleEdit = (item: BannerListItem) => {
-    setForm({ title: item.title, photo: item.photo, link: item.link || "", sortOrder: item.sortOrder, isActive: item.isActive });
+    setForm({ title: item.title, photo: item.photo, slug: item.slug || "", sortOrder: item.sortOrder, isActive: item.isActive });
     setEditItem(item);
     setShowForm(true);
   };
@@ -110,7 +110,7 @@ export default function Banner() {
           />
 
           <input className="global_input" placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <input className="global_input" placeholder="Link (optional)" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} />
+          <input className="global_input" placeholder="Product slug (e.g. nike-air-max)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
           <div className="flex items-center gap-2">
             <ToggleSwitch label="Active" value={form.isActive} onChange={(val) => setForm({ ...form, isActive: val })} />
           </div>
@@ -137,10 +137,10 @@ export default function Banner() {
                   <h3 className="font-semibold truncate">{banner.title}</h3>
                   {!banner.isActive && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">Inactive</span>}
                 </div>
-                {banner.link && (
-                  <a href={banner.link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 flex items-center gap-1 mt-1 hover:underline">
-                    <ExternalLink size={12} /> {banner.link}
-                  </a>
+                {banner.slug && (
+                  <p className="text-xs text-blue-500 flex items-center gap-1 mt-1">
+                    Product: {banner.slug}
+                  </p>
                 )}
                 <p className="text-xs text-gray-400 mt-1">Order: {banner.sortOrder}</p>
               </div>

@@ -651,7 +651,7 @@ export type BannerListItem = {
   id: number;
   title: string;
   photo: string;
-  link: string | null;
+  slug: string | null;
   sortOrder: number;
   isActive: boolean;
   createdAt: Date;
