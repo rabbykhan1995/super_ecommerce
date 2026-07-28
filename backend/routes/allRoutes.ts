@@ -22,6 +22,7 @@ import cartRoute from "../src/cart/cart.route"
 import adminRoute from "../src/admin/role.route"
 import parcelRoute from "../src/parcel/parcel.route"
 import ecomRoute from "../src/ecom/ecom.route"
+import orderRoute from "../src/order/order.route"
 
 const router = Router();
 router.use("/product", productRoute);
@@ -46,5 +47,6 @@ router.use("/admin/role", adminRoute)
 router.use("/parcel", parcelRoute)
 router.use("/image", imageRoute)
 router.use("/ecom", ecomRoute)
+router.use("/order", orderRoute)
 
 export default router;

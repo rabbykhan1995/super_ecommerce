@@ -103,11 +103,11 @@ const CheckoutPage = () => {
           area: shipping.area.trim() || undefined,
         },
         note: note.trim() || undefined,
-        paymentMethod,
+        paymentMethod:"stripe",
       });
 
-      if (paymentMethod === "stripe" && result.sessionUrl) {
-        window.location.href = result.sessionUrl;
+      if (paymentMethod === "stripe" && result.stripeSessionUrl) {
+        window.location.href = result.stripeSessionUrl;
       } else {
         router.push(`/order/success?orderNo=${result.orderNo}`);
       }

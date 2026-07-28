@@ -48,9 +48,8 @@ export type EcomOrder = {
 };
 
 export type EcomOrderListResponse = {
-  orders: EcomOrder[];
+  items: EcomOrder[];
   total: number;
   page: number;
   limit: number;
-  totalPages: number;
 };

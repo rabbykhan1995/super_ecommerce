@@ -36,18 +36,21 @@ const MyOrdersPage = () => {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
 
-  const fetchOrders = async (p: number) => {
-    setLoading(true);
-    try {
-      const data = await getMyOrders(p, 10);
-      setOrders(data.orders);
-      setTotalPages(data.totalPages);
-    } catch {
-      // handled by interceptor
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchOrders = async (p: number) => {
+  setLoading(true);
+
+  try {
+    const res = await getMyOrders(p, 10);
+
+    const data = res;
+
+    setOrders(data.items);
+
+    setTotalPages(Math.ceil(data.total / data.limit));
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchOrders(page);
@@ -93,7 +96,7 @@ const MyOrdersPage = () => {
             </div>
           ))}
         </div>
-      ) : orders.length === 0 ? (
+      ) : orders?.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mb-5">
             <ShoppingBag size={30} className="text-gray-300" />
@@ -113,7 +116,7 @@ const MyOrdersPage = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {orders.map((order) => (
+          {orders?.map((order) => (
             <div
               key={order.id}
               className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md hover:shadow-gray-100 transition-all duration-300"

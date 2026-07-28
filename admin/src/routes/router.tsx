@@ -49,6 +49,7 @@ import Banner from "../pages/Ecommerce/Banner";
 import FeatureProduct from "../pages/Ecommerce/FeatureProduct";
 import FlashSale from "../pages/Ecommerce/FlashSale";
 import FlashProduct from "../pages/Ecommerce/FlashProduct";
+import OrderList from "../pages/Ecommerce/OrderList";
 
 export const router = createBrowserRouter([
 
@@ -312,7 +313,7 @@ export const router = createBrowserRouter([
           },
           {
             path: "orders",
-            Component: ParcelList,
+            Component: OrderList,
           },
               {
             path: "edit-product/:id",

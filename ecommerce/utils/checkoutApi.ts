@@ -19,8 +19,8 @@ export async function createOrder(payload: {
   note?: string;
   paymentMethod: "stripe" | "cod";
 }) {
-  const res = await api.post<ApiResponse<{ orderNo: string; sessionUrl?: string }>>(
-    "/ecom/checkout",
+  const res = await api.post<ApiResponse<{ orderNo: string; stripeSessionUrl?: string }>>(
+    "/order/checkout",
     payload,
   );
   return res.data.data;
@@ -28,29 +28,29 @@ export async function createOrder(payload: {
 
 export async function getMyOrders(page = 1, limit = 10) {
   const res = await api.get<ApiResponse<EcomOrderListResponse>>(
-    `/ecom/my-orders?page=${page}&limit=${limit}`,
+    `/order/my-orders?page=${page}&limit=${limit}`,
   );
   return res.data.data;
 }
 
 export async function getOrderDetail(orderNo: string) {
-  const res = await api.get<ApiResponse<EcomOrder>>(`/ecom/my-orders/${orderNo}`);
+  const res = await api.get<ApiResponse<EcomOrder>>(`/order/my-orders/${orderNo}`);
   return res.data.data;
 }
 
 export async function cancelOrder(orderNo: string) {
-  const res = await api.post<ApiResponse<null>>(`/ecom/cancel/${orderNo}`);
+  const res = await api.post<ApiResponse<null>>(`/order/cancel/${orderNo}`);
   return res.data;
 }
 
 export async function confirmStripeOrder(sessionId: string) {
   const res = await api.get<ApiResponse<EcomOrder>>(
-    `/ecom/order-success?session_id=${sessionId}`,
+    `/order/order-success?session_id=${sessionId}`,
   );
   return res.data.data;
 }
 
 export async function getPublicOrder(orderNo: string) {
-  const res = await api.get<ApiResponse<EcomOrder>>(`/ecom/order/${orderNo}`);
+  const res = await api.get<ApiResponse<EcomOrder>>(`/order/order/${orderNo}`);
   return res.data.data;
 }

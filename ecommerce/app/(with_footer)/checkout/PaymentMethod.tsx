@@ -42,7 +42,7 @@ const PaymentMethod = ({ value, onChange }: Props) => {
           </div>
         </label>
 
-        <label
+        {/* <label
           className={`flex items-center gap-4 p-4 border rounded-xl cursor-pointer transition-colors ${
             value === "cod"
               ? "border-blue-500 bg-blue-50"
@@ -69,7 +69,7 @@ const PaymentMethod = ({ value, onChange }: Props) => {
               Pay when you receive your order
             </p>
           </div>
-        </label>
+        </label> */}
       </div>
     </div>
   );

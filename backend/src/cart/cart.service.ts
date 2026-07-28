@@ -6,6 +6,7 @@ import {
   UpdateCartItemInput,
 } from "./cart.type";
 import ProductService from "../product/product.service";
+import { QueryClient } from "../../drizzle/src";
 
 export default class CartService {
   static async addToCart(
@@ -52,8 +53,8 @@ export default class CartService {
     });
   }
 
-  static async getCart(userID: string): Promise<CartItem[]> {
-    return CartRepository.findByUser(userID);
+  static async getCart(userID: string, tx?:QueryClient): Promise<CartItem[]> {
+    return CartRepository.findByUser(userID, tx);
   }
 
   static async updateQuantity(
@@ -79,13 +80,14 @@ export default class CartService {
   static async removeItem(
     userID: string,
     cartItemID: number,
+    tx?:QueryClient,
   ) {
     const item = await CartRepository.findByID(cartItemID);
     if (!item) throw new ApiError(404, "Cart item not found");
     if (item.userID !== userID)
       throw new ApiError(403, "Forbidden");
 
-    return CartRepository.removeItem(cartItemID);
+    return CartRepository.removeItem(cartItemID, tx);
   }
 
   static async clearCart(userID: string) {
