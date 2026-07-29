@@ -250,8 +250,8 @@ export class OrderService {
         return await OrderRepository.listOrdersByUser(userID, page, limit);
     }
 
-      static async allOrders(page = 1, limit = 10) {
-        return await OrderRepository.allOrders( page, limit);
+      static async allOrders(page = 1, limit = 10, search?:string) {
+        return await OrderRepository.allOrders( page, limit, search);
     }
 
     static async getMyOrderDetail(userID: string, orderNo: string) {

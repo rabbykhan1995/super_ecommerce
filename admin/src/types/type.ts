@@ -693,3 +693,29 @@ export type FeaturedProductItem = {
     isPublished: boolean;
   };
 };
+
+
+export type Order = {
+ id: number;
+ createdAt: Date;
+ updatedAt: Date;
+ status: string;
+ userID: string;
+ note: string | null;
+ discount: number;
+ totalAmount: number;
+ saleID: number | null;
+ shippingCost: number;
+ orderNo: string;
+ subtotal: number;
+ paymentMethod: string | null;
+ paymentStatus: string;
+ stripeSessionID: string | null;
+ stripePaymentIntent: string | null;
+ paidAt: Date | null;
+ shippingName: string;
+ shippingPhone: string;
+ shippingAddress: string;
+ shippingCity: string | null;
+ shippingArea: string | null;
+}

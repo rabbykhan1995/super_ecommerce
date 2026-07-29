@@ -49,7 +49,7 @@ const LoginPage = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${base_url}/auth/google-auth`;
+    window.location.href = `${base_url}/auth/user-google-auth`;
   };
 
   return (

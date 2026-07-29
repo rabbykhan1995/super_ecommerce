@@ -92,29 +92,26 @@ export class OrderRepository {
             orderBy: (table: any) => [desc(table.createdAt)],
         });
 
-         
+
         return result
     }
 
-    static async allOrders(page = 1, limit = 10, client: QueryClient = db) {
+    static async allOrders(page = 1, limit = 10, search?: string, client: QueryClient = db) {
 
-        const offset = (page - 1) * limit;
+        const result = await paginateQuery({
+            query: db.query.orderTable,
+            countTable: orderTable,
+            search,
+            searchColumns: [
+                orderTable.orderNo
+            ],
+            page: page,
+            limit: limit,
+            orderBy: (table: any) => [desc(table.createdAt), desc(table.updatedAt)],
+        });
 
-        const [items, totalResult] = await Promise.all([
-            db.select().from(orderTable)
-                .orderBy(desc(orderTable.createdAt))
-                .limit(limit)
-                .offset(offset),
-            db.select({ total: count() }).from(orderTable),
-        ]);
 
-        return {
-            orders: items,
-            total: Number(totalResult[0].total),
-            page,
-            limit,
-            totalPages: Math.ceil(Number(totalResult[0].total) / limit),
-        };
+        return result
     }
 
     static async findOrderItemsByOrderID(orderID: number, client: QueryClient = db) {

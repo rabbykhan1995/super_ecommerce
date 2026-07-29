@@ -280,12 +280,12 @@ export class AuthService {
 
   }
 
-  static getGoogleAuthAPI() {
+  static getUserGoogleAuthAPI() {
     const redirectURL =
       "https://accounts.google.com/o/oauth2/v2/auth?" +
       new URLSearchParams({
         client_id: process.env.GOOGLE_CLIENT_ID!,
-        redirect_uri: `${process.env.GOOGLE_REDIRECT_URL}`,
+        redirect_uri: `${process.env.GOOGLE_USER_REDIRECT_URL}`,
         response_type: "code",
         scope: "openid email profile",
         state: "google_private_random_string_you_can_give_anything",
@@ -295,7 +295,8 @@ export class AuthService {
 
   }
 
-  static async googleAuthCallbackAPI(query: any) {
+  static async userGoogleAuthCallbackAPI(query: any) {
+  
     const code = query.code
 
     if (!code) {
@@ -308,7 +309,7 @@ export class AuthService {
         code,
         client_id: process.env.GOOGLE_CLIENT_ID!,
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        redirect_uri: `${process.env.GOOGLE_REDIRECT_URL}`,
+        redirect_uri: `${process.env.GOOGLE_USER_REDIRECT_URL}`,
         grant_type: "authorization_code",
       }),
       {

@@ -27,8 +27,8 @@ router
 // ===========================
 // Customer Google OAuth
 // ===========================
-router.get("/google-auth", asyncHandler(AuthController.getGoogleAuthAPI));
-router.get("/user-google-callback", asyncHandler(AuthController.googleAuthCallbackAPI));
+router.get("/user-google-auth", asyncHandler(AuthController.getUserGoogleAuthAPI));
+router.get("/user-google-callback", asyncHandler(AuthController.userGoogleAuthCallbackAPI));
 
 // ===========================
 // Admin / Staff Auth

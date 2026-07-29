@@ -36,11 +36,11 @@ export const cartStore = create<CartStore>((set, get) => ({
 
   fetchCart: async () => {
     try {
-      const token = Helper.getToken();
-      if (!token) {
-        set({ cart: [], totalCartItems: 0, cartTotal: 0, isFetching: false });
-        return;
-      }
+      // const token = Helper.getToken();
+      // if (!token) {
+      //   set({ cart: [], totalCartItems: 0, cartTotal: 0, isFetching: false });
+      //   return;
+      // }
 
       set({ isFetching: true });
       const res = await api("/cart/list");

@@ -29,11 +29,13 @@ export const userStore = create<UserState>((set) => ({
   fetchUser: async () => {
     try {
       set({ isLoading: true });
-      const token = Helper.getToken();
-      if (!token) {
-        set({ user: null, isLoading: false });
-        return;
-      }
+
+      // const token = Helper.getToken();
+      // console.log("token :",token)
+      // if (!token) {
+      //   set({ user: null, isLoading: false });
+      //   return;
+      // }
 
       const res = await api.get("/auth/get-profile");
 

@@ -5,7 +5,7 @@ class Helper {
   static getToken(): string | null {
     // 2️⃣ Check cookie
     const cookies = document.cookie.split("; ");
-
+    console.log(document.cookie)
     const tokenCookie = cookies.find((row) => row.startsWith("token="));
 
     if (tokenCookie) {

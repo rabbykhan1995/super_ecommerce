@@ -22,8 +22,8 @@ export class OrderController {
     }
 
         static async allOrders(req: Request, res: Response) {
-        const { page, limit } = req.query;
-        const data = await OrderService.allOrders( Number(page) || 1, Number(limit) || 10);
+        const { page, limit, search } = req.query;
+        const data = await OrderService.allOrders( Number(page) || 1, Number(limit) || 10, search?.toString());
         return res.status(200).json({ success: true, data });
     }
 

@@ -53,7 +53,7 @@ const MobileBottomNav = ({ onSearchOpen, onMenuOpen }: Props) => {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden">
       <div className="bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
+        <div className="flex items-center justify-between h-14">
           {navItems.map((item) => {
             const isLink = "href" in item && item.href;
             const isActive = "isActive" in item && item.isActive;

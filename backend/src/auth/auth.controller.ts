@@ -28,6 +28,7 @@ export class AuthController {
   }
 
   static async getProfileData(req: Request, res: Response) {
+
     const userID: string = req.user!.id;
 
     const user = await AuthService.getProfileData(userID);
@@ -78,14 +79,14 @@ export class AuthController {
     });
   }
 
-  static async getGoogleAuthAPI(req: Request, res: Response) {
-    const redirectURL = AuthService.getGoogleAuthAPI();
+  static async getUserGoogleAuthAPI(req: Request, res: Response) {
+    const redirectURL = AuthService.getUserGoogleAuthAPI();
 
     res.redirect(redirectURL);
   }
 
-  static async googleAuthCallbackAPI(req: Request, res: Response) {
-    const { token, clientRedirectURL } = await AuthService.googleAuthCallbackAPI(req.query);
+  static async userGoogleAuthCallbackAPI(req: Request, res: Response) {
+    const { token, clientRedirectURL } = await AuthService.userGoogleAuthCallbackAPI(req.query);
 
     res.cookie("token", token, { httpOnly: true });
 

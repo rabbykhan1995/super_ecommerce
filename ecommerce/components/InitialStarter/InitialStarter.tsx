@@ -9,6 +9,7 @@ const InitialStarter = () => {
   const fetchCart = cartStore((s) => s.fetchCart);
 
   useEffect(() => {
+
     (async () => {
       await Promise.all([fetchUser(), fetchCart()]);
     })();
