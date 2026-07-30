@@ -1,6 +1,4 @@
-import {
-    CreateOrderInput,
-} from "./order.type";
+import { CreateOrderInput } from "./order.type";
 import { ApiError } from "../../utils/ApiError";
 import { OrderRepository } from "./order.repository";
 import { withTransaction } from "../../utils/withTransaction";
@@ -14,44 +12,28 @@ import { eq, sql } from "drizzle-orm";
 import ProductService from "../product/product.service";
 import CartService from "../cart/cart.service";
 
-// ─── Order Service ─────────────────────────────────────────────────────────
-
 export class OrderService {
 
     static async createOrder(userID: string, input: CreateOrderInput) {
-
         return await withTransaction(async (tx: QueryClient) => {
-
-            const cartItems = await CartService.getCart(userID,tx);
-
+            const cartItems = await CartService.getCart(userID, tx);
             if (!cartItems || cartItems.length === 0) {
-
                 throw new ApiError(400, "Cart is empty");
-
             }
 
             let subtotal = 0;
-
             let totalDiscount = 0;
-
             const orderItemsData: any[] = [];
 
             for (const item of cartItems) {
-
                 const variant = await ProductService.findVariantByID(item.variantID, tx);
-
                 if (!variant) throw new ApiError(400, `Variant not found for item: ${item.name}`);
-
                 if (variant.stock! < item.quantity) {
-
                     throw new ApiError(400, `Insufficient stock for ${item.name}`);
-
                 }
 
                 const salePrice = variant.salePrice as number;
-
                 let effectivePrice = salePrice;
-
                 if (
                     variant.discountPrice != null &&
                     (variant.discountPrice as number) > 0 &&
@@ -80,11 +62,9 @@ export class OrderService {
             }
 
             const totalAmount = subtotal;
-            const orderNo = await OrderRepository.generateOrderNo();
 
             const order = await OrderRepository.createOrder({
                 userID,
-                orderNo,
                 status: "pending",
                 subtotal,
                 shippingCost: 0,
@@ -108,32 +88,22 @@ export class OrderService {
             }
 
             for (const item of cartItems) {
-
-                await ProductService.decreaseVariantStock(item.variantID, item.quantity, tx)
-
-                await ProductService.decreaseProductStock(item.productID, item.quantity, tx)
-
+                await ProductService.decreaseVariantStock(item.variantID, item.quantity, tx);
+                await ProductService.decreaseProductStock(item.productID, item.quantity, tx);
                 await CartService.removeItem(userID, item.id, tx);
             }
-             
+
             if (input.paymentMethod === "stripe") {
-              
-                const session = await OrderService.createStripeSession(orderNo, orderItemsData, totalAmount);
-
-                await OrderRepository.updateOrder(orderNo, { stripeSessionID: session.id, status:"confirm" }, tx);
-
-                return { orderNo, stripeSessionUrl: session.url };
-
+                const session = await OrderService.createStripeSession(order.id, orderItemsData, totalAmount);
+                await OrderRepository.updateOrderByID(order.id, { stripeSessionID: session.id, status: "confirm", paymentStatus: "paid" }, tx);
+                return { orderId: order.id, stripeSessionUrl: session.url };
             }
 
-            await OrderRepository.updateOrder(orderNo, { status: "confirmed" }, tx);
-
-            return { orderNo, message: "Order placed successfully" };
-
+            return { orderId: order.id, message: "Order placed successfully" };
         });
     }
 
-    static async createStripeSession(orderNo: string, items: any[], totalAmount: number) {
+    static async createStripeSession(orderId: number, items: any[], totalAmount: number) {
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             mode: "payment",
@@ -150,7 +120,7 @@ export class OrderService {
             })),
             success_url: `${process.env.ECOM_CLIENT_URL}/order/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.ECOM_CLIENT_URL}/cart`,
-            metadata: { orderNo },
+            metadata: { orderId: String(orderId) },
         });
         return session;
     }
@@ -158,10 +128,10 @@ export class OrderService {
     static async handleStripeWebhook(event: Stripe.Event) {
         if (event.type === "checkout.session.completed") {
             const session = event.data.object as Stripe.Checkout.Session;
-            const orderNo = session.metadata?.orderNo;
-            if (!orderNo) return;
+            const stripeSessionID = session.id;
+            if (!stripeSessionID) return;
 
-            const order = await OrderRepository.findOrderByOrderNo(orderNo);
+            const order = await OrderRepository.findOrderByStripeSessionID(stripeSessionID);
             if (!order || order.saleID) return;
 
             const sale = await SaleRepository.create({
@@ -174,12 +144,12 @@ export class OrderService {
                 balanceBefore: 0,
                 balanceAfter: 0,
                 saleDate: new Date(),
-                note: `Ecom order: ${orderNo}`,
+                note: `Ecom order: #${order.id}`,
             });
 
-            await OrderRepository.updateOrder(orderNo, {
+            await OrderRepository.updateOrderByID(order.id, {
                 saleID: sale.id,
-                status: "confirmed",
+                status: "confirm",
                 paymentStatus: "paid",
                 paidAt: new Date(),
                 stripePaymentIntent: session.payment_intent as string || null,
@@ -188,13 +158,13 @@ export class OrderService {
 
         if (event.type === "checkout.session.expired") {
             const session = event.data.object as Stripe.Checkout.Session;
-            const orderNo = session.metadata?.orderNo;
-            if (!orderNo) return;
+            const stripeSessionID = session.id;
+            if (!stripeSessionID) return;
 
-            const order = await OrderRepository.findOrderByOrderNo(orderNo);
+            const order = await OrderRepository.findOrderByStripeSessionID(stripeSessionID);
             if (!order) return;
 
-            await OrderRepository.updateOrder(orderNo, { status: "failed" });
+            await OrderRepository.updateOrderByID(order.id, { status: "cancelled" });
 
             for (const item of order.items) {
                 const currentVariant = await OrderRepository.findVariantByID(item.variantID);
@@ -224,45 +194,42 @@ export class OrderService {
         }
     }
 
-    static async confirmOrderSuccess(userID: string, sessionID?: string, orderNo?: string) {
+    static async confirmOrderSuccess(userID: string, sessionID?: string, orderId?: number) {
         if (sessionID) {
             const session = await stripe.checkout.sessions.retrieve(sessionID);
-            const orderNoFromSession = session.metadata?.orderNo;
-            if (!orderNoFromSession) throw new ApiError(400, "Invalid session");
-
-            const order = await OrderRepository.findOrderByOrderNo(orderNoFromSession);
+            const order = await OrderRepository.findOrderByStripeSessionID(sessionID);
             if (!order) throw new ApiError(404, "Order not found");
             if (order.userID !== userID) throw new ApiError(403, "Forbidden");
             return order;
         }
 
-        if (orderNo) {
-            const order = await OrderRepository.findOrderByOrderNo(orderNo);
+        if (orderId) {
+            const order = await OrderRepository.findOrderByID(orderId);
             if (!order) throw new ApiError(404, "Order not found");
             if (order.userID !== userID) throw new ApiError(403, "Forbidden");
             return order;
         }
 
-        throw new ApiError(400, "session_id or orderNo is required");
+        throw new ApiError(400, "session_id or orderId is required");
     }
 
     static async getMyOrders(userID: string, page = 1, limit = 10) {
         return await OrderRepository.listOrdersByUser(userID, page, limit);
     }
 
-      static async allOrders(page = 1, limit = 10, search?:string) {
-        return await OrderRepository.allOrders( page, limit, search);
+    static async allOrders(page = 1, limit = 10) {
+        return await OrderRepository.allOrders(page, limit);
     }
 
-    static async getMyOrderDetail(userID: string, orderNo: string) {
-        const order = await OrderRepository.findOrderByOrderNo(orderNo);
+    static async getMyOrderDetail(userID: string, orderId: number) {
+        const order = await OrderRepository.findOrderByID(orderId);
         if (!order) throw new ApiError(404, "Order not found");
         if (order.userID !== userID) throw new ApiError(403, "Forbidden");
         return order;
     }
 
-    static async cancelOrder(userID: string, orderNo: string) {
-        const order = await OrderRepository.findOrderByOrderNo(orderNo);
+    static async cancelOrder(userID: string, orderId: number) {
+        const order = await OrderRepository.findOrderByID(orderId);
         if (!order) throw new ApiError(404, "Order not found");
         if (order.userID !== userID) throw new ApiError(403, "Forbidden");
         if (order.status !== "pending") {
@@ -270,7 +237,7 @@ export class OrderService {
         }
 
         await withTransaction(async (tx: QueryClient) => {
-            await OrderRepository.updateOrder(orderNo, { status: "cancelled" }, tx);
+            await OrderRepository.updateOrderByID(order.id, { status: "cancelled" }, tx);
 
             for (const item of order.items) {
                 const currentVariant = await OrderRepository.findVariantByID(item.variantID, tx);
@@ -289,26 +256,12 @@ export class OrderService {
         return { message: "Order cancelled successfully" };
     }
 
-    static async deleteOrder(orderNo: string) {
-        const order = await OrderRepository.findOrderByOrderNo(orderNo);
-        if (!order) throw new ApiError(404, "Order not found");
-
-        if (order.saleID) {
-            await SaleRepository.delete(order.saleID);
-        } else {
-            await OrderRepository.deleteOrderItems(order.id);
-            await OrderRepository.deleteOrder(orderNo);
-        }
-
-        return { message: "Order deleted successfully" };
-    }
-
-    static async getPublicOrder(orderNo: string) {
-        const order = await OrderRepository.findOrderByOrderNo(orderNo);
+    static async getPublicOrder(orderId: number) {
+        const order = await OrderRepository.findOrderByID(orderId);
         if (!order) throw new ApiError(404, "Order not found");
 
         return {
-            orderNo: order.orderNo,
+            id: order.id,
             status: order.status,
             subtotal: order.subtotal,
             shippingCost: order.shippingCost,
@@ -329,19 +282,19 @@ export class OrderService {
         };
     }
 
-    static async updateOrderStatus(orderNo: string, status: string) {
-        const order = await OrderRepository.findOrderByOrderNo(orderNo);
+    static async updateOrderStatus(orderId: number, status: string) {
+        const order = await OrderRepository.findOrderByID(orderId);
         if (!order) throw new ApiError(404, "Order not found");
 
-        await OrderRepository.updateOrder(orderNo, { status } as any);
+        await OrderRepository.updateOrderByID(order.id, { status } as any);
         return { message: `Order status updated to ${status}` };
     }
 
-    static async createSaleForCodOrder(orderNo: string) {
-        const order = await OrderRepository.findOrderByOrderNo(orderNo);
+    static async createSaleForCodOrder(orderId: number) {
+        const order = await OrderRepository.findOrderByID(orderId);
         if (!order) throw new ApiError(404, "Order not found");
-        if (!["confirmed", "delivered"].includes(order.status)) {
-            throw new ApiError(400, "Order must be confirmed or delivered");
+        if (!["pending", "confirm", "delivered"].includes(order.status)) {
+            throw new ApiError(400, "Order must be pending, confirmed or delivered");
         }
         if (order.saleID) {
             throw new ApiError(400, "Sale already exists for this order");
@@ -357,10 +310,10 @@ export class OrderService {
             balanceBefore: 0,
             balanceAfter: 0,
             saleDate: new Date(),
-            note: `Ecom order (COD): ${orderNo}`,
+            note: `Ecom order (COD): #${order.id}`,
         });
 
-        await OrderRepository.updateOrder(orderNo, { saleID: sale.id });
+        await OrderRepository.updateOrderByID(order.id, { saleID: sale.id });
         return { message: "Sale created for COD order", saleID: sale.id };
     }
 }

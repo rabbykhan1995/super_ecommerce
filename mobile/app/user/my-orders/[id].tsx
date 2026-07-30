@@ -8,17 +8,17 @@ import api from "../../../lib/api";
 import { getImageUrl } from "../../../lib/utils";
 
 export default function OrderDetailScreen() {
-  const { orderNo } = useLocalSearchParams();
+  const { id } = useLocalSearchParams();
   const router = useRouter();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/order/${orderNo}`)
+    api.get(`/order/my-orders/${id}`)
       .then((res) => setOrder(res.data?.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [orderNo]);
+  }, [id]);
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -51,7 +51,7 @@ export default function OrderDetailScreen() {
         <Pressable onPress={() => router.back()}>
           <ArrowLeft size={24} color="#1F2937" />
         </Pressable>
-        <Text className="text-lg font-bold text-gray-900">Order #{order.orderNo}</Text>
+        <Text className="text-lg font-bold text-gray-900">Order #{order.id}</Text>
       </View>
 
       <ScrollView className="flex-1 p-4">
@@ -74,25 +74,15 @@ export default function OrderDetailScreen() {
           <Text className="font-bold text-gray-900 mb-3">Items</Text>
           {order.items?.map((item: any, index: number) => (
             <View key={index} className={`flex-row items-center gap-3 ${index < order.items.length - 1 ? "pb-3 mb-3 border-b border-gray-50" : ""}`}>
-              <ExpoImage source={getImageUrl(item.product?.image)} className="w-14 h-14 rounded-lg" contentFit="contain" />
+              <ExpoImage source={getImageUrl(item.thumbnail)} className="w-14 h-14 rounded-lg" contentFit="contain" />
               <View className="flex-1">
-                <Text className="font-medium text-gray-900" numberOfLines={1}>{item.product?.name}</Text>
+                <Text className="font-medium text-gray-900" numberOfLines={1}>{item.productName}</Text>
                 <Text className="text-xs text-gray-500">Qty: {item.quantity}</Text>
               </View>
-              <Text className="font-semibold text-gray-900">৳{item.price * item.quantity}</Text>
+              <Text className="font-semibold text-gray-900">৳{item.lineTotal}</Text>
             </View>
           ))}
         </View>
-
-        {order.shippingAddress && (
-          <View className="bg-white rounded-xl p-4 mb-4">
-            <Text className="font-bold text-gray-900 mb-2">Shipping Address</Text>
-            <Text className="text-gray-600">{order.shippingAddress.name}</Text>
-            <Text className="text-gray-600">{order.shippingAddress.phone}</Text>
-            <Text className="text-gray-600">{order.shippingAddress.address}, {order.shippingAddress.area}</Text>
-            <Text className="text-gray-600">{order.shippingAddress.city}</Text>
-          </View>
-        )}
 
         <View className="bg-white rounded-xl p-4 mb-8">
           <View className="flex-row justify-between mb-2">
@@ -107,7 +97,7 @@ export default function OrderDetailScreen() {
           )}
           <View className="flex-row justify-between border-t border-gray-100 pt-2 mt-2">
             <Text className="font-bold text-lg">Total</Text>
-            <Text className="font-bold text-lg text-primary">৳{order.total}</Text>
+            <Text className="font-bold text-lg text-primary">৳{order.totalAmount}</Text>
           </View>
         </View>
       </ScrollView>

@@ -464,7 +464,7 @@ export type Batch = {
 export type ExpenseListItem = {
   id: number;
   expenseTypeID: number;
-  expenseType: {id:number, name:string};
+  expenseType: { id: number, name: string };
   paid: number;
   note?: string | null;
   documentImage?: string | null;
@@ -693,29 +693,50 @@ export type FeaturedProductItem = {
     isPublished: boolean;
   };
 };
-
+export type OrderStatus =
+  | "pending"
+  | "confirm"
+  | "parcel"
+  | "shipped"
+  | "delivered"
+  | "returned"
+  | "cancelled"
+  | "hold";
 
 export type Order = {
- id: number;
- createdAt: Date;
- updatedAt: Date;
- status: string;
- userID: string;
- note: string | null;
- discount: number;
- totalAmount: number;
- saleID: number | null;
- shippingCost: number;
- orderNo: string;
- subtotal: number;
- paymentMethod: string | null;
- paymentStatus: string;
- stripeSessionID: string | null;
- stripePaymentIntent: string | null;
- paidAt: Date | null;
- shippingName: string;
- shippingPhone: string;
- shippingAddress: string;
- shippingCity: string | null;
- shippingArea: string | null;
-}
+  id: number;
+  userID: string;
+  saleID: number | null;
+
+  status: OrderStatus;
+
+  subtotal: number;
+  shippingCost: number;
+  discount: number;
+  totalAmount: number;
+
+  paymentMethod: string | null;
+  paymentStatus: string;
+  stripeSessionID: string | null;
+  stripePaymentIntent: string | null;
+
+  paidAt: string | null;
+
+  shippingName: string;
+  shippingPhone: string;
+  shippingAddress: string;
+  shippingCity: string | null;
+  shippingArea: string | null;
+
+  note: string | null;
+
+  createdAt: Date;
+  updatedAt: Date;
+
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    mobile: string | null;
+  };
+};

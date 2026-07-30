@@ -49,14 +49,14 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
 
 const OrderDetailPage = () => {
   const params = useParams();
-  const orderNo = params.orderNo as string;
+  const orderId = Number(params.id);
   const [order, setOrder] = useState<EcomOrder | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const data = await getOrderDetail(orderNo);
+        const data = await getOrderDetail(orderId);
         setOrder(data);
       } catch {
         // handled by interceptor
@@ -65,7 +65,7 @@ const OrderDetailPage = () => {
       }
     };
     fetchOrder();
-  }, [orderNo]);
+  }, [orderId]);
 
   if (loading) {
     return (
@@ -101,7 +101,7 @@ const OrderDetailPage = () => {
           <ArrowLeft size={20} className="text-gray-600" />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{order.orderNo}</h1>
+          <h1 className="text-xl font-bold text-gray-900">Order #{order.id}</h1>
           <div className="flex items-center gap-3 mt-1">
             <span
               className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${
@@ -123,7 +123,6 @@ const OrderDetailPage = () => {
         </div>
       </div>
 
-      {/* Status Timeline */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h3 className="text-sm font-bold text-gray-900 mb-4">
           Order Status
@@ -190,7 +189,7 @@ const OrderDetailPage = () => {
         )}
 
         <Link
-          href={`/track-order?orderNo=${order.orderNo}`}
+          href={`/track-order?orderId=${order.id}`}
           className="inline-flex items-center gap-1.5 mt-4 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
         >
           <Truck size={16} />
@@ -198,7 +197,6 @@ const OrderDetailPage = () => {
         </Link>
       </div>
 
-      {/* Items */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h3 className="text-sm font-bold text-gray-900 mb-4">Order Items</h3>
         <div className="space-y-3">
@@ -255,7 +253,6 @@ const OrderDetailPage = () => {
         </div>
       </div>
 
-      {/* Payment & Shipping */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-sm font-bold text-gray-900 mb-3">Payment</h3>

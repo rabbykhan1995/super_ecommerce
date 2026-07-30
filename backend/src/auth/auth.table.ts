@@ -146,7 +146,10 @@ export const userRelations = relations(userTable, ({ one, many }) => ({
     fields: [userTable.id],
     references: [staffProfiles.userID],
   }),
-  contact: one(contactTable),
+  contact: one(contactTable, {
+    fields: [userTable.id],
+    references: [contactTable.userID],
+  }),
   userRoles: many(userRoles),
 }));
 

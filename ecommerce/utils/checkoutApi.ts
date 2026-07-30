@@ -19,7 +19,7 @@ export async function createOrder(payload: {
   note?: string;
   paymentMethod: "stripe" | "cod";
 }) {
-  const res = await api.post<ApiResponse<{ orderNo: string; stripeSessionUrl?: string }>>(
+  const res = await api.post<ApiResponse<{ orderId: number; stripeSessionUrl?: string }>>(
     "/order/checkout",
     payload,
   );
@@ -33,13 +33,13 @@ export async function getMyOrders(page = 1, limit = 10) {
   return res.data.data;
 }
 
-export async function getOrderDetail(orderNo: string) {
-  const res = await api.get<ApiResponse<EcomOrder>>(`/order/my-orders/${orderNo}`);
+export async function getOrderDetail(orderId: number) {
+  const res = await api.get<ApiResponse<EcomOrder>>(`/order/my-orders/${orderId}`);
   return res.data.data;
 }
 
-export async function cancelOrder(orderNo: string) {
-  const res = await api.post<ApiResponse<null>>(`/order/cancel/${orderNo}`);
+export async function cancelOrder(orderId: number) {
+  const res = await api.post<ApiResponse<null>>(`/order/cancel/${orderId}`);
   return res.data;
 }
 
@@ -50,7 +50,14 @@ export async function confirmStripeOrder(sessionId: string) {
   return res.data.data;
 }
 
-export async function getPublicOrder(orderNo: string) {
-  const res = await api.get<ApiResponse<EcomOrder>>(`/order/order/${orderNo}`);
+export async function confirmCodOrder(orderId: number) {
+  const res = await api.get<ApiResponse<EcomOrder>>(
+    `/order/order-success?orderId=${orderId}`,
+  );
+  return res.data.data;
+}
+
+export async function getPublicOrder(orderId: number) {
+  const res = await api.get<ApiResponse<EcomOrder>>(`/order/order/${orderId}`);
   return res.data.data;
 }

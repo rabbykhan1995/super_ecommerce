@@ -12,7 +12,7 @@ export default function MyOrdersScreen() {
 
   useEffect(() => {
     api.get("/order/my-orders")
-      .then((res) => setOrders(res.data?.data || []))
+      .then((res) => setOrders(res.data?.data?.items || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -48,22 +48,22 @@ export default function MyOrdersScreen() {
       ) : (
         <FlatList
           data={orders}
-          keyExtractor={(item: any) => item._id}
+          keyExtractor={(item: any) => String(item.id)}
           contentContainerClassName="p-4"
           renderItem={({ item }: any) => (
             <Pressable
-              onPress={() => router.push(`/user/my-orders/${item.orderNo}`)}
+              onPress={() => router.push(`/user/my-orders/${item.id}`)}
               className="bg-white rounded-xl p-4 mb-3"
             >
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="font-semibold text-gray-900">#{item.orderNo}</Text>
+                <Text className="font-semibold text-gray-900">#{item.id}</Text>
                 <View className={`px-2 py-1 rounded-full ${getStatusColor(item.status)}`}>
                   <Text className={`text-xs font-medium capitalize ${getStatusColor(item.status).split(" ")[0]}`}>{item.status}</Text>
                 </View>
               </View>
               <Text className="text-sm text-gray-500 mb-1">{item.items?.length || 0} items</Text>
               <View className="flex-row items-center justify-between">
-                <Text className="font-bold text-primary">৳{item.total}</Text>
+                <Text className="font-bold text-primary">৳{item.totalAmount}</Text>
                 <ChevronRight size={18} color="#9CA3AF" />
               </View>
             </Pressable>

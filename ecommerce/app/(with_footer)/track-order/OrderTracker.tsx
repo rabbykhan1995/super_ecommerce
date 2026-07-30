@@ -59,7 +59,7 @@ const OrderTracker = ({ order }: Props) => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <p className="text-sm text-gray-500">Order Number</p>
-            <p className="text-lg font-bold text-gray-900">{order.orderNo}</p>
+            <p className="text-lg font-bold text-gray-900">#{order.id}</p>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">

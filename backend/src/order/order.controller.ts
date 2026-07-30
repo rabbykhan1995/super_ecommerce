@@ -3,8 +3,6 @@ import { OrderService } from "./order.service";
 import stripe from "../../config/stripe.config";
 import Stripe from "stripe";
 
-// ─── Order Controller ──────────────────────────────────────────────────────
-
 export class OrderController {
     static async checkout(req: Request, res: Response) {
         const userID = (req as any).user!.id;
@@ -21,40 +19,40 @@ export class OrderController {
         return res.status(200).json({ success: true, data });
     }
 
-        static async allOrders(req: Request, res: Response) {
-        const { page, limit, search } = req.query;
-        const data = await OrderService.allOrders( Number(page) || 1, Number(limit) || 10, search?.toString());
+    static async allOrders(req: Request, res: Response) {
+        const { page, limit } = req.query;
+        const data = await OrderService.allOrders(Number(page) || 1, Number(limit) || 10);
         return res.status(200).json({ success: true, data });
     }
 
     static async myOrderDetail(req: Request, res: Response) {
         const userID = (req as any).user!.id;
-        const orderNo = req.params.orderNo as string;
-        const data = await OrderService.getMyOrderDetail(userID, orderNo);
+        const orderId = Number(req.params.id);
+        const data = await OrderService.getMyOrderDetail(userID, orderId);
         return res.status(200).json({ success: true, data });
     }
 
     static async cancelOrder(req: Request, res: Response) {
         const userID = (req as any).user!.id;
-        const orderNo = req.params.orderNo as string;
-        const result = await OrderService.cancelOrder(userID, orderNo);
+        const orderId = Number(req.params.id);
+        const result = await OrderService.cancelOrder(userID, orderId);
         return res.status(200).json({ success: true, ...result });
     }
 
     static async orderSuccess(req: Request, res: Response) {
         const userID = (req as any).user!.id;
-        const { session_id, orderNo } = req.query;
+        const { session_id, orderId } = req.query;
         const data = await OrderService.confirmOrderSuccess(
             userID,
             session_id as string | undefined,
-            orderNo as string | undefined,
+            orderId ? Number(orderId) : undefined,
         );
         return res.status(200).json({ success: true, data });
     }
 
     static async publicOrderTracking(req: Request, res: Response) {
-        const orderNo = req.params.orderNo as string;
-        const data = await OrderService.getPublicOrder(orderNo);
+        const orderId = Number(req.params.id);
+        const data = await OrderService.getPublicOrder(orderId);
         return res.status(200).json({ success: true, data });
     }
 
@@ -77,21 +75,16 @@ export class OrderController {
     }
 
     static async adminUpdateOrderStatus(req: Request, res: Response) {
-        const orderNo = req.params.orderNo as string;
+        const orderId = Number(req.params.id);
         const { status } = req.body;
-        const result = await OrderService.updateOrderStatus(orderNo, status);
+        const result = await OrderService.updateOrderStatus(orderId, status);
         return res.status(200).json({ success: true, ...result });
     }
 
     static async adminConfirmSale(req: Request, res: Response) {
-        const orderNo = req.params.orderNo as string;
-        const result = await OrderService.createSaleForCodOrder(orderNo);
+        const orderId = Number(req.params.id);
+        const result = await OrderService.createSaleForCodOrder(orderId);
         return res.status(200).json({ success: true, ...result });
     }
 
-    static async adminDeleteOrder(req: Request, res: Response) {
-        const orderNo = req.params.orderNo as string;
-        const result = await OrderService.deleteOrder(orderNo);
-        return res.status(200).json({ success: true, ...result });
-    }
 }

@@ -3,42 +3,67 @@ import api from "../../lib/axios";
 import Table from "../../components/tables/Table";
 import TableFilterBar from "../../components/filters/TableFilterBar";
 import Pagination from "../../components/filters/Pagination";
-import { Trash, ChevronDown } from "lucide-react";
-import type { PaginatedResult, ParcelListItem, ParcelStatus } from "../../types/type";
+import type { Order, OrderStatus, PaginatedResult } from "../../types/type";
 import TimeAgo from "../../components/Ui/TimeAgo";
 import Helper from "../../utils/helper";
 import toast from "react-hot-toast";
 import { Dropdown } from "../../components/Ui/Dropdown";
 
-const STATUS_OPTIONS: ParcelStatus[] = [
-  "pending",
-  "picked",
-  "in_transit",
-  "delivered",
-  "returned",
-  "cancelled",
-];
-
-const STATUS_COLORS: Record<ParcelStatus, string> = {
-  pending: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
-  picked: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  in_transit: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
-  delivered: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  returned: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  cancelled: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-};
-
-const STATUS_LABELS: Record<ParcelStatus, string> = {
+const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "Pending",
-  picked: "Picked",
-  in_transit: "In Transit",
+  confirm: "Confirmed",
+  parcel: "Packed",
+  shipped: "Shipped",
   delivered: "Delivered",
   returned: "Returned",
   cancelled: "Cancelled",
+  hold: "Hold",
+};
+
+type TransitionAction = {
+  label: string;
+  status: OrderStatus;
+  isConfirmSale?: boolean;
+};
+
+const getStatusTransitions = (status: OrderStatus, paymentMethod: string | null): TransitionAction[] => {
+  const transitions: Record<OrderStatus, TransitionAction[]> = {
+    pending: [
+      { label: "Confirm", status: "confirm", isConfirmSale: paymentMethod === "cod" },
+      { label: "Hold", status: "hold" },
+      { label: "Cancel", status: "cancelled" },
+    ],
+    confirm: [
+      { label: "Parcel", status: "parcel" },
+      { label: "Hold", status: "hold" },
+      { label: "Cancel", status: "cancelled" },
+    ],
+    parcel: [
+      { label: "Shipped", status: "shipped" },
+      { label: "Returned", status: "returned" },
+      { label: "Hold", status: "hold" },
+    ],
+    shipped: [
+      { label: "Delivered", status: "delivered" },
+      { label: "Returned", status: "returned" },
+      { label: "Hold", status: "hold" },
+    ],
+    delivered: [
+      { label: "Returned", status: "returned" },
+    ],
+    returned: [],
+    cancelled: [],
+    hold: [
+      { label: "Pending", status: "pending" },
+      { label: "Confirm", status: "confirm", isConfirmSale: paymentMethod === "cod" },
+      { label: "Cancel", status: "cancelled" },
+    ],
+  };
+  return transitions[status] || [];
 };
 
 export default function OrderList() {
-  const [data, setData] = useState<PaginatedResult<ParcelListItem>>({
+  const [data, setData] = useState<PaginatedResult<Order>>({
     items: [],
     total: 0,
     page: 1,
@@ -65,42 +90,28 @@ export default function OrderList() {
     }, 400);
     return () => clearTimeout(timer);
   }, [search]);
-
-  const handleStatusChange = async (parcelID: number, newStatus: ParcelStatus) => {
+// ekhane onek kichu hobe, 
+  const handleStatusChange = async (row: Order, transition: TransitionAction) => {
     try {
-      const res = await api.put(`/order/update-status/${parcelID}`, {
-        status: newStatus,
+      if (transition.isConfirmSale) {
+        const saleRes = await api.post(`/admin/order/${row.id}/confirm-sale`);
+        if (!saleRes.data.success) {
+          toast.error("Failed to create sale record");
+          return;
+        }
+      }
+
+      const res = await api.post(`/order/update-status/${row.id}`, {
+        status: transition.status,
       });
       if (res.data.success) {
-        toast.success(`Status updated to ${STATUS_LABELS[newStatus]}`);
+        toast.success(`Status updated to ${transition.label}`);
         await fetchOrders();
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to update status");
     }
   };
-
-  const handleDelete = async (id: number) => {
-    toast("Are you sure you want to delete this parcel?", {
-      action: {
-        label: "Delete",
-        onClick: async () => {
-          try {
-            const res = await api.delete(`/order/delete/${id}`);
-            if (res.data.success) {
-              toast.success("Parcel deleted successfully");
-              await fetchOrders();
-            }
-          } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to delete parcel");
-          }
-        },
-      },
-      cancel: { label: "Cancel", onClick: () => {} },
-    });
-  };
-
-  const totalPages = Math.ceil(data.total / data.limit);
 
   return (
     <div className="space-y-4">
@@ -126,143 +137,102 @@ export default function OrderList() {
         keyExtractor={(row) => row.id}
         columns={[
           {
-            header: "#",
-            accessor: (_, i) => (i ?? 0) + 1,
-            className: "w-10 text-center",
-            headerClassName: "text-center",
-          },
-          {
-            header: "Invoice",
+            header: "No",
             accessor: (row) => (
               <span className="text-sm font-medium">
-                #{row.sale?.invoiceNo || "N/A"}
+                {row.id}
               </span>
             ),
-            headerClassName: "text-start",
+            headerClassName: "font-center",
+            className: "text-center",
           },
           {
-            header: "Customer",
+            header: "Ecom User",
             accessor: (row) => (
               <span className="text-sm">
-                {row.customer?.name || "N/A"}
-                {row.customer?.mobile && (
+                {row.user?.name || "N/A"}
+                {row.user?.mobile && (
                   <span className="text-gray-500 block text-xs">
-                    {row.customer.mobile}
+                    {row.user.mobile}
                   </span>
                 )}
               </span>
             ),
-            headerClassName: "text-start",
+            headerClassName: "text-sm text-start",
           },
           {
-            header: "Type",
+            header: "Shipping Addr.",
             accessor: (row) => (
               <span className="text-xs uppercase font-medium px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700">
-                {row.parcelType}
+                {row.shippingAddress}
               </span>
             ),
             className: "text-center",
             headerClassName: "text-center",
           },
           {
-            header: "Address",
-            accessor: (row) => (
-              <span className="text-sm max-w-[200px] truncate block" title={row.address}>
-                {row.address}
-              </span>
-            ),
-            headerClassName: "text-start",
+            header: "P. Method",
+            accessor: (row) =>
+              row.paymentMethod === "stripe" ? (
+                <span className="text-green-500 block text-xs">{row.paymentMethod}</span>
+              ) : (
+                <span className="text-red-500 block text-xs">{row.paymentMethod}</span>
+              ),
+            headerClassName: "text-center",
+            className: "text-center",
           },
           {
-            header: "Courier",
+            header: "Total",
             accessor: (row) => (
-              <span className="text-sm">
-                {row.courierName || "-"}
-                {row.thirdPartyTrackingNo && (
-                  <span className="text-gray-500 block text-xs">
-                    {row.thirdPartyTrackingNo}
-                  </span>
-                )}
-              </span>
-            ),
-            headerClassName: "text-start",
-          },
-          {
-            header: "Local No",
-            accessor: (row) => (
-              <span className="text-sm">{row.localParcelNo || "-"}</span>
+              <span className="text-sm">{Helper.formatLongNumber(row.totalAmount)}</span>
             ),
             className: "text-center",
             headerClassName: "text-center",
           },
           {
-            header: "Cost/Due",
+            header: "Discount",
             accessor: (row) => (
-              <div className="text-xs text-center space-y-0.5">
-                {row.shippingCost > 0 && (
-                  <div>Ship: {Helper.formatLongNumber(row.shippingCost)}</div>
-                )}
-                {row.codAmount > 0 && (
-                  <div>COD: {Helper.formatLongNumber(row.codAmount)}</div>
-                )}
-                {row.dueAmount > 0 && (
-                  <div className="text-red-500">Due: {Helper.formatLongNumber(row.dueAmount)}</div>
-                )}
-                {row.shippingCost === 0 && row.codAmount === 0 && row.dueAmount === 0 && (
-                  <span>-</span>
-                )}
-              </div>
+              <span className="text-sm">{Helper.formatLongNumber(row.discount)}</span>
             ),
             className: "text-center",
             headerClassName: "text-center",
           },
-{
-  header: "Status",
-  accessor: (row) => (
-    <Dropdown
-      value={STATUS_LABELS[row.status]}
-      options={STATUS_OPTIONS.map((status) => STATUS_LABELS[status])}
-      onChange={(selectedLabel) => {
-        const status = STATUS_OPTIONS.find(
-          (s) => STATUS_LABELS[s] === selectedLabel
-        );
-
-        if (status) {
-          handleStatusChange(row.id, status);
-        }
-      }}
-      usePortal
-
-    />
-  ),
-},
           {
             header: "Date",
-            accessor: (row) => <TimeAgo date={row.parcelDate} />,
+            accessor: (row) => (
+              <h1 className="flex flex-col">
+                <TimeAgo date={row.createdAt} />{" "}
+                <span className="text-xs">{Helper.formatDate(row.createdAt)}</span>
+              </h1>
+            ),
             className: "text-center",
-            headerClassName: "text-center min-w-20",
+            headerClassName: "text-center min-w-23",
           },
           {
-            header: "Action",
-            headerClassName: "text-right",
-            className: "text-right",
-            accessor: (row) => (
-              <div className="flex gap-2 justify-end">
-                {row.deletable && (
-                  <button
-                    onClick={() => handleDelete(row.id)}
-                    className="global_button_red"
-                  >
-                    <Trash size={15} />
-                  </button>
-                )}
-              </div>
-            ),
+            header: "Status",
+            accessor: (row) => {
+              const actions = getStatusTransitions(row.status, row.paymentMethod);
+              return (
+                <div className="flex items-center justify-start gap-2">
+                  {actions.length > 0 && (
+                    <Dropdown
+                      value={STATUS_LABELS[row.status]}
+                      options={[STATUS_LABELS[row.status], ...actions.map((a) => a.label)]}
+                      onChange={(selectedLabel) => {
+                        if (selectedLabel === STATUS_LABELS[row.status]) return;
+                        const action = actions.find((a) => a.label === selectedLabel);
+                        if (action) handleStatusChange(row, action);
+                      }}
+                      usePortal
+                    />
+                  )}
+                </div>
+              );
+            },
           },
         ]}
       />
 
-      {/* Pagination */}
       <Pagination
         total={data.total}
         page={page}

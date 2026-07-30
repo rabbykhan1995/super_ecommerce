@@ -9,10 +9,16 @@ import {
   timestamp,
   varchar,
   numeric,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 
 import { saleTable } from "../sale/sale.table";
 import { contactTable } from "../contact/contact.table";
+
+const parcelStatusEnum = pgEnum("parcel_status", [
+  "pending","picked","in_transit","delivered","returned","cancelled"
+]);
+
 
 export const parcelTable = pgTable(
   "parcels",
@@ -41,7 +47,7 @@ export const parcelTable = pgTable(
 
     localParcelNo: varchar("local_parcel_no", { length: 255 }),
 
-    status: varchar("status", { length: 50 }).notNull().default("pending"),
+    status: parcelStatusEnum("status").notNull().default("pending"),
 
     note: text("note"),
 

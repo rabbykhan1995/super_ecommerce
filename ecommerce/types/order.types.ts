@@ -26,7 +26,6 @@ export type EcomOrderItem = {
 
 export type EcomOrder = {
   id: number;
-  orderNo: string;
   saleID: number | null;
   status: OrderStatus;
   subtotal: number;

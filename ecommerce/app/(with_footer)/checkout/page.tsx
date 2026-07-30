@@ -109,7 +109,7 @@ const CheckoutPage = () => {
       if (paymentMethod === "stripe" && result.stripeSessionUrl) {
         window.location.href = result.stripeSessionUrl;
       } else {
-        router.push(`/order/success?orderNo=${result.orderNo}`);
+        router.push(`/order/success?orderId=${result.orderId}`);
       }
     } catch {
       // toast handled by interceptor

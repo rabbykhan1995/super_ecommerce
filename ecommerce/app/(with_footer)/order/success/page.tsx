@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { confirmStripeOrder } from "@/utils/checkoutApi";
+import { confirmStripeOrder, confirmCodOrder } from "@/utils/checkoutApi";
 import type { EcomOrder } from "@/types/order.types";
 import { CheckCircle, Package, Truck } from "lucide-react";
 import { cartStore } from "@/zustand/cart.store";
@@ -11,7 +11,7 @@ import { cartStore } from "@/zustand/cart.store";
 const OrderSuccessPage = () => {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
-  const orderNo = searchParams.get("orderNo");
+  const orderIdParam = searchParams.get("orderId");
   const [order, setOrder] = useState<EcomOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -22,14 +22,9 @@ const OrderSuccessPage = () => {
         if (sessionId) {
           const data = await confirmStripeOrder(sessionId);
           setOrder(data);
-        } else if (orderNo) {
-          setOrder({
-            orderNo,
-            status: "confirmed",
-            paymentMethod: "cod",
-            paymentStatus: "unpaid",
-            totalAmount: 0,
-          } as EcomOrder);
+        } else if (orderIdParam) {
+          const data = await confirmCodOrder(Number(orderIdParam));
+          setOrder(data);
         }
         cartStore.getState().fetchCart();
       } catch {
@@ -39,13 +34,13 @@ const OrderSuccessPage = () => {
       }
     };
 
-    if (sessionId || orderNo) {
+    if (sessionId || orderIdParam) {
       fetchOrder();
     } else {
       setLoading(false);
       setError("No order information found.");
     }
-  }, [sessionId, orderNo]);
+  }, [sessionId, orderIdParam]);
 
   if (loading) {
     return (
@@ -85,7 +80,7 @@ const OrderSuccessPage = () => {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">Order No</span>
               <span className="text-sm font-bold text-gray-900">
-                {order.orderNo}
+                #{order.id}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -115,7 +110,7 @@ const OrderSuccessPage = () => {
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            href={`/track-order?orderNo=${order.orderNo}`}
+            href={`/track-order?orderId=${order.id}`}
             className="global_button flex items-center justify-center gap-2"
           >
             <Truck size={18} />

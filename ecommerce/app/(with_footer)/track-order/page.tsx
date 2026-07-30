@@ -10,10 +10,10 @@ import toast from "react-hot-toast";
 
 const TrackOrderPage = () => {
   const searchParams = useSearchParams();
-  const initialOrderNo = searchParams.get("orderNo") || "";
+  const initialOrderId = Number(searchParams.get("orderId")) || 0;
 
-  const [orderNo, setOrderNo] = useState(initialOrderNo);
-  const [searchValue, setSearchValue] = useState(initialOrderNo);
+  const [orderId, setOrderId] = useState(initialOrderId);
+  const [searchValue, setSearchValue] = useState(initialOrderId ? String(initialOrderId) : "");
   const [order, setOrder] = useState<EcomOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -21,14 +21,16 @@ const TrackOrderPage = () => {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const val = searchValue.trim();
-    if (!val) return toast.error("Please enter an order number");
+    if (!val) return toast.error("Please enter an order ID");
+    const id = Number(val);
+    if (!id || isNaN(id)) return toast.error("Invalid order ID");
 
     setLoading(true);
     setSearched(true);
     try {
-      const data = await getPublicOrder(val);
+      const data = await getPublicOrder(id);
       setOrder(data);
-      setOrderNo(val);
+      setOrderId(id);
     } catch {
       setOrder(null);
     } finally {
@@ -62,7 +64,7 @@ const TrackOrderPage = () => {
                 type="text"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="Enter order number (e.g. ORD-20260722-000001)"
+                placeholder="Enter order ID (e.g. 1)"
                 className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -88,10 +90,10 @@ const TrackOrderPage = () => {
               <Package size={32} className="text-gray-400" />
             </div>
             <p className="text-gray-500">
-              No order found with number &quot;{orderNo}&quot;
+              No order found with ID &quot;{orderId}&quot;
             </p>
             <p className="text-sm text-gray-400 mt-1">
-              Please check the order number and try again.
+              Please check the order ID and try again.
             </p>
           </div>
         )}

@@ -34,7 +34,7 @@ const MyOrdersPage = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [cancelling, setCancelling] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<number | null>(null);
 
 const fetchOrders = async (p: number) => {
   setLoading(true);
@@ -56,11 +56,11 @@ const fetchOrders = async (p: number) => {
     fetchOrders(page);
   }, [page]);
 
-  const handleCancel = async (orderNo: string) => {
+  const handleCancel = async (orderId: number) => {
     if (!confirm("Are you sure you want to cancel this order?")) return;
-    setCancelling(orderNo);
+    setCancelling(orderId);
     try {
-      await cancelOrder(orderNo);
+      await cancelOrder(orderId);
       fetchOrders(page);
     } catch {
       // handled by interceptor
@@ -129,7 +129,7 @@ const fetchOrders = async (p: number) => {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-gray-900 tracking-tight">
-                      {order.orderNo}
+                      #{order.id}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-gray-400 flex items-center gap-1">
@@ -165,14 +165,14 @@ const fetchOrders = async (p: number) => {
               {/* Actions */}
               <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-50 ml-12 sm:ml-12">
                 <Link
-                  href={`/user/my-orders/${order.orderNo}`}
+                  href={`/user/my-orders/${order.id}`}
                   className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-50"
                 >
                   <Eye size={13} />
                   Details
                 </Link>
                 <Link
-                  href={`/track-order?orderNo=${order.orderNo}`}
+                  href={`/track-order?orderId=${order.id}`}
                   className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-50"
                 >
                   <Truck size={13} />
@@ -180,11 +180,11 @@ const fetchOrders = async (p: number) => {
                 </Link>
                 {order.status === "pending" && (
                   <button
-                    onClick={() => handleCancel(order.orderNo)}
-                    disabled={cancelling === order.orderNo}
+                    onClick={() => handleCancel(order.id)}
+                    disabled={cancelling === order.id}
                     className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 ml-auto"
                   >
-                    {cancelling === order.orderNo ? (
+                    {cancelling === order.id ? (
                       <Loader2 size={13} className="animate-spin" />
                     ) : (
                       <XCircle size={13} />
