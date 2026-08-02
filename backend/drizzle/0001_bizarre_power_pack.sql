@@ -1,1 +1,0 @@
-ALTER TABLE "batches" ADD COLUMN "warranty" numeric(4, 1) DEFAULT 0 NOT NULL;

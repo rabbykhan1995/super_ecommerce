@@ -16,7 +16,7 @@ import { saleTable } from "../sale/sale.table";
 import { contactTable } from "../contact/contact.table";
 
 const parcelStatusEnum = pgEnum("parcel_status", [
-  "pending","picked","in_transit","delivered","returned","cancelled"
+  "Packed","Shipped","Hold","Delivered","Returned","Cancelled"
 ]);
 
 
@@ -47,7 +47,9 @@ export const parcelTable = pgTable(
 
     localParcelNo: varchar("local_parcel_no", { length: 255 }),
 
-    status: parcelStatusEnum("status").notNull().default("pending"),
+    status: parcelStatusEnum("status").notNull().default("Packed"),
+
+    lastStatus: parcelStatusEnum("last_status"),
 
     note: text("note"),
 

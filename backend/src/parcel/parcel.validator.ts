@@ -40,7 +40,7 @@ export const createParcelSchema = z.object({
 
 export const updateParcelStatusSchema = z.object({
   status: z.enum(
-    ["pending", "picked", "in_transit", "delivered", "returned", "cancelled"],
+    ["Packed","Shipped","Hold","Delivered","Returned","Cancelled"],
     { message: "Invalid status value" }
   ),
 });

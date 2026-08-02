@@ -8,9 +8,8 @@ import { variantTable } from "../product/variant.table";
 // ─── Order ──────────────────────────────────────────────────────────────────
 
 export const orderStatusEnum = pgEnum("order_status", [
-  "pending","confirm","parcel","shipped","delivered","returned","cancelled","hold"
+  "Pending","Confirmed","Packed","Shipped","Hold","Returned","Cancelled"
 ]);
-
 
 export const orderTable = pgTable("ecom_orders", {
     id: serial("id").primaryKey(),
@@ -19,7 +18,9 @@ export const orderTable = pgTable("ecom_orders", {
 
     saleID: integer("sale_id").references(() => saleTable.id),
 
-    status: orderStatusEnum("status").notNull().default("pending"),
+    status: orderStatusEnum("status").notNull().default("Pending"),
+
+    lastStatus:orderStatusEnum("last_status"),
 
     subtotal: numeric("subtotal", { mode: "number", precision: 12, scale: 2 }).notNull().default(0),
 
@@ -63,16 +64,14 @@ export const orderItemTable = pgTable("ecom_order_items", {
     orderID: integer("order_id").notNull().references(() => orderTable.id, { onDelete: "cascade" }),
     productID: integer("product_id").notNull().references(() => productTable.id),
     variantID: integer("variant_id").notNull().references(() => variantTable.id),
-
     productName: varchar("product_name", { length: 255 }).notNull(),
     variantAttrs: jsonb("variant_attrs").$type<{ name: string; value: string }[]>(),
     thumbnail: text("thumbnail"),
-
     salePrice: numeric("sale_price", { mode: "number", precision: 12, scale: 2 }).notNull().default(0),
     discountPrice: numeric("discount_price", { mode: "number", precision: 12, scale: 2 }),
     quantity: numeric("quantity", { mode: "number", precision: 10, scale: 2 }).notNull().default(1),
     lineTotal: numeric("line_total", { mode: "number", precision: 12, scale: 2 }).notNull().default(0),
-
+    serial: varchar("serial"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

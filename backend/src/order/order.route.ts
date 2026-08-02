@@ -24,6 +24,7 @@ router.post("/stripe/webhook", asyncHandler(OrderController.stripeWebhook));
 
 router
     .post("/update-status/:id", authMiddleware, adminMiddleware, validate(updateOrderStatusSchema), asyncHandler(OrderController.adminUpdateOrderStatus))
-    .post("/admin/order/:id/confirm-sale", authMiddleware, adminMiddleware, asyncHandler(OrderController.adminConfirmSale))
+    .post("/confirm-sale/:id", authMiddleware, adminMiddleware, asyncHandler(OrderController.adminConfirmSale))
+    .post("/create-parcel/:id", authMiddleware, adminMiddleware, asyncHandler(OrderController.adminConfirmSale))
 
 export default router;

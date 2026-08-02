@@ -5,85 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1783778268730,
-      "tag": "0000_moaning_red_hulk",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1783952421038,
-      "tag": "0001_bizarre_power_pack",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1783953771247,
-      "tag": "0002_bumpy_manta",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1784092698094,
-      "tag": "0003_swift_tempest",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1784099494744,
-      "tag": "0004_third_kang",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1784280798734,
-      "tag": "0005_spooky_chat",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1784457265449,
-      "tag": "0006_chunky_energizer",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1784736795898,
-      "tag": "0007_amused_lilith",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1784800000000,
-      "tag": "0008_rename_banner_link_to_slug",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1785157747316,
-      "tag": "0009_tough_jazinda",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1785339483622,
-      "tag": "0010_certain_sersi",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1787000000000,
-      "tag": "0011_remove_order_no",
+      "when": 1785645998113,
+      "tag": "0000_purple_gideon",
       "breakpoints": true
     }
   ]

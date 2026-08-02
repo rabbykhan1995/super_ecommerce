@@ -1,1 +1,0 @@
-ALTER TABLE "batches" ADD CONSTRAINT "batches_warranty_check" CHECK ("batches"."warranty" >= 0);

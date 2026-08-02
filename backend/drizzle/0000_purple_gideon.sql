@@ -6,6 +6,7 @@ CREATE TYPE "public"."stock_flow_type" AS ENUM('in', 'out');--> statement-breakp
 CREATE TYPE "public"."supplier_action" AS ENUM('repaired', 'replaced', 'rejected', 'refunded');--> statement-breakpoint
 CREATE TYPE "public"."warranty_status" AS ENUM('sold', 'claimed', 'sent_to_supplier', 'received_from_supplier', 'repaired', 'replaced', 'rejected', 'returned_to_customer', 'refunded');--> statement-breakpoint
 CREATE TYPE "public"."ledger_type" AS ENUM('sale', 'purchase', 'payment_in', 'payment_out', 'sale_return', 'purchase_return');--> statement-breakpoint
+CREATE TYPE "public"."order_status" AS ENUM('Pending', 'Confirmed', 'Packed', 'Shipped', 'Hold', 'Returned', 'Cancelled');--> statement-breakpoint
 CREATE SEQUENCE "public"."sale_invoice_no_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 100001 CACHE 1;--> statement-breakpoint
 CREATE SEQUENCE "public"."variant_barcode_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 100001 CACHE 1;--> statement-breakpoint
 CREATE SEQUENCE "public"."purchase_invoice_no_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 100001 CACHE 1;--> statement-breakpoint
@@ -128,6 +129,7 @@ CREATE TABLE "products" (
 	"manage_stock" boolean DEFAULT true NOT NULL,
 	"manage_warranty" boolean DEFAULT false NOT NULL,
 	"thumbnail" text,
+	"thumbnail_file_id" text,
 	"video" text,
 	"stock" numeric(12, 3) DEFAULT 0 NOT NULL,
 	"total_sold" numeric DEFAULT '0' NOT NULL,
@@ -135,6 +137,7 @@ CREATE TABLE "products" (
 	"decimal" boolean DEFAULT false NOT NULL,
 	"purchase_price" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"sale_price" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"discount_price" numeric(12, 2),
 	"is_published" boolean DEFAULT false NOT NULL,
 	"in_pos_list" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -144,7 +147,7 @@ CREATE TABLE "products" (
 	"featured" boolean DEFAULT false NOT NULL,
 	"show_stock" boolean DEFAULT true NOT NULL,
 	"sort_order" integer DEFAULT 0 NOT NULL,
-	"average_rating" numeric DEFAULT '0' NOT NULL,
+	"average_rating" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"total_reviews" integer DEFAULT 0 NOT NULL,
 	CONSTRAINT "products_slug_unique" UNIQUE("slug"),
 	CONSTRAINT "products_sku_unique" UNIQUE("sku")
@@ -154,11 +157,14 @@ CREATE TABLE "variants" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"product_id" integer NOT NULL,
 	"sale_price" numeric(12, 2) DEFAULT 0,
+	"discount_price" numeric(12, 2),
 	"stock" numeric(12, 2) DEFAULT 0,
 	"barcode" varchar(50) DEFAULT 'VAR-' || nextval('variant_barcode_seq') NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"weight" numeric(12, 4) DEFAULT 0,
 	"attributes" jsonb DEFAULT '[{"name":"base","value":"none"}]'::jsonb NOT NULL,
+	"images" jsonb DEFAULT '[]'::jsonb,
+	"image_file_ids" jsonb DEFAULT '[]'::jsonb,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "variants_barcode_unique" UNIQUE("barcode")
 );
@@ -170,6 +176,7 @@ CREATE TABLE "batches" (
 	"variant_id" integer NOT NULL,
 	"purchase_id" integer,
 	"cost" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"warranty" integer DEFAULT 0 NOT NULL,
 	"purchased_qty" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"remaining_qty" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"purchase_date" timestamp with time zone DEFAULT now() NOT NULL,
@@ -177,7 +184,8 @@ CREATE TABLE "batches" (
 	"is_active" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "batches_serial_unique" UNIQUE("serial")
+	CONSTRAINT "batches_serial_unique" UNIQUE("serial"),
+	CONSTRAINT "batches_warranty_check" CHECK ("batches"."warranty" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "stock_flows" (
@@ -423,12 +431,112 @@ CREATE TABLE "carts" (
 	"variant_id" integer NOT NULL,
 	"name" varchar(150) NOT NULL,
 	"price" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"discount_price" numeric(12, 2),
 	"slug" varchar(300) NOT NULL,
 	"thumbnail" text,
 	"attributes" jsonb,
 	"quantity" numeric(10, 2) DEFAULT 1 NOT NULL,
 	"stock" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"added_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "parcels" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"sale_id" integer NOT NULL,
+	"customer_id" integer,
+	"parcel_type" varchar(20) DEFAULT 'local' NOT NULL,
+	"address" text NOT NULL,
+	"courier_name" varchar(100),
+	"third_party_tracking_no" varchar(255),
+	"local_parcel_no" varchar(255),
+	"status" "parcel_status" DEFAULT 'Packed' NOT NULL,
+	"last_status" "parcel_status",
+	"note" text,
+	"shipping_cost" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"cod_amount" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"due_amount" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"parcel_date" timestamp with time zone DEFAULT now() NOT NULL,
+	"deletable" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "banners" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"title" varchar(200) NOT NULL,
+	"photo" text NOT NULL,
+	"slug" text,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "featured_products" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"product_id" integer NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "flash_sale_products" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"flash_sale_id" integer NOT NULL,
+	"product_id" integer NOT NULL,
+	"discount_price" numeric(12, 2) NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "flash_sales" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"name" varchar(200) NOT NULL,
+	"start_date" timestamp with time zone NOT NULL,
+	"end_date" timestamp with time zone NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "ecom_order_items" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"order_id" integer NOT NULL,
+	"product_id" integer NOT NULL,
+	"variant_id" integer NOT NULL,
+	"product_name" varchar(255) NOT NULL,
+	"variant_attrs" jsonb,
+	"thumbnail" text,
+	"sale_price" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"discount_price" numeric(12, 2),
+	"quantity" numeric(10, 2) DEFAULT 1 NOT NULL,
+	"line_total" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"serial" varchar,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "ecom_orders" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"user_id" uuid NOT NULL,
+	"sale_id" integer,
+	"status" "order_status" DEFAULT 'Pending' NOT NULL,
+	"last_status" "order_status",
+	"subtotal" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"shipping_cost" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"discount" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"total_amount" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"payment_method" varchar(30),
+	"payment_status" varchar(20) DEFAULT 'unpaid' NOT NULL,
+	"stripe_session_id" varchar(255),
+	"stripe_payment_intent" varchar(255),
+	"paid_at" timestamp with time zone,
+	"shipping_name" varchar(255) NOT NULL,
+	"shipping_phone" varchar(20) NOT NULL,
+	"shipping_address" text NOT NULL,
+	"shipping_city" varchar(100),
+	"shipping_area" varchar(100),
+	"note" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -500,6 +608,16 @@ ALTER TABLE "damages" ADD CONSTRAINT "damages_purchase_id_purchases_id_fk" FOREI
 ALTER TABLE "carts" ADD CONSTRAINT "carts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "carts" ADD CONSTRAINT "carts_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "carts" ADD CONSTRAINT "carts_variant_id_variants_id_fk" FOREIGN KEY ("variant_id") REFERENCES "public"."variants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "parcels" ADD CONSTRAINT "parcels_sale_id_sales_id_fk" FOREIGN KEY ("sale_id") REFERENCES "public"."sales"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "parcels" ADD CONSTRAINT "parcels_customer_id_contacts_id_fk" FOREIGN KEY ("customer_id") REFERENCES "public"."contacts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "featured_products" ADD CONSTRAINT "featured_products_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "flash_sale_products" ADD CONSTRAINT "flash_sale_products_flash_sale_id_flash_sales_id_fk" FOREIGN KEY ("flash_sale_id") REFERENCES "public"."flash_sales"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "flash_sale_products" ADD CONSTRAINT "flash_sale_products_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ecom_order_items" ADD CONSTRAINT "ecom_order_items_order_id_ecom_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."ecom_orders"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ecom_order_items" ADD CONSTRAINT "ecom_order_items_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ecom_order_items" ADD CONSTRAINT "ecom_order_items_variant_id_variants_id_fk" FOREIGN KEY ("variant_id") REFERENCES "public"."variants"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ecom_orders" ADD CONSTRAINT "ecom_orders_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ecom_orders" ADD CONSTRAINT "ecom_orders_sale_id_sales_id_fk" FOREIGN KEY ("sale_id") REFERENCES "public"."sales"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "transactions_account_idx" ON "transactions" USING btree ("account_id");--> statement-breakpoint
 CREATE INDEX "transactions_purchase_id_idx" ON "transactions" USING btree ("purchase_id");--> statement-breakpoint
 CREATE INDEX "transactions_purchase_return_id_idx" ON "transactions" USING btree ("purchase_return_id");--> statement-breakpoint
@@ -561,4 +679,8 @@ CREATE INDEX "damage_purchase_idx" ON "damages" USING btree ("purchase_id");--> 
 CREATE INDEX "damage_date_idx" ON "damages" USING btree ("damage_date");--> statement-breakpoint
 CREATE INDEX "carts_user_id_idx" ON "carts" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "carts_product_id_idx" ON "carts" USING btree ("product_id");--> statement-breakpoint
-CREATE INDEX "carts_variant_id_idx" ON "carts" USING btree ("variant_id");
+CREATE INDEX "carts_variant_id_idx" ON "carts" USING btree ("variant_id");--> statement-breakpoint
+CREATE INDEX "parcels_sale_id_idx" ON "parcels" USING btree ("sale_id");--> statement-breakpoint
+CREATE INDEX "parcels_customer_id_idx" ON "parcels" USING btree ("customer_id");--> statement-breakpoint
+CREATE INDEX "parcels_status_idx" ON "parcels" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "parcels_tracking_no_idx" ON "parcels" USING btree ("third_party_tracking_no");

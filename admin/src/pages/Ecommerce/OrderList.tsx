@@ -90,11 +90,12 @@ export default function OrderList() {
     }, 400);
     return () => clearTimeout(timer);
   }, [search]);
-// ekhane onek kichu hobe, 
+  // ------------Note-----------
+// --------ekhane onek kichu hobe, confirm hole ekta api, hold hole arekta, parcel hole,  
   const handleStatusChange = async (row: Order, transition: TransitionAction) => {
     try {
       if (transition.isConfirmSale) {
-        const saleRes = await api.post(`/admin/order/${row.id}/confirm-sale`);
+        const saleRes = await api.post(`/order/confirm-sale/${row.id}`);
         if (!saleRes.data.success) {
           toast.error("Failed to create sale record");
           return;
