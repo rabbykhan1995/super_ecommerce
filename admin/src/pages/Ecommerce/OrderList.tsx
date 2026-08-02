@@ -9,55 +9,16 @@ import Helper from "../../utils/helper";
 import toast from "react-hot-toast";
 import { Dropdown } from "../../components/Ui/Dropdown";
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: "Pending",
-  confirm: "Confirmed",
-  parcel: "Packed",
-  shipped: "Shipped",
-  delivered: "Delivered",
-  returned: "Returned",
-  cancelled: "Cancelled",
-  hold: "Hold",
-};
-
-type TransitionAction = {
-  label: string;
-  status: OrderStatus;
-  isConfirmSale?: boolean;
-};
-
-const getStatusTransitions = (status: OrderStatus, paymentMethod: string | null): TransitionAction[] => {
-  const transitions: Record<OrderStatus, TransitionAction[]> = {
-    pending: [
-      { label: "Confirm", status: "confirm", isConfirmSale: paymentMethod === "cod" },
-      { label: "Hold", status: "hold" },
-      { label: "Cancel", status: "cancelled" },
-    ],
-    confirm: [
-      { label: "Parcel", status: "parcel" },
-      { label: "Hold", status: "hold" },
-      { label: "Cancel", status: "cancelled" },
-    ],
-    parcel: [
-      { label: "Shipped", status: "shipped" },
-      { label: "Returned", status: "returned" },
-      { label: "Hold", status: "hold" },
-    ],
-    shipped: [
-      { label: "Delivered", status: "delivered" },
-      { label: "Returned", status: "returned" },
-      { label: "Hold", status: "hold" },
-    ],
-    delivered: [
-      { label: "Returned", status: "returned" },
-    ],
-    returned: [],
-    cancelled: [],
-    hold: [
-      { label: "Pending", status: "pending" },
-      { label: "Confirm", status: "confirm", isConfirmSale: paymentMethod === "cod" },
-      { label: "Cancel", status: "cancelled" },
-    ],
+const getStatusTransitions = (status: OrderStatus): OrderStatus[] => {
+  const transitions: Record<OrderStatus, OrderStatus[]> = {
+    Pending: ["Confirmed", "Hold", "Cancelled"],
+    Confirmed: ["Packed", "Hold", "Cancelled"],
+    Packed: ["Shipped", "Returned", "Hold"],
+    Shipped: ["Delivered", "Returned", "Hold"],
+    Delivered: ["Returned"],
+    Hold: ["Pending", "Confirmed", "Cancelled"],
+    Returned: [],
+    Cancelled: [],
   };
   return transitions[status] || [];
 };
@@ -92,9 +53,9 @@ export default function OrderList() {
   }, [search]);
   // ------------Note-----------
 // --------ekhane onek kichu hobe, confirm hole ekta api, hold hole arekta, parcel hole,  
-  const handleStatusChange = async (row: Order, transition: TransitionAction) => {
+  const handleStatusChange = async (row: Order, status: OrderStatus) => {
     try {
-      if (transition.isConfirmSale) {
+      if (status === "Confirmed" && row.paymentMethod === "cod") {
         const saleRes = await api.post(`/order/confirm-sale/${row.id}`);
         if (!saleRes.data.success) {
           toast.error("Failed to create sale record");
@@ -103,10 +64,10 @@ export default function OrderList() {
       }
 
       const res = await api.post(`/order/update-status/${row.id}`, {
-        status: transition.status,
+        status,
       });
       if (res.data.success) {
-        toast.success(`Status updated to ${transition.label}`);
+        toast.success(`Status updated to ${status}`);
         await fetchOrders();
       }
     } catch (error: any) {
@@ -212,17 +173,16 @@ export default function OrderList() {
           {
             header: "Status",
             accessor: (row) => {
-              const actions = getStatusTransitions(row.status, row.paymentMethod);
+              const actions = getStatusTransitions(row.status);
               return (
                 <div className="flex items-center justify-start gap-2">
                   {actions.length > 0 && (
                     <Dropdown
-                      value={STATUS_LABELS[row.status]}
-                      options={[STATUS_LABELS[row.status], ...actions.map((a) => a.label)]}
-                      onChange={(selectedLabel) => {
-                        if (selectedLabel === STATUS_LABELS[row.status]) return;
-                        const action = actions.find((a) => a.label === selectedLabel);
-                        if (action) handleStatusChange(row, action);
+                      value={row.status}
+                      options={[row.status, ...actions]}
+                      onChange={(selectedStatus) => {
+                        if (selectedStatus === row.status) return;
+                        handleStatusChange(row, selectedStatus);
                       }}
                       usePortal
                     />

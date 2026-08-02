@@ -65,7 +65,7 @@ export class OrderService {
 
             const order = await OrderRepository.createOrder({
                 userID,
-                status: "pending",
+                status: "Pending",
                 subtotal,
                 shippingCost: 0,
                 discount: totalDiscount,
@@ -95,7 +95,7 @@ export class OrderService {
 
             if (input.paymentMethod === "stripe") {
                 const session = await OrderService.createStripeSession(order.id, orderItemsData, totalAmount);
-                await OrderRepository.updateOrderByID(order.id, { stripeSessionID: session.id, status: "confirm", paymentStatus: "paid" }, tx);
+                await OrderRepository.updateOrderByID(order.id, { stripeSessionID: session.id, status: "Confirmed", paymentStatus: "paid" }, tx);
                 return { orderId: order.id, stripeSessionUrl: session.url };
             }
 
@@ -149,7 +149,7 @@ export class OrderService {
 
             await OrderRepository.updateOrderByID(order.id, {
                 saleID: sale.id,
-                status: "confirm",
+                status: "Confirmed",
                 paymentStatus: "paid",
                 paidAt: new Date(),
                 stripePaymentIntent: session.payment_intent as string || null,
@@ -164,7 +164,7 @@ export class OrderService {
             const order = await OrderRepository.findOrderByStripeSessionID(stripeSessionID);
             if (!order) return;
 
-            await OrderRepository.updateOrderByID(order.id, { status: "cancelled" });
+            await OrderRepository.updateOrderByID(order.id, { status: "Cancelled" });
 
             for (const item of order.items) {
                 const currentVariant = await OrderRepository.findVariantByID(item.variantID);
@@ -232,12 +232,12 @@ export class OrderService {
         const order = await OrderRepository.findOrderByID(orderId);
         if (!order) throw new ApiError(404, "Order not found");
         if (order.userID !== userID) throw new ApiError(403, "Forbidden");
-        if (order.status !== "pending") {
+        if (order.status !== "Pending") {
             throw new ApiError(400, "Only pending orders can be cancelled");
         }
 
         await withTransaction(async (tx: QueryClient) => {
-            await OrderRepository.updateOrderByID(order.id, { status: "cancelled" }, tx);
+            await OrderRepository.updateOrderByID(order.id, { status: "Cancelled" }, tx);
 
             for (const item of order.items) {
                 const currentVariant = await OrderRepository.findVariantByID(item.variantID, tx);
@@ -293,7 +293,7 @@ export class OrderService {
     static async createSaleForCodOrder(orderId: number) {
         const order = await OrderRepository.findOrderByID(orderId);
         if (!order) throw new ApiError(404, "Order not found");
-        if (!["pending", "confirm", "delivered"].includes(order.status)) {
+        if (!["Pending", "Confirmed", "Delivered"].includes(order.status)) {
             throw new ApiError(400, "Order must be pending, confirmed or delivered");
         }
         if (order.saleID) {
@@ -303,7 +303,7 @@ export class OrderService {
         const sale = await SaleRepository.create({
             totalProductPrice: order.subtotal,
             totalAmount: order.totalAmount,
-            paid: order.status === "delivered" ? order.totalAmount : 0,
+            paid: order.status === "Delivered" ? order.totalAmount : 0,
             discount: order.discount,
             exchangeAmount: 0,
             otherCost: 0,

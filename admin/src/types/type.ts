@@ -593,12 +593,7 @@ export interface VariantListItem {
 }
 
 export type ParcelStatus =
-  | "pending"
-  | "picked"
-  | "in_transit"
-  | "delivered"
-  | "returned"
-  | "cancelled";
+  "Packed" | "Shipped" | "Hold" | "Delivered" | "Returned" | "Cancelled"
 
 export type ParcelListItem = {
   id: number;
@@ -610,6 +605,7 @@ export type ParcelListItem = {
   thirdPartyTrackingNo: string | null;
   localParcelNo: string | null;
   status: ParcelStatus;
+  lastStatus:ParcelStatus | null;
   note: string | null;
   shippingCost: number;
   codAmount: number;
@@ -694,14 +690,7 @@ export type FeaturedProductItem = {
   };
 };
 export type OrderStatus =
-  | "pending"
-  | "confirm"
-  | "parcel"
-  | "shipped"
-  | "delivered"
-  | "returned"
-  | "cancelled"
-  | "hold";
+  "Packed" | "Shipped" | "Hold" | "Delivered" | "Returned" | "Cancelled" | "Pending" | "Confirmed" ;
 
 export type Order = {
   id: number;
@@ -709,7 +698,7 @@ export type Order = {
   saleID: number | null;
 
   status: OrderStatus;
-
+lastStatus:OrderStatus;
   subtotal: number;
   shippingCost: number;
   discount: number;

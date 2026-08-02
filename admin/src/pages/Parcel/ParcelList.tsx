@@ -3,7 +3,7 @@ import api from "../../lib/axios";
 import Table from "../../components/tables/Table";
 import TableFilterBar from "../../components/filters/TableFilterBar";
 import Pagination from "../../components/filters/Pagination";
-import { Trash, ChevronDown } from "lucide-react";
+import { Trash } from "lucide-react";
 import type { PaginatedResult, ParcelListItem, ParcelStatus } from "../../types/type";
 import TimeAgo from "../../components/Ui/TimeAgo";
 import Helper from "../../utils/helper";
@@ -11,31 +11,13 @@ import toast from "react-hot-toast";
 import { Dropdown } from "../../components/Ui/Dropdown";
 
 const STATUS_OPTIONS: ParcelStatus[] = [
-  "pending",
-  "picked",
-  "in_transit",
-  "delivered",
-  "returned",
-  "cancelled",
+  "Packed",
+  "Shipped",
+  "Hold",
+  "Delivered",
+  "Returned",
+  "Cancelled",
 ];
-
-const STATUS_COLORS: Record<ParcelStatus, string> = {
-  pending: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
-  picked: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  in_transit: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
-  delivered: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  returned: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  cancelled: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-};
-
-const STATUS_LABELS: Record<ParcelStatus, string> = {
-  pending: "Pending",
-  picked: "Picked",
-  in_transit: "In Transit",
-  delivered: "Delivered",
-  returned: "Returned",
-  cancelled: "Cancelled",
-};
 
 export default function ParcelList() {
   const [data, setData] = useState<PaginatedResult<ParcelListItem>>({
@@ -72,7 +54,7 @@ export default function ParcelList() {
         status: newStatus,
       });
       if (res.data.success) {
-        toast.success(`Status updated to ${STATUS_LABELS[newStatus]}`);
+        toast.success(`Status updated to ${newStatus}`);
         await fetchParcels();
       }
     } catch (error: any) {
@@ -99,8 +81,6 @@ export default function ParcelList() {
       cancel: { label: "Cancel", onClick: () => {} },
     });
   };
-
-  const totalPages = Math.ceil(data.total / data.limit);
 
   return (
     <div className="space-y-4">
@@ -220,19 +200,10 @@ export default function ParcelList() {
   header: "Status",
   accessor: (row) => (
     <Dropdown
-      value={STATUS_LABELS[row.status]}
-      options={STATUS_OPTIONS.map((status) => STATUS_LABELS[status])}
-      onChange={(selectedLabel) => {
-        const status = STATUS_OPTIONS.find(
-          (s) => STATUS_LABELS[s] === selectedLabel
-        );
-
-        if (status) {
-          handleStatusChange(row.id, status);
-        }
-      }}
+      value={row.status}
+      options={STATUS_OPTIONS}
+      onChange={(status) => handleStatusChange(row.id, status)}
       usePortal
-
     />
   ),
 },

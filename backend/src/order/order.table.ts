@@ -8,7 +8,7 @@ import { variantTable } from "../product/variant.table";
 // ─── Order ──────────────────────────────────────────────────────────────────
 
 export const orderStatusEnum = pgEnum("order_status", [
-  "Pending","Confirmed","Packed","Shipped","Hold","Returned","Cancelled"
+  "Pending","Confirmed","Packed","Shipped","Hold","Returned","Cancelled", "Delivered"
 ]);
 
 export const orderTable = pgTable("ecom_orders", {
