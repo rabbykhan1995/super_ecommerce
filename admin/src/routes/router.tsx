@@ -49,7 +49,10 @@ import Banner from "../pages/Ecommerce/Banner";
 import FeatureProduct from "../pages/Ecommerce/FeatureProduct";
 import FlashSale from "../pages/Ecommerce/FlashSale";
 import FlashProduct from "../pages/Ecommerce/FlashProduct";
-import OrderList from "../pages/Ecommerce/OrderList";
+import OrderListInEcommerce from "../pages/Ecommerce/OrderList";
+import OrderListInOrders  from "../pages/Orders/OrderList";
+import PendingParcels from "../pages/Parcel/PendingParcel";
+import CreateOrder from "../pages/Orders/CreateOrder";
 
 export const router = createBrowserRouter([
 
@@ -289,6 +292,20 @@ export const router = createBrowserRouter([
           },
         ],
       },
+         // Order
+      {
+        path: "order",
+        children: [
+          {
+            path: "create",
+            Component: CreateOrder,
+          },
+          {
+            path: "list",
+            Component: OrderListInOrders,
+          },
+        ],
+      },
       // Parcel
       {
         path: "parcel",
@@ -300,6 +317,9 @@ export const router = createBrowserRouter([
           {
             path: "list",
             Component: ParcelList,
+          },      {
+            path: "pending",
+            Component: PendingParcels,
           },
         ],
       },
@@ -313,7 +333,7 @@ export const router = createBrowserRouter([
           },
           {
             path: "orders",
-            Component: OrderList,
+            Component: OrderListInEcommerce,
           },
               {
             path: "edit-product/:id",

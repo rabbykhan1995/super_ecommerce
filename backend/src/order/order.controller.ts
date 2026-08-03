@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { OrderService } from "./order.service";
+import { OrderStatus } from "./order.type";
 import stripe from "../../config/stripe.config";
 import Stripe from "stripe";
 
@@ -20,8 +21,8 @@ export class OrderController {
     }
 
     static async allOrders(req: Request, res: Response) {
-        const { page, limit } = req.query;
-        const data = await OrderService.allOrders(Number(page) || 1, Number(limit) || 10);
+        const { page, limit, status } = req.query;
+        const data = await OrderService.allOrders(Number(page) || 1, Number(limit) || 10, status as OrderStatus | undefined);
         return res.status(200).json({ success: true, data });
     }
 

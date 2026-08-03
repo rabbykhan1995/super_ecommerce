@@ -1,4 +1,4 @@
-import { CreateOrderInput } from "./order.type";
+import { CreateOrderInput, OrderStatus } from "./order.type";
 import { ApiError } from "../../utils/ApiError";
 import { OrderRepository } from "./order.repository";
 import { withTransaction } from "../../utils/withTransaction";
@@ -217,8 +217,8 @@ export class OrderService {
         return await OrderRepository.listOrdersByUser(userID, page, limit);
     }
 
-    static async allOrders(page = 1, limit = 10) {
-        return await OrderRepository.allOrders(page, limit);
+    static async allOrders(page = 1, limit = 10, status?:OrderStatus) {
+        return await OrderRepository.allOrders(page, limit, status);
     }
 
     static async getMyOrderDetail(userID: string, orderId: number) {

@@ -78,7 +78,7 @@ export default function OrderList() {
   return (
     <div className="space-y-4">
       <TableFilterBar
-        title="Orders from ecommerce"
+        title="All Orders"
         subtitle={`Total: ${data.total}`}
         search={search}
         onSearchChange={(val) => {

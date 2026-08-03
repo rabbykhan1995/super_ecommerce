@@ -8,6 +8,7 @@ import TimeAgo from "../../components/Ui/TimeAgo";
 import Helper from "../../utils/helper";
 import toast from "react-hot-toast";
 import { Dropdown } from "../../components/Ui/Dropdown";
+import { Link } from "react-router";
 
 const getStatusTransitions = (status: OrderStatus): OrderStatus[] => {
   const transitions: Record<OrderStatus, OrderStatus[]> = {
@@ -23,7 +24,7 @@ const getStatusTransitions = (status: OrderStatus): OrderStatus[] => {
   return transitions[status] || [];
 };
 
-export default function OrderList() {
+export default function PendingParcels() {
   const [data, setData] = useState<PaginatedResult<Order>>({
     items: [],
     total: 0,
@@ -36,7 +37,7 @@ export default function OrderList() {
 
   const fetchOrders = async () => {
     const res = await api("/order/all-orders", {
-      params: { search, limit, page },
+      params: { search, limit, page, status:"Confirmed" },
     });
     if (res.data.success) setData(res.data.data);
   };
@@ -78,15 +79,13 @@ export default function OrderList() {
   return (
     <div className="space-y-4">
       <TableFilterBar
-        title="Orders from ecommerce"
+        title="Pending Parcels"
         subtitle={`Total: ${data.total}`}
         search={search}
         onSearchChange={(val) => {
           setSearch(val);
           setPage(1);
         }}
-        addHref="/parcel/create"
-        addLabel="New Parcel"
         limit={limit}
         onLimitChange={(val) => {
           setLimit(val);
@@ -171,25 +170,14 @@ export default function OrderList() {
             headerClassName: "text-center min-w-23",
           },
           {
-            header: "Status",
+            header: "Parcel",
             accessor: (row) => {
-              const actions = getStatusTransitions(row.status);
+
               return (
-                <div className="flex items-center justify-start gap-2">
-                  {actions.length > 0 && (
-                    <Dropdown
-                      value={row.status}
-                      options={[row.status, ...actions]}
-                      onChange={(selectedStatus) => {
-                        if (selectedStatus === row.status) return;
-                        handleStatusChange(row, selectedStatus);
-                      }}
-                      usePortal
-                    />
-                  )}
-                </div>
+                 <Link className="global_button" to={`/parcel/create/${row.id}`}>Create</Link>
               );
             },
+            className:"text-end"
           },
         ]}
       />

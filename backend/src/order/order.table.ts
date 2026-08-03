@@ -11,6 +11,8 @@ export const orderStatusEnum = pgEnum("order_status", [
   "Pending","Confirmed","Packed","Shipped","Hold","Returned","Cancelled", "Delivered"
 ]);
 
+export const orderFromEnum = pgEnum("order_from",["Ecommerce","Manual"]);
+
 export const orderTable = pgTable("ecom_orders", {
     id: serial("id").primaryKey(),
     
@@ -51,6 +53,10 @@ export const orderTable = pgTable("ecom_orders", {
     shippingArea: varchar("shipping_area", { length: 100 }),
 
     note: text("note"),
+
+    orderFrom: orderFromEnum("order_from").notNull().default("Ecommerce"),
+
+    orderedBy:varchar("ordered_by"),
 
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 

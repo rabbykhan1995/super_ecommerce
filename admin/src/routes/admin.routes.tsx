@@ -253,6 +253,23 @@ export const AdminRoutes: NavItem[] = [
 
         ],
 
+    },   {
+        name: "Orders",
+        icon: <Truck size={18} />,
+        subItems: [
+            {
+                name: "Create",
+                link: "/order/create",
+                icon: <Plus size={16} />,
+            },
+            {
+                name: "List",
+                link: "/order/list",
+                icon: <Scroll size={16} />,
+            }
+
+        ],
+
     },
 
        {
@@ -269,10 +286,16 @@ export const AdminRoutes: NavItem[] = [
                 link: "/parcel/list",
                 icon: <Scroll size={16} />,
             },
+                  {
+                name: "Pending Parcels",
+                link: "/parcel/pending",
+                icon: <Scroll size={16} />,
+            },
 
         ],
 
     },
+        
 
     {
         name: "Quotation",

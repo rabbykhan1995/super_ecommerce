@@ -1,8 +1,8 @@
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq, SQL } from "drizzle-orm";
 import db from "../../drizzle/src";
 import { orderTable, orderItemTable } from "./order.table";
 import { variantTable } from "../product/variant.table";
-import { OrderPayload, OrderItemPayload } from "./order.type";
+import { OrderPayload, OrderItemPayload, OrderStatus } from "./order.type";
 import { QueryClient } from "../../drizzle/src";
 import { paginateQuery } from "../../utils/queryBuilder";
 
@@ -79,12 +79,18 @@ export class OrderRepository {
         return result;
     }
 
-    static async allOrders(page = 1, limit = 10, client: QueryClient = db) {
+    static async allOrders(page = 1, limit = 10, status?:OrderStatus , client: QueryClient = db) {
+        const where: SQL[] = [];
+        if (status) {
+            where.push(eq(orderTable.status, status));
+        }
+
         const result = await paginateQuery({
             query: db.query.orderTable,
             countTable: orderTable,
             page: page,
             limit: limit,
+            where,
             with: {
                 user: {
                     columns: {
