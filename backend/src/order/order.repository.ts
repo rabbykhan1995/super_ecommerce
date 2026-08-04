@@ -22,7 +22,7 @@ export class OrderRepository {
             where: eq(orderTable.id, id),
             with: {
                 items: true,
-                user: {
+                contact: {
                     columns: { id: true, name: true, email: true },
                 },
             },
@@ -55,6 +55,10 @@ export class OrderRepository {
         return updated;
     }
 
+    static async deleteOrderByID(id: number, client: QueryClient = db) {
+        return await client.delete(orderTable).where(eq(orderTable.id, id));
+    }
+
     static async deleteOrderItems(orderID: number, client: QueryClient = db) {
         return await client.delete(orderItemTable).where(eq(orderItemTable.orderID, orderID));
     }
@@ -64,8 +68,8 @@ export class OrderRepository {
         return result[0] || null;
     }
 
-    static async listOrdersByUser(userID: string, page = 1, limit = 10) {
-        const whereClause = eq(orderTable.userID, userID);
+    static async listOrdersByUser(contactID: number, page = 1, limit = 10) {
+        const whereClause = eq(orderTable.contactID, contactID);
 
         const result = await paginateQuery({
             query: db.query.orderTable,
@@ -92,20 +96,13 @@ export class OrderRepository {
             limit: limit,
             where,
             with: {
-                user: {
+                contact: {
                     columns: {
                         id: true,
                         name: true,
                         email: true,
                         mobile: true,
-                    },
-                    contact: {
-                        columns: {
-                            id: true,
-                            name: true,
-                            mobile: true,
-                            balance: true,
-                        },
+                        balance: true,
                     },
                 },
             },

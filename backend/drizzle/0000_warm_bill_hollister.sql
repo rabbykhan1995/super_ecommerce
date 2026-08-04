@@ -6,7 +6,8 @@ CREATE TYPE "public"."stock_flow_type" AS ENUM('in', 'out');--> statement-breakp
 CREATE TYPE "public"."supplier_action" AS ENUM('repaired', 'replaced', 'rejected', 'refunded');--> statement-breakpoint
 CREATE TYPE "public"."warranty_status" AS ENUM('sold', 'claimed', 'sent_to_supplier', 'received_from_supplier', 'repaired', 'replaced', 'rejected', 'returned_to_customer', 'refunded');--> statement-breakpoint
 CREATE TYPE "public"."ledger_type" AS ENUM('sale', 'purchase', 'payment_in', 'payment_out', 'sale_return', 'purchase_return');--> statement-breakpoint
-CREATE TYPE "public"."order_status" AS ENUM('Pending', 'Confirmed', 'Packed', 'Shipped', 'Hold', 'Returned', 'Cancelled');--> statement-breakpoint
+CREATE TYPE "public"."order_from" AS ENUM('Ecommerce', 'Manual');--> statement-breakpoint
+CREATE TYPE "public"."order_status" AS ENUM('Pending', 'Confirmed', 'Packed', 'Shipped', 'Hold', 'Returned', 'Cancelled', 'Delivered');--> statement-breakpoint
 CREATE SEQUENCE "public"."sale_invoice_no_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 100001 CACHE 1;--> statement-breakpoint
 CREATE SEQUENCE "public"."variant_barcode_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 100001 CACHE 1;--> statement-breakpoint
 CREATE SEQUENCE "public"."purchase_invoice_no_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 100001 CACHE 1;--> statement-breakpoint
@@ -111,7 +112,8 @@ CREATE TABLE "contacts" (
 	"address" text,
 	"type" "contact_type" DEFAULT 'customer' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "contacts_user_id_unique" UNIQUE("user_id")
 );
 --> statement-breakpoint
 CREATE TABLE "products" (
@@ -132,6 +134,7 @@ CREATE TABLE "products" (
 	"thumbnail_file_id" text,
 	"video" text,
 	"stock" numeric(12, 3) DEFAULT 0 NOT NULL,
+	"reserved_stock" numeric(12, 3) DEFAULT 0 NOT NULL,
 	"total_sold" numeric DEFAULT '0' NOT NULL,
 	"alert_qty" numeric(18, 3) DEFAULT 0 NOT NULL,
 	"decimal" boolean DEFAULT false NOT NULL,
@@ -159,6 +162,7 @@ CREATE TABLE "variants" (
 	"sale_price" numeric(12, 2) DEFAULT 0,
 	"discount_price" numeric(12, 2),
 	"stock" numeric(12, 2) DEFAULT 0,
+	"reserved_stock" numeric(12, 3) DEFAULT 0 NOT NULL,
 	"barcode" varchar(50) DEFAULT 'VAR-' || nextval('variant_barcode_seq') NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"weight" numeric(12, 4) DEFAULT 0,
@@ -498,25 +502,21 @@ CREATE TABLE "flash_sales" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "ecom_order_items" (
+CREATE TABLE "order_items" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"order_id" integer NOT NULL,
 	"product_id" integer NOT NULL,
 	"variant_id" integer NOT NULL,
-	"product_name" varchar(255) NOT NULL,
-	"variant_attrs" jsonb,
-	"thumbnail" text,
 	"sale_price" numeric(12, 2) DEFAULT 0 NOT NULL,
-	"discount_price" numeric(12, 2),
 	"quantity" numeric(10, 2) DEFAULT 1 NOT NULL,
 	"line_total" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"serial" varchar,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "ecom_orders" (
+CREATE TABLE "orders" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"user_id" uuid NOT NULL,
+	"contact_id" integer NOT NULL,
 	"sale_id" integer,
 	"status" "order_status" DEFAULT 'Pending' NOT NULL,
 	"last_status" "order_status",
@@ -535,6 +535,8 @@ CREATE TABLE "ecom_orders" (
 	"shipping_city" varchar(100),
 	"shipping_area" varchar(100),
 	"note" text,
+	"order_from" "order_from" DEFAULT 'Ecommerce' NOT NULL,
+	"ordered_by" varchar,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -613,11 +615,11 @@ ALTER TABLE "parcels" ADD CONSTRAINT "parcels_customer_id_contacts_id_fk" FOREIG
 ALTER TABLE "featured_products" ADD CONSTRAINT "featured_products_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "flash_sale_products" ADD CONSTRAINT "flash_sale_products_flash_sale_id_flash_sales_id_fk" FOREIGN KEY ("flash_sale_id") REFERENCES "public"."flash_sales"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "flash_sale_products" ADD CONSTRAINT "flash_sale_products_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ecom_order_items" ADD CONSTRAINT "ecom_order_items_order_id_ecom_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."ecom_orders"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ecom_order_items" ADD CONSTRAINT "ecom_order_items_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ecom_order_items" ADD CONSTRAINT "ecom_order_items_variant_id_variants_id_fk" FOREIGN KEY ("variant_id") REFERENCES "public"."variants"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ecom_orders" ADD CONSTRAINT "ecom_orders_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ecom_orders" ADD CONSTRAINT "ecom_orders_sale_id_sales_id_fk" FOREIGN KEY ("sale_id") REFERENCES "public"."sales"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "order_items" ADD CONSTRAINT "order_items_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "order_items" ADD CONSTRAINT "order_items_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "order_items" ADD CONSTRAINT "order_items_variant_id_variants_id_fk" FOREIGN KEY ("variant_id") REFERENCES "public"."variants"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "orders" ADD CONSTRAINT "orders_contact_id_contacts_id_fk" FOREIGN KEY ("contact_id") REFERENCES "public"."contacts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "orders" ADD CONSTRAINT "orders_sale_id_sales_id_fk" FOREIGN KEY ("sale_id") REFERENCES "public"."sales"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "transactions_account_idx" ON "transactions" USING btree ("account_id");--> statement-breakpoint
 CREATE INDEX "transactions_purchase_id_idx" ON "transactions" USING btree ("purchase_id");--> statement-breakpoint
 CREATE INDEX "transactions_purchase_return_id_idx" ON "transactions" USING btree ("purchase_return_id");--> statement-breakpoint
@@ -633,7 +635,6 @@ CREATE INDEX "sale_items_sale_id_idx" ON "sale_items" USING btree ("sale_id");--
 CREATE INDEX "sale_items_product_id_idx" ON "sale_items" USING btree ("product_id");--> statement-breakpoint
 CREATE INDEX "sale_items_batch_id_idx" ON "sale_items" USING btree ("batch_id");--> statement-breakpoint
 CREATE INDEX "contacts_name_idx" ON "contacts" USING btree ("name");--> statement-breakpoint
-CREATE INDEX "contacts_user_id_idx" ON "contacts" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "contacts_type_name_idx" ON "contacts" USING btree ("type","name");--> statement-breakpoint
 CREATE INDEX "variants_product_id_idx" ON "variants" USING btree ("product_id");--> statement-breakpoint
 CREATE INDEX "batches_product_idx" ON "batches" USING btree ("product_id");--> statement-breakpoint

@@ -369,6 +369,38 @@ export default class ProductService {
     return await ProductRepository.increaseVariantStock(variantID, qty, tx);
   }
 
+  static async increaseProductReservedStock(
+    productID: number,
+    qty: number,
+    tx?: QueryClient,
+  ) {
+    return await ProductRepository.increaseProductReservedStock(productID, qty, tx);
+  }
+
+  static async decreaseProductReservedStock(
+    productID: number,
+    qty: number,
+    tx?: QueryClient,
+  ) {
+    return await ProductRepository.decreaseProductReservedStock(productID, qty, tx);
+  }
+
+  static async increaseVariantReservedStock(
+    variantID: number,
+    qty: number,
+    tx?: QueryClient,
+  ) {
+    return await ProductRepository.increaseVariantReservedStock(variantID, qty, tx);
+  }
+
+  static async decreaseVariantReservedStock(
+    variantID: number,
+    qty: number,
+    tx?: QueryClient,
+  ) {
+    return await ProductRepository.decreaseVariantReservedStock(variantID, qty, tx);
+  }
+
   static async decreaseBatchStock(
     batchID: number,
     qty: number,

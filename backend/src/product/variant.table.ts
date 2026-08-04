@@ -27,13 +27,19 @@ export const variantTable = pgTable(
 
     productID: integer("product_id").notNull().references(() => productTable.id),
 
-    salePrice: numeric("sale_price", { mode: "number", precision: 12, scale: 2  }).default(0),
+    salePrice: numeric("sale_price", { mode: "number", precision: 12, scale: 2 }).default(0),
+
     discountPrice: numeric("discount_price", { mode: "number", precision: 12, scale: 2 }),
-    stock:numeric("stock", { mode: "number", precision: 12, scale: 2}).default(0),
+
+    stock: numeric("stock", { mode: "number", precision: 12, scale: 2 }).default(0),
+
+    reservedStock: numeric("reserved_stock", { mode: "number", precision: 12, scale: 3 }).default(0).notNull(),
+
     barcode: varchar("barcode", { length: 50 })
       .default(sql`'VAR-' || nextval('variant_barcode_seq')`)
       .notNull()
       .unique(),
+
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })
@@ -72,7 +78,7 @@ export const variantRelations = relations(variantTable, ({ one, many }) => ({
     references: [productTable.id],
   }),
   batches: many(batchTable),
-  saleItems:many(saleItemsTable)
+  saleItems: many(saleItemsTable)
 }));
 
 

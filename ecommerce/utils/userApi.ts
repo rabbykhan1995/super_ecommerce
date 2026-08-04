@@ -26,6 +26,15 @@ export async function updateProfile(payload: {
   return res.data.data;
 }
 
+export async function checkoutMobile(payload: {
+  name: string;
+  mobile?: string;
+  address?: string;
+}) {
+  const res = await api.post<ApiResponse<UserProfile>>("/auth/checkout-mobile", payload);
+  return res.data.data;
+}
+
 export async function changePassword(payload: {
   currentPassword: string;
   newPassword: string;

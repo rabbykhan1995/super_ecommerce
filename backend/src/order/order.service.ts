@@ -1,39 +1,51 @@
-import { CreateOrderInput, OrderStatus } from "./order.type";
+import { CheckoutOrderInput, CreateOrderInput, OrderStatus } from "./order.type";
 import { ApiError } from "../../utils/ApiError";
 import { OrderRepository } from "./order.repository";
 import { withTransaction } from "../../utils/withTransaction";
 import { QueryClient } from "../../drizzle/src";
 import stripe from "../../config/stripe.config";
 import Stripe from "stripe";
-import SaleRepository from "../sale/sale.repository";
-import { variantTable } from "../product/variant.table";
-import { productTable } from "../product/product.table";
-import { eq, sql } from "drizzle-orm";
 import ProductService from "../product/product.service";
 import CartService from "../cart/cart.service";
+import { Contact } from "../contact/contact.type";
+import ContactService from "../contact/contact.service";
 
 export class OrderService {
-
-    static async createOrder(userID: string, input: CreateOrderInput) {
+    static async checkoutOrder(userID: string, input: CheckoutOrderInput) {
         return await withTransaction(async (tx: QueryClient) => {
+
+            const contact: Contact = await ContactService.findOne({ userID: userID }, tx);
+
+            if (!contact) {
+                throw new ApiError(400, "Contact Required");
+            }
+
             const cartItems = await CartService.getCart(userID, tx);
+
             if (!cartItems || cartItems.length === 0) {
                 throw new ApiError(400, "Cart is empty");
             }
 
             let subtotal = 0;
+
             let totalDiscount = 0;
+
             const orderItemsData: any[] = [];
 
             for (const item of cartItems) {
+
                 const variant = await ProductService.findVariantByID(item.variantID, tx);
+
                 if (!variant) throw new ApiError(400, `Variant not found for item: ${item.name}`);
-                if (variant.stock! < item.quantity) {
+
+                if ((variant.stock!- (variant.reservedStock??0)) < item.quantity) {
                     throw new ApiError(400, `Insufficient stock for ${item.name}`);
                 }
 
                 const salePrice = variant.salePrice as number;
+
                 let effectivePrice = salePrice;
+
                 if (
                     variant.discountPrice != null &&
                     (variant.discountPrice as number) > 0 &&
@@ -43,19 +55,17 @@ export class OrderService {
                 }
 
                 const lineTotal = effectivePrice * item.quantity;
+
                 const lineDiscount = (salePrice - effectivePrice) * item.quantity;
 
                 subtotal += lineTotal;
+
                 totalDiscount += lineDiscount;
 
                 orderItemsData.push({
                     productID: item.productID,
                     variantID: item.variantID,
-                    productName: item.name,
-                    variantAttrs: item.attributes,
-                    thumbnail: item.thumbnail,
                     salePrice,
-                    discountPrice: effectivePrice !== salePrice ? effectivePrice : null,
                     quantity: item.quantity,
                     lineTotal,
                 });
@@ -64,7 +74,7 @@ export class OrderService {
             const totalAmount = subtotal;
 
             const order = await OrderRepository.createOrder({
-                userID,
+                contactID: contact.id,
                 status: "Pending",
                 subtotal,
                 shippingCost: 0,
@@ -88,9 +98,9 @@ export class OrderService {
             }
 
             for (const item of cartItems) {
-                await ProductService.decreaseVariantStock(item.variantID, item.quantity, tx);
-                await ProductService.decreaseProductStock(item.productID, item.quantity, tx);
                 await CartService.removeItem(userID, item.id, tx);
+                await ProductService.increaseVariantReservedStock(item.variantID, item.quantity, tx);
+                await ProductService.increaseProductReservedStock(item.productID, item.quantity, tx);
             }
 
             if (input.paymentMethod === "stripe") {
@@ -100,6 +110,94 @@ export class OrderService {
             }
 
             return { orderId: order.id, message: "Order placed successfully" };
+        });
+    }
+
+    static async createOrder(input: CreateOrderInput) {
+        return await withTransaction(async (tx: QueryClient) => {
+            const items = input.items;
+
+            let subtotal = 0;
+            let totalDiscount = 0;
+            const orderItemsData: any[] = [];
+
+            for (const item of items) {
+
+                const variant = await ProductService.findVariantByID(item.variantID, tx);
+
+                if (!variant) {
+                    throw new ApiError(400, `variant not found`);
+                }
+
+                if (variant.stock! - (variant.reservedStock??0) < item.quantity) {
+                    throw new ApiError(400, `Insufficient stock`);
+                }
+
+                const salePrice = variant.salePrice as number;
+
+                let effectivePrice = salePrice;
+
+                if (
+                    variant.discountPrice != null &&
+                    (variant.discountPrice as number) > 0 &&
+                    (variant.discountPrice as number) < salePrice
+                ) {
+                    effectivePrice = variant.discountPrice as number;
+                }
+
+                const lineTotal = effectivePrice * item.quantity;
+
+                const lineDiscount = (salePrice - effectivePrice) * item.quantity;
+
+                subtotal += lineTotal;
+
+                totalDiscount += lineDiscount;
+
+                orderItemsData.push({
+                    productID: item.productID,
+                    variantID: item.variantID,
+                    productName: item.productName,
+                    variantAttrs: item.variantAttrs || null,
+                    thumbnail: item.thumbnail || null,
+                    salePrice,
+                    discountPrice: effectivePrice !== salePrice ? effectivePrice : null,
+                    quantity: item.quantity,
+                    lineTotal,
+                });
+            }
+
+            const totalAmount = subtotal;
+
+            const order = await OrderRepository.createOrder({
+                contactID: input.contactID,
+                status: "Pending",
+                subtotal,
+                shippingCost: 0,
+                discount: totalDiscount,
+                totalAmount,
+                paymentMethod: input.paymentMethod || null,
+                paymentStatus: "unpaid",
+                shippingName: input.shippingName,
+                shippingPhone: input.shippingPhone,
+                shippingAddress: input.shippingAddress,
+                shippingCity: input.shippingCity || null,
+                shippingArea: input.shippingArea || null,
+                note: input.note || null,
+                orderFrom: input.orderFrom || "Manual",
+                orderedBy: input.orderedBy || null,
+            }, tx);
+
+            for (const itemData of orderItemsData) {
+                await OrderRepository.createOrderItem({
+                    orderID: order.id,
+                    ...itemData,
+                }, tx);
+
+                await ProductService.increaseVariantReservedStock(itemData.variantID, itemData.quantity, tx);
+                await ProductService.increaseProductReservedStock(itemData.productID, itemData.quantity, tx);
+            }
+
+            return { orderId: order.id, message: "Order created successfully" };
         });
     }
 
@@ -126,6 +224,7 @@ export class OrderService {
     }
 
     static async handleStripeWebhook(event: Stripe.Event) {
+        // ar jodi completed hoi payment
         if (event.type === "checkout.session.completed") {
             const session = event.data.object as Stripe.Checkout.Session;
             const stripeSessionID = session.id;
@@ -134,28 +233,14 @@ export class OrderService {
             const order = await OrderRepository.findOrderByStripeSessionID(stripeSessionID);
             if (!order || order.saleID) return;
 
-            const sale = await SaleRepository.create({
-                totalProductPrice: order.subtotal,
-                totalAmount: order.totalAmount,
-                paid: order.totalAmount,
-                discount: order.discount,
-                exchangeAmount: 0,
-                otherCost: 0,
-                balanceBefore: 0,
-                balanceAfter: 0,
-                saleDate: new Date(),
-                note: `Ecom order: #${order.id}`,
-            });
-
             await OrderRepository.updateOrderByID(order.id, {
-                saleID: sale.id,
                 status: "Confirmed",
                 paymentStatus: "paid",
                 paidAt: new Date(),
                 stripePaymentIntent: session.payment_intent as string || null,
             });
         }
-
+        //    jodi stripe er session expired hoi
         if (event.type === "checkout.session.expired") {
             const session = event.data.object as Stripe.Checkout.Session;
             const stripeSessionID = session.id;
@@ -164,24 +249,15 @@ export class OrderService {
             const order = await OrderRepository.findOrderByStripeSessionID(stripeSessionID);
             if (!order) return;
 
-            await OrderRepository.updateOrderByID(order.id, { status: "Cancelled" });
-
-            for (const item of order.items) {
-                const currentVariant = await OrderRepository.findVariantByID(item.variantID);
-                if (currentVariant) {
-                    await withTransaction(async (tx: QueryClient) => {
-                        await tx.update(variantTable).set({
-                            stock: currentVariant.stock! + item.quantity,
-                        } as any).where(eq(variantTable.id, item.variantID));
-                        await tx.update(productTable).set({
-                            stock: sql`stock + ${item.quantity}`,
-                            totalSold: sql`total_sold - ${item.quantity}`,
-                        } as any).where(eq(productTable.id, item.productID));
-                    });
+            await withTransaction(async (tx: QueryClient) => {
+                for (const item of order.items) {
+                    await ProductService.decreaseVariantReservedStock(item.variantID, item.quantity, tx);
+                    await ProductService.decreaseProductReservedStock(item.productID, item.quantity, tx);
                 }
-            }
+                await OrderRepository.deleteOrderByID(order.id, tx);
+            });
         }
-
+        // jodi refuned hoi
         if (event.type === "charge.refunded") {
             const charge = event.data.object as Stripe.Charge;
             const paymentIntent = charge.payment_intent as string;
@@ -195,18 +271,20 @@ export class OrderService {
     }
 
     static async confirmOrderSuccess(userID: string, sessionID?: string, orderId?: number) {
+        const contact = await ContactService.findOne({ userID });
+        if (!contact) throw new ApiError(404, "Contact not found");
+
         if (sessionID) {
-            const session = await stripe.checkout.sessions.retrieve(sessionID);
             const order = await OrderRepository.findOrderByStripeSessionID(sessionID);
             if (!order) throw new ApiError(404, "Order not found");
-            if (order.userID !== userID) throw new ApiError(403, "Forbidden");
+            if (order.contactID !== contact.id) throw new ApiError(403, "Forbidden");
             return order;
         }
 
         if (orderId) {
             const order = await OrderRepository.findOrderByID(orderId);
             if (!order) throw new ApiError(404, "Order not found");
-            if (order.userID !== userID) throw new ApiError(403, "Forbidden");
+            if (order.contactID !== contact.id) throw new ApiError(403, "Forbidden");
             return order;
         }
 
@@ -214,24 +292,37 @@ export class OrderService {
     }
 
     static async getMyOrders(userID: string, page = 1, limit = 10) {
-        return await OrderRepository.listOrdersByUser(userID, page, limit);
+
+        const contact = await ContactService.findOne({ userID });
+
+        return await OrderRepository.listOrdersByUser(contact.id, page, limit);
     }
 
-    static async allOrders(page = 1, limit = 10, status?:OrderStatus) {
+    static async allOrders(page = 1, limit = 10, status?: OrderStatus) {
         return await OrderRepository.allOrders(page, limit, status);
     }
 
     static async getMyOrderDetail(userID: string, orderId: number) {
+        const contact = await ContactService.findOne({ userID });
+        if (!contact) throw new ApiError(404, "Contact not found");
+
         const order = await OrderRepository.findOrderByID(orderId);
         if (!order) throw new ApiError(404, "Order not found");
-        if (order.userID !== userID) throw new ApiError(403, "Forbidden");
+        if (order.contactID !== contact.id) throw new ApiError(403, "Forbidden");
         return order;
     }
 
     static async cancelOrder(userID: string, orderId: number) {
         const order = await OrderRepository.findOrderByID(orderId);
         if (!order) throw new ApiError(404, "Order not found");
-        if (order.userID !== userID) throw new ApiError(403, "Forbidden");
+
+        const contact = await ContactService.findOne({ userID });
+
+        if (!contact) {
+            throw new ApiError(403, "Forbidden");
+        }
+
+        if (order.contactID !== contact.id) throw new ApiError(403, "Forbidden");
         if (order.status !== "Pending") {
             throw new ApiError(400, "Only pending orders can be cancelled");
         }
@@ -240,16 +331,8 @@ export class OrderService {
             await OrderRepository.updateOrderByID(order.id, { status: "Cancelled" }, tx);
 
             for (const item of order.items) {
-                const currentVariant = await OrderRepository.findVariantByID(item.variantID, tx);
-                if (currentVariant) {
-                    await tx.update(variantTable).set({
-                        stock: currentVariant.stock! + item.quantity,
-                    } as any).where(eq(variantTable.id, item.variantID));
-                    await tx.update(productTable).set({
-                        stock: sql`stock + ${item.quantity}`,
-                        totalSold: sql`total_sold - ${item.quantity}`,
-                    } as any).where(eq(productTable.id, item.productID));
-                }
+                await ProductService.decreaseVariantReservedStock(item.variantID, item.quantity, tx);
+                await ProductService.decreaseProductReservedStock(item.productID, item.quantity, tx);
             }
         });
 
@@ -290,30 +373,4 @@ export class OrderService {
         return { message: `Order status updated to ${status}` };
     }
 
-    static async createSaleForCodOrder(orderId: number) {
-        const order = await OrderRepository.findOrderByID(orderId);
-        if (!order) throw new ApiError(404, "Order not found");
-        if (!["Pending", "Confirmed", "Delivered"].includes(order.status)) {
-            throw new ApiError(400, "Order must be pending, confirmed or delivered");
-        }
-        if (order.saleID) {
-            throw new ApiError(400, "Sale already exists for this order");
-        }
-
-        const sale = await SaleRepository.create({
-            totalProductPrice: order.subtotal,
-            totalAmount: order.totalAmount,
-            paid: order.status === "Delivered" ? order.totalAmount : 0,
-            discount: order.discount,
-            exchangeAmount: 0,
-            otherCost: 0,
-            balanceBefore: 0,
-            balanceAfter: 0,
-            saleDate: new Date(),
-            note: `Ecom order (COD): #${order.id}`,
-        });
-
-        await OrderRepository.updateOrderByID(order.id, { saleID: sale.id });
-        return { message: "Sale created for COD order", saleID: sale.id };
-    }
 }

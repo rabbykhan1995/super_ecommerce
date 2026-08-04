@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import db from "../../drizzle/src";
 import {
   permissions,
@@ -8,8 +9,8 @@ import {
 import Helper from "../../utils/helper";
 import { PERMISSIONS_LIST } from "./seed-permissions";
 
-const ADMIN_EMAIL = "rabbykhan082020@gmail.com";
-const ADMIN_PASSWORD = "abrar12345";
+const ADMIN_EMAIL = "admin@gmail.com";
+const ADMIN_PASSWORD = "admin123";
 const ADMIN_NAME = "Super Admin";
 const SUPER_ADMIN_ROLE = "Super Admin";
 
@@ -46,37 +47,46 @@ async function seed() {
       console.log(`Super Admin role already exists: ${roleId}`);
     }
 
-    // 3. Create admin user
+    // 3. Create or update admin user
     const hashedPassword = await Helper.hashPassword(ADMIN_PASSWORD);
 
-    const [user] = await db
-      .insert(userTable)
-      .values({
-        name: ADMIN_NAME,
-        email: ADMIN_EMAIL,
-        password: hashedPassword,
-      })
-      .onConflictDoNothing({ target: userTable.email })
-      .returning();
+    const existingUser = await db.query.userTable.findFirst({
+      where: (u, { eq }) => eq(u.email, ADMIN_EMAIL),
+    });
 
     let userId: string;
-    if (user) {
-      userId = user.id;
-      console.log(`Admin user created: ${userId}`);
+    if (existingUser) {
+      userId = existingUser.id;
+      await db
+        .update(userTable)
+        .set({ password: hashedPassword, name: ADMIN_NAME })
+        .where(eq(userTable.email, ADMIN_EMAIL));
+      console.log(`Admin user updated: ${userId}`);
     } else {
-      const existing = await db.query.userTable.findFirst({
-        where: (u, { eq }) => eq(u.email, ADMIN_EMAIL),
-      });
-      userId = existing!.id;
-      console.log(`Admin user already exists: ${userId}`);
+      const [user] = await db
+        .insert(userTable)
+        .values({
+          name: ADMIN_NAME,
+          email: ADMIN_EMAIL,
+          password: hashedPassword,
+        })
+        .returning();
+      userId = user!.id;
+      console.log(`Admin user created: ${userId}`);
     }
 
     // 4. Assign role to user
-    await db
-      .insert(userRoles)
-      .values({ userID: userId, roleId })
-      .onConflictDoNothing();
-    console.log("Super Admin role assigned to user.");
+    const existingUserRole = await db.query.userRoles.findFirst({
+      where: (ur, { and, eq }) =>
+        and(eq(ur.userID, userId), eq(ur.roleId, roleId)),
+    });
+
+    if (!existingUserRole) {
+      await db.insert(userRoles).values({ userID: userId, roleId });
+      console.log("Super Admin role assigned to user.");
+    } else {
+      console.log("Super Admin role already assigned to user.");
+    }
 
     console.log("\n--- Done ---");
     console.log(`Email: ${ADMIN_EMAIL}`);

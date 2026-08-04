@@ -41,6 +41,7 @@
     "build": "bun tsc",
     "start": "bun index.js",
     "dev": "bun --watch index.ts",
-    "seed:admin": "bun run src/admin/seed-super-admin.ts"
+    "seed:admin": "bun run src/admin/seed-super-admin.ts",
+    "seed:permissions": "bun run src/admin/seed-permissions.ts"
   }
 }

@@ -16,6 +16,7 @@ import { saleTable } from "../sale/sale.table";
 import { saleReturnTable } from "../sale_return/sale_return.table";
 import { ledgerTable } from "../ledger/ledger.table";
 import { userTable } from "../auth/auth.table";
+import { orderTable } from "../order/order.table";
 
 // ১. টাইপের জন্য pgEnum ডিফাইন করা (Mongoose enum-এর বিকল্প)
 export const contactTypeEnum = pgEnum("contact_type", ["customer", "supplier", "both"]);
@@ -24,7 +25,7 @@ export const contactTable = pgTable(
   "contacts",
   {
     id: serial("id").primaryKey(),
-    userID: uuid('user_id').references(() => userTable.id, {
+    userID: uuid('user_id').unique().references(() => userTable.id, {
       onDelete: "cascade",
     }),
     name: varchar("name", { length: 150 }).notNull(),
@@ -53,7 +54,6 @@ export const contactTable = pgTable(
   (table) => [
     // মঙ্গুসের মতো ইন্ডেক্সিং
     index("contacts_name_idx").on(table.name),
-    index("contacts_user_id_idx").on(table.userID),
     // কম্পাউন্ড ইন্ডেক্স (type + name একসাথে ফিল্টার ও সার্চ ফাস্ট করার জন্য)
     index("contacts_type_name_idx").on(table.type, table.name),
   ]
@@ -70,5 +70,5 @@ export const contactRelations = relations(contactTable, ({ one,many }) => ({
   sales: many(saleTable),
   saleReturns: many(saleReturnTable),
   ledgers: many(ledgerTable),
-
+  orders:many(orderTable)
 }));

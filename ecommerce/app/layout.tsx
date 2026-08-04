@@ -10,6 +10,7 @@ import NavbarDestop from "@/components/Head&Foot/NavbarDestop";
 import MobileNavigation from "@/components/Head&Foot/MobileNavigation";
 import CartSlider from "@/components/Sliders/CartSlider";
 import VariantModal from "@/components/Modals/VariantModal";
+import UpdateProfileModal from "@/components/Modals/UpdateProfileModal";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -72,6 +73,7 @@ export default function RootLayout({
           }}
         />
         <VariantModal />
+        <UpdateProfileModal />
         <FullScreenLoader />
         <InitialStarter />
         <div >

@@ -14,6 +14,8 @@ import Table from "../../components/tables/Table";
 import { useSignal } from "@preact/signals-react";
 import { useSignals } from "@preact/signals-react/runtime";
 import { createSaleQuotationSchema } from "../../validators/quotation.validator";
+import IncrDecrButton from "../../components/buttons/IncrDecrButton";
+import Helper from "../../utils/helper";
 
 
 export default function NewSaleQuotation() {
@@ -43,7 +45,7 @@ export default function NewSaleQuotation() {
     const [note, setNote] = useState<string | null>("");
 
 
-    const fetchProducts = async () => {
+  const fetchProducts = async () => {
         const res = await api("/product/variant-list", {
             params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
         });
@@ -85,6 +87,7 @@ export default function NewSaleQuotation() {
     };
 
     const handleAddProduct = async (p: SelectOption<VariantListItem>) => {
+        
         if (!p.product.manageStock) {
             const existing = selectedProducts.value.find(
                 product => product.id === p.id
@@ -108,7 +111,7 @@ export default function NewSaleQuotation() {
                     selectedSerials: [],
                     batches: [],
                     selectedBatch: null,
-                    salePrice: p.salePrice
+                    salePrice:p.salePrice
                 }];
             }
 
@@ -126,6 +129,8 @@ export default function NewSaleQuotation() {
             if (product?.serials.length === 0) {
                 return toast.error("No Serial Available");
             }
+            product.salePrice = p.salePrice;
+            product.productID = p.productID;
             return selectedProducts.value = [...selectedProducts.value, product];
         }
 
@@ -180,10 +185,10 @@ export default function NewSaleQuotation() {
                     selectedBatch: availableBatches[0],
                     purchaseID: availableBatches[0].purchaseID,
                     purchasePrice: availableBatches[0].purchasePrice,
-                    salePrice: availableBatches[0].salePrice,
                     soldQty: 1,
                     batches: availableBatches, // ✅ শুধু available batches
                     selectedSerials: [],
+                    salePrice:p.salePrice
                 };
 
                 selectedProducts.value = [...selectedProducts.value, newEntry];
@@ -197,12 +202,14 @@ export default function NewSaleQuotation() {
                 return toast.error("No Stock Available");
             }
 
+            product.salePrice = p.salePrice;
+            product.productID = p.productID;
             selectedProducts.value = [...selectedProducts.value, product];
         }
     };
 
 
-    const selectSerial = (selectedSerials: SelectOption<Batch>[] | null, idx: number) => {
+     const selectSerial = (selectedSerials: SelectOption<Batch>[] | null, idx: number) => {
 
         if (!selectedSerials || selectedSerials.length === 0) {
             // Clear selection
@@ -235,8 +242,7 @@ export default function NewSaleQuotation() {
                 purchaseID: latest.purchaseID,
                 selectedSerials,
                 soldQty: selectedSerials.length,
-                purchasePrice: latest.purchasePrice,
-                salePrice: latest.salePrice,
+                purchasePrice: latest.cost,
                 warranty: latest.warranty || 0,
             };
             selectedProducts.value = updated;
@@ -273,15 +279,14 @@ export default function NewSaleQuotation() {
             serials: remainingSerials,
             selectedSerials: [latest],
             soldQty: 1,
-            purchasePrice: latest.purchasePrice,
-            salePrice: latest.salePrice,
+            purchasePrice: latest.cost,
             warranty: latest.warranty || 0,
         };
 
         selectedProducts.value = [...updated, newProduct];
     };
 
-    const selectBatch = (selectedBatch: SelectOption<Batch> | null, productId: number, currentIndex: number) => {
+    const selectBatch = (selectedBatch: SelectOption<Batch> | null, variantID: number, currentIndex: number) => {
         if (!selectedBatch) {
             selectedProducts.value = selectedProducts.value.map((product, idx) =>
                 idx === currentIndex
@@ -299,7 +304,7 @@ export default function NewSaleQuotation() {
 
             // ✅ Collect all already selected batch IDs from all rows of this product
             const alreadySelectedBatchIds = selectedProducts.value
-                .filter(p => p.id === productId)
+                .filter(p => p.id === variantID)
                 .map(p => p.selectedBatch?.id)
                 .filter(Boolean) as number[];
 
@@ -318,7 +323,6 @@ export default function NewSaleQuotation() {
                 selectedBatch,
                 purchaseID: selectedBatch.purchaseID,
                 purchasePrice: selectedBatch.purchasePrice,
-                salePrice: selectedBatch.salePrice,
                 batches: availableBatches, // ✅ শুধু available batches
             };
 
@@ -349,12 +353,12 @@ export default function NewSaleQuotation() {
                     ...product,
                     selectedBatch,
                     purchaseID: selectedBatch.purchaseID,
-                    purchasePrice: selectedBatch.purchasePrice,
-                    salePrice: selectedBatch.salePrice,
+                    purchasePrice: selectedBatch.cost,
                 }
                 : product
         );
     };
+
 
     useEffect(() => {
         Promise.all([fetchProducts(), fetchContacts()]);
@@ -548,7 +552,7 @@ export default function NewSaleQuotation() {
                     </div>
                 </div>
             </div>
-            {/* Table */}
+                {/* Table */}
             <Table
                 data={selectedProducts.value}
                 keyExtractor={(row, i) => `${row.id}-${i}`}
@@ -688,50 +692,27 @@ export default function NewSaleQuotation() {
                         className: "text-center",
                         headerClassName: "text-center",
                         accessor: (row, i) => (
-                            <input
-                                type="number"
-                                value={row.soldQty === 0 ? "" : row.soldQty}
-                                onChange={(e) => {
-                                    const value = e.target.value;
 
-                                    // empty হলে 0
-                                    if (value === "") {
-                                        handleProductChange(i as number, "soldQty", 0);
-                                        return;
-                                    }
+                            row.manageWarranty ?
+                                <input
+                                    type="number"
+                                    value={row.soldQty === 0 ? "" : row.soldQty}
+                                    disabled={row.manageWarranty}
+                                    className="global_input text-center w-10"
+                                /> :
 
-                                    const numValue = Number(value);
+                                <div className="flex justify-center">
+                                    <IncrDecrButton
+                                        currentQty={row.soldQty}
+                                        min={row.decimal ? 0.01 : 1}
+                                        max={row.manageStock ? row.selectedBatch?.remainingQty : Infinity}
+                                        decimal={row.decimal}
+                                        onChange={(value) =>
+                                            handleProductChange(i as number, "soldQty", value)
+                                        }
 
-                                    // invalid number ignore
-                                    if (isNaN(numValue)) return;
-
-                                    // decimal false হলে fractional allow না
-                                    if (!row.decimal && !Number.isInteger(numValue)) {
-                                        return;
-                                    }
-
-                                    // manage stock true হলে remainingQty এর বেশি allow না
-                                    if (
-                                        row.manageStock &&
-                                        row.selectedBatch &&
-                                        numValue > row.selectedBatch.remainingQty
-                                    ) {
-                                        toast.error("You can not increase qty over stock")
-                                        return handleProductChange(i as number, "soldQty", row.selectedBatch.remainingQty);
-                                    }
-
-                                    handleProductChange(i as number, "soldQty", numValue);
-                                }}
-                                onKeyDown={(e) => {
-                                    // ✅ decimal false hole dot/comma block করো
-                                    if (!row.decimal && (e.key === '.' || e.key === ',')) {
-                                        e.preventDefault();
-                                    }
-                                }}
-                                step={row.decimal ? "0.01" : "1"} // ✅ decimal true hole 0.01 step
-                                disabled={row.manageWarranty}
-                                className="global_input text-center w-20"
-                            />
+                                    />
+                                </div>
                         ),
                     },
                     // Total
@@ -740,7 +721,7 @@ export default function NewSaleQuotation() {
                         className: "text-center",
                         headerClassName: "text-center",
                         accessor: (row) => (
-                            <span>{(row.salePrice * row.soldQty).toFixed(2)}</span>
+                            <span>{Helper.formatLongNumber(row.salePrice * row.soldQty)}</span>
                         ),
                     },
                     // Action
@@ -854,14 +835,14 @@ export default function NewSaleQuotation() {
                         </div>
                     )}
 
-
+    <button type="button" className="global_button w-full" onClick={createQuotation}>Create</button>
                 </div>
             </div>
 
 
 
             <div>
-                <button type="button" className="global_button" onClick={createQuotation}>Create</button>
+            
             </div>
 
         </div>

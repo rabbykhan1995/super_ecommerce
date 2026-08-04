@@ -702,6 +702,70 @@ static async ecomProductList(query: EcomProductQuery) {
     return variant ?? null;
   }
 
+  static async increaseProductReservedStock(
+    productID: number,
+    qty: number,
+    client: QueryClient = db,
+  ): Promise<Product | null> {
+    const [product] = await client
+      .update(productTable)
+      .set({
+        reservedStock: sql`${productTable.reservedStock} + ${qty}`,
+      })
+      .where(eq(productTable.id, productID))
+      .returning();
+
+    return product ?? null;
+  }
+
+  static async decreaseProductReservedStock(
+    productID: number,
+    qty: number,
+    client: QueryClient = db,
+  ): Promise<Product | null> {
+    const [product] = await client
+      .update(productTable)
+      .set({
+        reservedStock: sql`${productTable.reservedStock} - ${qty}`,
+      })
+      .where(eq(productTable.id, productID))
+      .returning();
+
+    return product ?? null;
+  }
+
+  static async increaseVariantReservedStock(
+    variantID: number,
+    qty: number,
+    client: QueryClient = db,
+  ): Promise<Variant | null> {
+    const [variant] = await client
+      .update(variantTable)
+      .set({
+        reservedStock: sql`${variantTable.reservedStock} + ${qty}`,
+      })
+      .where(eq(variantTable.id, variantID))
+      .returning();
+
+    return variant ?? null;
+  }
+
+  static async decreaseVariantReservedStock(
+    variantID: number,
+    qty: number,
+    client: QueryClient = db,
+  ): Promise<Variant | null> {
+    const [variant] = await client
+      .update(variantTable)
+      .set({
+        reservedStock: sql`${variantTable.reservedStock} - ${qty}`,
+      })
+      .where(eq(variantTable.id, variantID))
+      .returning();
+
+    return variant ?? null;
+  }
+
   static async increaseBatchStock(
     batchID: number,
     qty: number,

@@ -2,11 +2,16 @@
 
 import { cartStore } from "@/zustand/cart.store";
 import { userStore } from "@/zustand/user.store";
+import useOpenCloseState from "@/zustand/openclose.store";
 import { useEffect } from "react";
 
 const InitialStarter = () => {
   const fetchUser = userStore((s) => s.fetchUser);
   const fetchCart = cartStore((s) => s.fetchCart);
+  const user = userStore((s) => s.user);
+  const setUpdateProfileModalOpen = useOpenCloseState(
+    (s) => s.setUpdateProfileModalOpen
+  );
 
   useEffect(() => {
 
@@ -23,6 +28,12 @@ const InitialStarter = () => {
     window.addEventListener("wheel", handleWheel, { passive: true });
     return () => window.removeEventListener("wheel", handleWheel);
   }, []);
+
+  useEffect(() => {
+    if (user && !user.mobile) {
+      setUpdateProfileModalOpen(true);
+    }
+  }, [user, setUpdateProfileModalOpen]);
 
   return null;
 };

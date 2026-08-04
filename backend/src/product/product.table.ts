@@ -55,6 +55,8 @@ export const productTable = pgTable(
 
     stock: numeric("stock", { mode: "number", precision: 12, scale: 3 }).default(0).notNull(),
 
+    reservedStock: numeric("reserved_stock", { mode: "number", precision: 12, scale: 3 }).default(0).notNull(),
+
     totalSold: numeric("total_sold").default("0").notNull(),
 
     alertQty: numeric("alert_qty", {

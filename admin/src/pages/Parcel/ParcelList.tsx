@@ -63,23 +63,16 @@ export default function ParcelList() {
   };
 
   const handleDelete = async (id: number) => {
-    toast("Are you sure you want to delete this parcel?", {
-      action: {
-        label: "Delete",
-        onClick: async () => {
-          try {
-            const res = await api.delete(`/parcel/delete/${id}`);
-            if (res.data.success) {
-              toast.success("Parcel deleted successfully");
-              await fetchParcels();
-            }
-          } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to delete parcel");
-          }
-        },
-      },
-      cancel: { label: "Cancel", onClick: () => {} },
-    });
+    if (!window.confirm("Are you sure you want to delete this parcel?")) return;
+    try {
+      const res = await api.delete(`/parcel/delete/${id}`);
+      if (res.data.success) {
+        toast.success("Parcel deleted successfully");
+        await fetchParcels();
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to delete parcel");
+    }
   };
 
   return (

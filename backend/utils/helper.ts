@@ -8,7 +8,7 @@ import crypto from "crypto";
 import redis from "../config/redis.config";
 import PurchaseCounter from "../src/purchase/purchaseCounter.model";
 import dayjs from "dayjs";
-import { CreateSaleInput, Sale } from "../src/sale/sale.type";
+import { Sale } from "../src/sale/sale.type";
 import { Types } from "mongoose";
 
 const JWT_SECRET = process.env.JWT_SECRET;

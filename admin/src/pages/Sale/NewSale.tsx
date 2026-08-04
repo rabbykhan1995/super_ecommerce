@@ -1070,13 +1070,9 @@ export default function NewSale() {
                         selectedAccounts={selectedExchangeAccounts}
                         setSelectedAccounts={setSelectedExchangeAccounts}
                     />}
+                    <button type="button" className="global_button w-full" onClick={createSale}>Sale</button>
                 </div>
-            </div>
-
-
-
-            <div>
-                <button type="button" className="global_button" onClick={createSale}>Sale</button>
+                
             </div>
 
         </div>

@@ -22,7 +22,7 @@ router
   .post("/manual-login", validate(userLoginSchema), asyncHandler(AuthController.manualLogin))
   .post("/send-forget-password-otp", asyncHandler(AuthController.sendForgetPasswordOTP))
   .post("/reset-password", validate(passwordResetSchema), asyncHandler(AuthController.resetPassword))
-  .post("/checkout-mobile", validate(checkoutMobileSchema), asyncHandler(AuthController.checkOutMobile))
+  .post("/checkout-mobile",authMiddleware ,validate(checkoutMobileSchema), asyncHandler(AuthController.checkOutMobile))
 
 // ===========================
 // Customer Google OAuth

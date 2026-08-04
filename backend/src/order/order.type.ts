@@ -1,5 +1,6 @@
 import z from "zod";
 import {
+  checkoutOrderSchema,
   createOrderSchema,
   updateOrderStatusSchema,
 } from "./order.validator";
@@ -14,6 +15,8 @@ export type OrderStatus = typeof orderStatusEnum.enumValues[number];
 export type OrderItem = typeof import("./order.table").orderItemTable.$inferSelect;
 
 export type OrderItemPayload = typeof import("./order.table").orderItemTable.$inferInsert;
+
+export type CheckoutOrderInput = z.infer<typeof checkoutOrderSchema>;
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 

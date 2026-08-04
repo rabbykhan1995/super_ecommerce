@@ -8,7 +8,13 @@ export class OrderController {
     static async checkout(req: Request, res: Response) {
         const userID = (req as any).user!.id;
 
-        const result = await OrderService.createOrder(userID, req.body);
+        const result = await OrderService.checkoutOrder(userID, req.body);
+        res.status(201).json({ success: true, data: result });
+    }
+
+    static async createOrder(req: Request, res: Response) {
+        const result = await OrderService.createOrder(req.body);
+        
         res.status(201).json({ success: true, data: result });
     }
 
@@ -79,12 +85,6 @@ export class OrderController {
         const orderId = Number(req.params.id);
         const { status } = req.body;
         const result = await OrderService.updateOrderStatus(orderId, status);
-        return res.status(200).json({ success: true, ...result });
-    }
-
-    static async adminConfirmSale(req: Request, res: Response) {
-        const orderId = Number(req.params.id);
-        const result = await OrderService.createSaleForCodOrder(orderId);
         return res.status(200).json({ success: true, ...result });
     }
 

@@ -40,6 +40,7 @@ export class AuthRepository {
    ) {
       return client.query.userTable.findFirst({
          where: (users, { eq }) => eq(users.id, userID),
+         with:{contact:true}
       });
    }
 

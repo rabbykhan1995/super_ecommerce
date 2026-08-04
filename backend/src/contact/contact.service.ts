@@ -22,8 +22,9 @@ export default class ContactService {
       email: string;
       mobile: string;
     }>,
+    tx?:QueryClient
   ) {
-    return ContactRepository.findOne(where);
+    return ContactRepository.findOne(where,tx);
   }
 
     static async findByMobile(mobile: string): Promise<Contact> {

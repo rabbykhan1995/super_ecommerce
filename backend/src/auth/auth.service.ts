@@ -173,8 +173,6 @@ export class AuthService {
 
   }
 
-
-
   static async sendForgetPasswordOTP(email: string) {
 
     const user = await AuthRepository.findByEmail(email);
@@ -338,7 +336,7 @@ export class AuthService {
         email: googleUser.email,
         openID: googleUser.id,
         image: googleUser.picture,
-      })
+      });
     }
 
     if (user && !user.openID) {

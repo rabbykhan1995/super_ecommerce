@@ -1,5 +1,4 @@
 "use client";
-
 import Image from "next/image";
 import Helper from "@/helper/helper";
 import { CartItem } from "@/types/cart.types";
