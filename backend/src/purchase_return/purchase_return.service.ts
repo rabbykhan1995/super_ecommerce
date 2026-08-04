@@ -166,7 +166,7 @@ export default class PurchaseReturnService {
         purchaseReturnCreated.balanceAfter -
         purchaseReturnCreated.balanceBefore;
 
-      ContactService.decreaseBalance(supplier.id, amount, tx);
+      ContactService.updateBalance(supplier.id, amount, tx);
 
       const payableAmount: number =
         purchase.totalAmount - (purchase.balanceBefore || 0);
@@ -272,7 +272,7 @@ export default class PurchaseReturnService {
         purchaseReturn.balanceAfter - purchaseReturn.balanceBefore
       );
 
-      await ContactService.decreaseBalance(
+      await ContactService.updateBalance(
         purchaseReturn.supplierID,
         rollbackAmount,
         tx,

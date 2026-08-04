@@ -35,10 +35,16 @@ export async function checkoutMobile(payload: {
   return res.data.data;
 }
 
-export async function changePassword(payload: {
-  currentPassword: string;
-  newPassword: string;
+export async function sendPasswordResetOTP(email: string) {
+  const res = await api.post<ApiResponse<null>>("/auth/send-forget-password-otp", { email });
+  return res.data;
+}
+
+export async function resetPassword(payload: {
+  email: string;
+  otp: string;
+  password: string;
 }) {
-  const res = await api.post<ApiResponse<null>>("/auth/change-password", payload);
+  const res = await api.post<ApiResponse<{ token: string; user: UserProfile }>>("/auth/reset-password", payload);
   return res.data;
 }

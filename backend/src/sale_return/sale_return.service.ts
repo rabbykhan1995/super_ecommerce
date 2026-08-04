@@ -180,7 +180,7 @@ export default class SaleReturnService {
         const amount =
           saleReturnCreated.balanceAfter - saleReturnCreated.balanceBefore;
 
-        await ContactService.decreaseBalance(customer.id, amount, tx);
+        await ContactService.updateBalance(customer.id, amount, tx);
 
         const payableAmount: number =
           totalReturnAmount - (saleReturn.paid || 0);
@@ -299,7 +299,7 @@ export default class SaleReturnService {
           saleReturn.balanceAfter - saleReturn.balanceBefore
         );
 
-        await ContactService.decreaseBalance(
+        await ContactService.updateBalance(
           saleReturn.customerID!,
           rollbackAmount,
           tx,

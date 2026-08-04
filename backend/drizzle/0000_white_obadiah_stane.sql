@@ -6,6 +6,7 @@ CREATE TYPE "public"."stock_flow_type" AS ENUM('in', 'out');--> statement-breakp
 CREATE TYPE "public"."supplier_action" AS ENUM('repaired', 'replaced', 'rejected', 'refunded');--> statement-breakpoint
 CREATE TYPE "public"."warranty_status" AS ENUM('sold', 'claimed', 'sent_to_supplier', 'received_from_supplier', 'repaired', 'replaced', 'rejected', 'returned_to_customer', 'refunded');--> statement-breakpoint
 CREATE TYPE "public"."ledger_type" AS ENUM('sale', 'purchase', 'payment_in', 'payment_out', 'sale_return', 'purchase_return');--> statement-breakpoint
+CREATE TYPE "public"."parcel_status" AS ENUM('Packed', 'Shipped', 'Hold', 'Delivered', 'Returned', 'Cancelled');--> statement-breakpoint
 CREATE TYPE "public"."order_from" AS ENUM('Ecommerce', 'Manual');--> statement-breakpoint
 CREATE TYPE "public"."order_status" AS ENUM('Pending', 'Confirmed', 'Packed', 'Shipped', 'Hold', 'Returned', 'Cancelled', 'Delivered');--> statement-breakpoint
 CREATE SEQUENCE "public"."sale_invoice_no_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 100001 CACHE 1;--> statement-breakpoint

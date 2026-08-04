@@ -1,5 +1,5 @@
 {
-  "id": "afda1f13-361c-4ecb-866a-919d43e5466b",
+  "id": "756f5f0e-0aaa-4211-8875-723712328683",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -5406,6 +5406,18 @@
         "payment_out",
         "sale_return",
         "purchase_return"
+      ]
+    },
+    "public.parcel_status": {
+      "name": "parcel_status",
+      "schema": "public",
+      "values": [
+        "Packed",
+        "Shipped",
+        "Hold",
+        "Delivered",
+        "Returned",
+        "Cancelled"
       ]
     },
     "public.order_from": {

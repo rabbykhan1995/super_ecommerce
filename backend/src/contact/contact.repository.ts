@@ -113,7 +113,7 @@ export default class ContactRepository {
         });
     }
 
-    static async increaseBalance(
+    static async updateBalance(
         contactID: number,
         amount: number,
         client: QueryClient = db
@@ -122,22 +122,6 @@ export default class ContactRepository {
             .update(contactTable)
             .set({
                 balance: sql`${contactTable.balance} + ${amount}`,
-            })
-            .where(eq(contactTable.id, contactID))
-            .returning();
-
-        return contact ?? null;
-    }
-
-    static async decreaseBalance(
-        contactID: number,
-        amount: number,
-        client: QueryClient = db
-    ): Promise<Contact | null> {
-        const [contact] = await client
-            .update(contactTable)
-            .set({
-                balance: sql`${contactTable.balance} - ${amount}`,
             })
             .where(eq(contactTable.id, contactID))
             .returning();

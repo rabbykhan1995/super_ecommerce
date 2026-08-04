@@ -15,7 +15,7 @@ import {
 import { saleTable } from "../sale/sale.table";
 import { contactTable } from "../contact/contact.table";
 
-const parcelStatusEnum = pgEnum("parcel_status", [
+export const parcelStatusEnum = pgEnum("parcel_status", [
   "Packed","Shipped","Hold","Delivered","Returned","Cancelled"
 ]);
 

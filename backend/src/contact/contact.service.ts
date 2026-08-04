@@ -82,11 +82,8 @@ export default class ContactService {
         );
     }
 
-    static async increaseBalance(contactID: number, amount: number, tx?: QueryClient) {
-        return await ContactRepository.increaseBalance(contactID, amount, tx);
-    }
-    static async decreaseBalance(contactID: number, amount: number, tx?: QueryClient) {
-        return await ContactRepository.decreaseBalance(contactID, amount, tx);
+    static async updateBalance(contactID: number, amount: number, tx?: QueryClient) {
+        return await ContactRepository.updateBalance(contactID, amount, tx);
     }
 
 }

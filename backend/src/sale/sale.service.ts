@@ -170,7 +170,7 @@ export default class SaleService {
             // ledger
             if (customer) {
                 const amount = sale.balanceAfter - sale.balanceBefore;
-                await ContactService.increaseBalance(customer.id, amount, tx);
+                await ContactService.updateBalance(customer.id, amount, tx);
                 // Ekhane Transaction & Ledger er logic bosbe customer er...
                 const payableAmount: number = sale.totalAmount - (sale.balanceBefore || 0)
                 const ledgerPayload: LedgerPayload = {
@@ -309,7 +309,7 @@ export default class SaleService {
             // customer balance restore
             if (sale.customerID) {
                 const rollbackAmount = -(sale.balanceAfter - sale.balanceBefore)
-                await ContactService.increaseBalance(
+                await ContactService.updateBalance(
                     sale.customerID,
                     rollbackAmount,
                     tx
@@ -540,7 +540,7 @@ export default class SaleService {
             if (customer) {
                 const amount = sale.balanceAfter - sale.balanceBefore;
 
-                await ContactService.increaseBalance(customer.id, amount, tx);
+                await ContactService.updateBalance(customer.id, amount, tx);
 
                 // Ekhane Transaction & Ledger er logic bosbe customer er...
                 const payableAmount: number = sale.totalAmount - (sale.balanceBefore || 0)

@@ -315,7 +315,7 @@ export default function NewPurchase() {
             totalProductPrice,
             discount,
             exchangeAmount,
-            totalPayableAmount,
+            totalAmount: basePayable,
             note,
             purchaseDate,
             balanceBefore: selectedSupplier?.balance,
@@ -327,10 +327,9 @@ export default function NewPurchase() {
             amount: a.amount,
         }));
 
-        const exchangeAccounts = selectedExchangeAccounts.map(a => ({
-            accountID: a.value,
-            amount: a.amount,
-        }));
+        const exchangeAccounts = isExchanging
+            ? selectedExchangeAccounts.map(a => ({ accountID: a.value, amount: a.amount }))
+            : [];
 
         const products = selectedProducts.value.flatMap(p => {
             if (p.serials && p.serials.length > 0) {
