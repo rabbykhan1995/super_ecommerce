@@ -65,10 +65,6 @@ export const damageTable = pgTable(
       .defaultNow()
       .notNull(),
 
-    deletable: boolean("deletable")
-      .default(true)
-      .notNull(),
-
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })
@@ -80,6 +76,8 @@ export const damageTable = pgTable(
     })
       .defaultNow()
       .notNull(),
+    isDeleted: boolean("is_deleted").default(false).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
     index("damage_product_idx").on(table.productID),

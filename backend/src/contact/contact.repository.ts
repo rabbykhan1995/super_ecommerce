@@ -96,7 +96,7 @@ export default class ContactRepository {
         page?: number;
         limit?: number;
         search?: string;
-        type: ContactType;
+        type?: ContactType;
     }) {
 
         return paginateQuery({

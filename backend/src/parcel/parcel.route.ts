@@ -3,11 +3,13 @@ import { validate } from "../../middlewares/validation.middleware";
 import { asyncHandler } from "../../utils/asyncHandler";
 import {
   createParcelSchema,
+  createOrderPackSchema,
   updateParcelStatusSchema,
   updateParcelSchema,
 } from "./parcel.validator";
 import { ParcelController } from "./parcel.controller";
 import { authMiddleware } from "../../middlewares/auth.middleware";
+import { adminMiddleware } from "../../middlewares/admin.middleware";
 
 const router = express.Router();
 
@@ -17,6 +19,13 @@ router
     authMiddleware,
     validate(createParcelSchema),
     asyncHandler(ParcelController.create)
+  )
+  .post(
+    "/order-pack",
+    authMiddleware,
+    adminMiddleware,
+    validate(createOrderPackSchema),
+    asyncHandler(ParcelController.createOrderPack)
   )
   .get("/list", authMiddleware, asyncHandler(ParcelController.list))
   .get("/parcelByID/:id", authMiddleware, asyncHandler(ParcelController.getByID))

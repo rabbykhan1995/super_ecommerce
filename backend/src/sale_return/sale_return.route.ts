@@ -18,6 +18,8 @@ router
   )
   .get("/list", authMiddleware, asyncHandler(SaleReturnController.list))
   .get("/saleByID/:id", authMiddleware, asyncHandler(SaleReturnController.saleReturnByID))
+  .get("/product-by-id/:id", authMiddleware, asyncHandler(SaleReturnController.productByID))
   .delete('/delete/:id', authMiddleware, asyncHandler(SaleReturnController.delete))
+  .patch('/restore/:id', authMiddleware, asyncHandler(SaleReturnController.restore))
 
 export default router;

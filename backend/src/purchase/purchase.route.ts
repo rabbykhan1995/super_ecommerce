@@ -27,6 +27,7 @@ router
   .get("/list", authMiddleware, asyncHandler(PurchaseController.list))
   .get("/purchaseInvoiceByID/:id", authMiddleware, asyncHandler(PurchaseController.purchaseInvoiceByID))
   .delete('/delete/:id', authMiddleware, asyncHandler(PurchaseController.delete))
+  .patch('/restore/:id', authMiddleware, asyncHandler(PurchaseController.restore))
 
 
 export default router;

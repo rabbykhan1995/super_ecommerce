@@ -17,6 +17,7 @@ import { saleReturnTable } from "../sale_return/sale_return.table";
 import { ledgerTable } from "../ledger/ledger.table";
 import { userTable } from "../auth/auth.table";
 import { orderTable } from "../order/order.table";
+import { paymentTable } from "../payment/payment.table";
 
 // ১. টাইপের জন্য pgEnum ডিফাইন করা (Mongoose enum-এর বিকল্প)
 export const contactTypeEnum = pgEnum("contact_type", ["customer", "supplier", "both"]);
@@ -65,10 +66,11 @@ export const contactRelations = relations(contactTable, ({ one,many }) => ({
     fields: [contactTable.userID],
     references: [userTable.id],
   }),
-  purchases: many(purchaseTable), // একজন সাপ্লায়ারের অনেকগুলো পারচেজ থাকতে পারে
+  purchases: many(purchaseTable), // একজন সাপ্লায়ারের অনেকগুলো পারচেজ থাকতে পারে
   purchaseReturns: many(purchaseReturnTable),
   sales: many(saleTable),
   saleReturns: many(saleReturnTable),
   ledgers: many(ledgerTable),
-  orders:many(orderTable)
+  orders:many(orderTable),
+  payments: many(paymentTable),
 }));

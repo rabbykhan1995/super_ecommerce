@@ -19,7 +19,7 @@ export type Category = {
 };
 
 export type SelectOption<T = Record<string, unknown>> = {
-  value: string;
+  value:  string;
   label: string;
 } & T;
 
@@ -389,19 +389,28 @@ export type SaleReturnListItem = {
 
 export type LedgerListItem = {
   id: number;
-  type: string;
-  typeID: string;
+  type: "purchase" | "sale" | "purchase_return" | "sale_return" | "payment_in" | "payment_out";
+
+  saleID: number | null;
+  purchaseID: number | null;
+  saleReturnID: number | null;
+  purchaseReturnID: number | null;
+  paymentID: number | null;
+  contactID: number | null;
+
   amount: number;
-  dueAmount: number;
-  paidAmount: number;
-  date: Date;
-  createdAt: Date;
   discount: number;
-  note?: string;
-  typeModel: string;
-  contact: any;
+  paidAmount: number;
+  dueAmount: number;
+
   balanceBefore: number;
   balanceAfter: number;
+
+  note: string;
+
+  date: Date;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export const TRANSACTION_TYPES = [
@@ -429,7 +438,7 @@ export type TransactionListItem = {
   txNo: string;
   accountID: number;
   amount: number;
-  source: "sale" | "purchase" | "sale_return" | "purchase_return" | "expense" | "warranty" | "balance_transfer" | "deposit" | "withdraw";
+  source: "sale" | "purchase" | "sale_return" | "purchase_return" | "expense" | "warranty" | "balance_transfer" | "deposit" | "withdraw" | "payment";
   type: "credit" | "debit";
   saleID?: number;
   purchaseID?: number;
@@ -438,6 +447,7 @@ export type TransactionListItem = {
   balanceTransferID?: number;
   warrantyID?: number;
   expenseID?: number;
+  paymentID?: number;
   date: Date;
   account?: { id: number; name: string };
 };

@@ -13,7 +13,6 @@ import "react-datepicker/dist/react-datepicker.css";
 import Table from "../../components/tables/Table";
 import { useSignal } from "@preact/signals-react";
 import { useSignals } from "@preact/signals-react/runtime";
-import { createSaleQuotationSchema } from "../../validators/quotation.validator";
 import IncrDecrButton from "../../components/buttons/IncrDecrButton";
 import Helper from "../../utils/helper";
 
@@ -44,6 +43,13 @@ export default function CreateOrder() {
     const [discountPercent, setDiscountPercent] = useState<number>(0);
     const [note, setNote] = useState<string | null>("");
 
+    // Shipping fields - pre-filled from contact, user can edit
+    const [shippingName, setShippingName] = useState<string>("");
+    const [shippingPhone, setShippingPhone] = useState<string>("");
+    const [shippingAddress, setShippingAddress] = useState<string>("");
+    const [shippingCity, setShippingCity] = useState<string>("");
+    const [shippingArea, setShippingArea] = useState<string>("");
+
 
   const fetchProducts = async () => {
         const res = await api("/product/variant-list", {
@@ -64,11 +70,11 @@ export default function CreateOrder() {
     };
     const fetchContacts = async () => {
         const res = await api("/contact/list", {
-            params: { search: contactParams.search, limit: contactParams.limit, page: contactParams.page, type: "customer" },
+            params: { search: contactParams.search, limit: contactParams.limit, page: contactParams.page },
         });
         if (res.data.success) setCustomers(
-            res.data.data.items.map((u: Contact) => ({ value: u.id, label: `${u.name} balance(${u.balance})`, ...u }))
-        );;
+            res.data.data.items.map((u: Contact) => ({ value: u.id, label: `${u.name} (${u.type}) balance(${u.balance})`, ...u }))
+        );
     };
 
     const fetchProductWithBarcode = async (barcode: string) => {
@@ -129,6 +135,7 @@ export default function CreateOrder() {
             if (product?.serials.length === 0) {
                 return toast.error("No Serial Available");
             }
+            product.id = p.id;
             product.salePrice = p.salePrice;
             product.productID = p.productID;
             return selectedProducts.value = [...selectedProducts.value, product];
@@ -202,6 +209,7 @@ export default function CreateOrder() {
                 return toast.error("No Stock Available");
             }
 
+            product.id = p.id;
             product.salePrice = p.salePrice;
             product.productID = p.productID;
             selectedProducts.value = [...selectedProducts.value, product];
@@ -397,85 +405,64 @@ export default function CreateOrder() {
 
     const basePayable = totalProductPrice - discount + otherCost;
 
-    const createQuotation = async () => {
+    const createOrder = async () => {
         if (selectedProducts.value.length === 0) {
             return toast.error("Please add at least one product");
         }
 
-
-        if (selectedProducts.value.some(p => p.serials.length > 0 && p.selectedSerials.length === 0)) {
-            return toast.error("Please select at least one serial or remove the product from the table")
+        if (!selectedCustomer) {
+            return toast.error("Please select a contact");
         }
 
+        if (selectedProducts.value.some(p => p.serials.length > 0 && p.selectedSerials.length === 0)) {
+            return toast.error("Please select at least one serial or remove the product from the table");
+        }
 
-        // ✅ Products structure - backend অনুযায়ী
-        const products = selectedProducts.value.flatMap(p => {
-
-            // Serial managed product
+        const items = selectedProducts.value.flatMap(p => {
             if (p.manageWarranty && p.selectedSerials?.length) {
-
                 return p.selectedSerials.map(serial => ({
                     productID: p.productID,
                     variantID: p.id,
-                    batchID: Number(serial.value), // serial batch id
-                    soldQty: 1,
                     salePrice: p.salePrice,
-                    warranty: p.warranty || 0,
+                    quantity: 1,
+                    lineTotal: p.salePrice,
+                    serial: serial.label,
                 }));
             }
 
-            // Normal batch product
             return [{
                 productID: p.productID,
                 variantID: p.id,
-                batchID: p.selectedBatch?.id || null,
-                soldQty: p.soldQty,
                 salePrice: p.salePrice,
-                warranty: p.warranty || 0,
+                quantity: p.soldQty,
+                lineTotal: p.salePrice * p.soldQty,
             }];
         });
 
-
-
-        // ✅ Sale object - backend অনুযায়ী
-        const sale = {
-            customerID: selectedCustomer?.value || null,
-            costName: costName || null,
-            otherCost: costName ? otherCost : 0,
-            balanceBefore:selectedCustomer?.balance??0,
-            balanceAfter:selectedCustomer?.balance??0,
-            totalProductPrice,
-            discount,
-            totalAmount: basePayable,
-            note: note || null,
-            saleDate, // ✅ Date object
+        const payload = {
+            contactID: selectedCustomer.value,
+            shippingName: shippingName || selectedCustomer.name,
+            shippingPhone: shippingPhone || selectedCustomer.mobile,
+            shippingAddress: shippingAddress || selectedCustomer.address || "",
+            shippingCity: shippingCity || undefined,
+            shippingArea: shippingArea || undefined,
+            note: note || undefined,
+            orderFrom: "Manual" as const,
+            items,
         };
 
-        // ✅ Validate
-        const quotationResult = createSaleQuotationSchema.safeParse({
-            products:products,
-            ...sale
-        });
-
-        if (!quotationResult.success) {
-            const firstError = quotationResult.error.issues[0];
-            toast.error(firstError.message);
-            console.error("Validation errors:", quotationResult.error.issues);
-            return;
-        }
-
         try {
-            const res = await api.post('/quotation/create-sale-quotation', quotationResult.data);
+            const res = await api.post('/order/create', payload);
 
             if (res.data.success === true) {
-                toast.success(res.data.msg || "Sale created successfully!");
-                navigate(`/quotation/sale-quotation-invoice/${res.data.data.id}`);
+                toast.success(res.data.data.message || "Order created successfully!");
+                navigate(`/order/list`);
             } else {
-                toast.error(res.data.message || "Failed to create sale");
+                toast.error(res.data.message || "Failed to create order");
             }
         } catch (error: any) {
-            console.error("Sale creation error:", error);
-            const errorMsg = error.response?.data?.message || "Error creating sale";
+            console.error("Order creation error:", error);
+            const errorMsg = error.response?.data?.message || "Error creating order";
             toast.error(errorMsg);
         }
     };
@@ -485,15 +472,30 @@ export default function CreateOrder() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* Customer */}
                 <div className="flex flex-col">
-                    <label className="block text-sm font-medium mb-1">Customers</label>
+                    <label className="block text-sm font-medium mb-1">Contact</label>
                     <Select
                         options={customers}
-                        onChange={(val) => setSelectedCustomer(val as SelectOption<Contact> | null)}
+                        onChange={(val) => {
+                            const contact = val as SelectOption<Contact> | null;
+                            setSelectedCustomer(contact);
+                            if (contact) {
+                                setShippingName(contact.name || "");
+                                setShippingPhone(contact.mobile || "");
+                                setShippingAddress(contact.address || "");
+                                setShippingCity("");
+                                setShippingArea("");
+                            } else {
+                                setShippingName("");
+                                setShippingPhone("");
+                                setShippingAddress("");
+                                setShippingCity("");
+                                setShippingArea("");
+                            }
+                        }}
                         onInputChange={(e) => setContactParams(prev => ({ ...prev, search: e }))}
-                        placeholder="Select Customer"
+                        placeholder="Select Contact"
                         filterOption={() => true}
                         isClearable
-
                         styles={getReactSelectStyles<SelectOption<Contact>>()}
                     />
                 </div>
@@ -552,6 +554,64 @@ export default function CreateOrder() {
                     </div>
                 </div>
             </div>
+
+            {/* Shipping Details */}
+            <div className="">
+                <h3 className="text-sm font-semibold mb-3">Shipping Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="flex flex-col">
+                        <label className="block text-sm font-medium mb-1">Shipping Name</label>
+                        <input
+                            type="text"
+                            value={shippingName}
+                            onChange={(e) => setShippingName(e.target.value)}
+                            className="global_input"
+                            placeholder="Recipient Name"
+                        />
+                    </div>
+                    <div className="flex flex-col">
+                        <label className="block text-sm font-medium mb-1">Shipping Phone</label>
+                        <input
+                            type="text"
+                            value={shippingPhone}
+                            onChange={(e) => setShippingPhone(e.target.value)}
+                            className="global_input"
+                            placeholder="Recipient Phone"
+                        />
+                    </div>
+                    <div className="flex flex-col">
+                        <label className="block text-sm font-medium mb-1">Shipping Address</label>
+                        <input
+                            type="text"
+                            value={shippingAddress}
+                            onChange={(e) => setShippingAddress(e.target.value)}
+                            className="global_input"
+                            placeholder="Full Address"
+                        />
+                    </div>
+                    <div className="flex flex-col">
+                        <label className="block text-sm font-medium mb-1">City</label>
+                        <input
+                            type="text"
+                            value={shippingCity}
+                            onChange={(e) => setShippingCity(e.target.value)}
+                            className="global_input"
+                            placeholder="City"
+                        />
+                    </div>
+                    <div className="flex flex-col">
+                        <label className="block text-sm font-medium mb-1">Area</label>
+                        <input
+                            type="text"
+                            value={shippingArea}
+                            onChange={(e) => setShippingArea(e.target.value)}
+                            className="global_input"
+                            placeholder="Area"
+                        />
+                    </div>
+                </div>
+            </div>
+
                 {/* Table */}
             <Table
                 data={selectedProducts.value}
@@ -835,7 +895,7 @@ export default function CreateOrder() {
                         </div>
                     )}
 
-    <button type="button" className="global_button w-full" onClick={createQuotation}>Create</button>
+    <button type="button" className="global_button w-full" onClick={createOrder}>Create Order</button>
                 </div>
             </div>
 

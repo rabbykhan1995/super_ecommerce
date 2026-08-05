@@ -18,13 +18,17 @@ export type CreateLedgerInput = {
   | "sale_return"
   | "purchase_return";
 
-  typeID?: Types.ObjectId;
+  saleID?: number;
 
-  typeModel?: "Sale" | "Purchase" | "Transaction";
+  purchaseID?: number;
 
-  contactID: Types.ObjectId;
+  saleReturnID?: number;
 
-  contactType: "customer" | "supplier";
+  purchaseReturnID?: number;
+
+  paymentID?: number;
+
+  contactID: number;
 
   amount: number;
 

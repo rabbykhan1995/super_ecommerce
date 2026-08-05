@@ -21,6 +21,7 @@ router
   .get("/purchaseReturnByID/:id", authMiddleware, asyncHandler(PurchaseReturnController.purchaseReturnByID))
   .get('/purchaseForReturn/:id', authMiddleware,asyncHandler(PurchaseReturnController.purchaseForReturnByID))
   .delete('/delete/:id', authMiddleware, asyncHandler(PurchaseReturnController.delete))
+  .patch('/restore/:id', authMiddleware, asyncHandler(PurchaseReturnController.restore))
     // .get("/product-by-id/:purchaseID", authMiddleware, asyncHandler(PurchaseReturnController.getPurchaseReturnBatches))
 
 export default router;

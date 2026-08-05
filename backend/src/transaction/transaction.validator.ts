@@ -1,28 +1,29 @@
 import { z } from "zod";
-import { Types } from "mongoose";
-import { Transaction_TYPE_MODELS, TRANSACTION_TYPES } from "./transaction.type";
 
 export const createTransactionSchema = z.object({
+  accountID: z.number({ required_error: "Account ID is required" }),
+  amount: z.number().positive("Amount must be greater than 0"),
+  source: z.enum([
+    "purchase",
+    "purchase_return",
+    "sale",
+    "sale_return",
+    "expense",
+    "warranty",
+    "balance_transfer",
+    "deposit",
+    "withdraw",
+    "payment",
+  ]),
+  type: z.enum(["credit", "debit"]),
   date: z.coerce.date().default(() => new Date()),
-
-  accounts: z.array(
-    z.object({
-      accountID: z.string().refine((val) => Types.ObjectId.isValid(val), {
-        message: "invalid accountID",
-      }),
-      amount: z.number().positive("amount must be greater than 0"),
-    })
-  ).optional(),
-
-  transaction: z.object({
-    contactID: z.string().refine((val) => Types.ObjectId.isValid(val), {
-      message: "invalid contactID",
-    }),
-    balanceBefore: z.number().optional(),
-    balanceAfter: z.number().optional(),
-    amount: z.number().positive().optional(),
-    note: z.string().nullable().optional(),
-    type: z.enum(["Credit", "Debit"]).optional(),
-  }).optional(),
+  purchaseID: z.number().optional(),
+  saleID: z.number().optional(),
+  purchaseReturnID: z.number().optional(),
+  saleReturnID: z.number().optional(),
+  balanceTransferID: z.number().optional(),
+  warrantyID: z.number().optional(),
+  expenseID: z.number().optional(),
+  paymentID: z.number().optional(),
 });
 

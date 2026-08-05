@@ -55,6 +55,9 @@ static async findBySourceID(
       case "warranty":
         return eq(transactionTable.warrantyID, sourceID);
 
+      case "payment":
+        return eq(transactionTable.paymentID, sourceID);
+
       default:
         throw new Error(`Unsupported source type: ${sourceType}`);
     }

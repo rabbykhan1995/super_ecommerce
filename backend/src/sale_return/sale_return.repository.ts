@@ -9,7 +9,8 @@ import {
   saleReturnItemsTable,
   saleReturnTable,
 } from "./sale_return.table";
-import { eq, count } from "drizzle-orm";
+import { saleItemsTable } from "../sale/sale_items.table";
+import { and, count, eq, ne, sum } from "drizzle-orm";
 import db, { QueryClient } from "../../drizzle/src";
 
 export default class SaleReturnRepository {
@@ -44,21 +45,43 @@ export default class SaleReturnRepository {
     const [saleReturn] = await client
       .select()
       .from(saleReturnTable)
+      .where(and(eq(saleReturnTable.id, returnID), eq(saleReturnTable.isDeleted, false)))
+      .limit(1);
+
+    return saleReturn;
+  }
+
+  static async findByIDRaw(
+    returnID: number,
+    client: QueryClient = db,
+  ): Promise<SaleReturn> {
+    const [saleReturn] = await client
+      .select()
+      .from(saleReturnTable)
       .where(eq(saleReturnTable.id, returnID))
       .limit(1);
 
     return saleReturn;
   }
 
-  static async deleteSaleReturnByID(
-    returnID: number,
-    client: QueryClient = db,
-  ) {
-    const deleted = await client
-      .delete(saleReturnTable)
-      .where(eq(saleReturnTable.id, returnID));
+  static async softDelete(returnID: number, client: QueryClient = db) {
+    const [saleReturn] = await client
+      .update(saleReturnTable)
+      .set({ isDeleted: true, deletedAt: new Date() })
+      .where(eq(saleReturnTable.id, returnID))
+      .returning();
 
-    return deleted;
+    return saleReturn ?? null;
+  }
+
+  static async restore(returnID: number, client: QueryClient = db) {
+    const [saleReturn] = await client
+      .update(saleReturnTable)
+      .set({ isDeleted: false, deletedAt: null })
+      .where(eq(saleReturnTable.id, returnID))
+      .returning();
+
+    return saleReturn ?? null;
   }
 
   static async list(query: {
@@ -69,6 +92,7 @@ export default class SaleReturnRepository {
     return paginateQuery({
       query: db.query.saleReturnTable,
       countTable: saleReturnTable,
+      where: [eq(saleReturnTable.isDeleted, false)],
       page: query.page,
       limit: query.limit,
       search: query.search,
@@ -92,9 +116,15 @@ export default class SaleReturnRepository {
     const [totalAll] = await client
       .select({ total: count() })
       .from(saleReturnTable)
-      .where(eq(saleReturnTable.saleID, saleID));
+      .where(
+        and(
+          eq(saleReturnTable.saleID, saleID),
+          eq(saleReturnTable.isDeleted, false),
+          ne(saleReturnTable.id, excludeReturnID)
+        )
+      );
 
-    return (totalAll?.total ?? 0) - 1;
+    return totalAll?.total ?? 0;
   }
 
   static async getSaleReturnInvoice(
@@ -102,7 +132,7 @@ export default class SaleReturnRepository {
     client: QueryClient = db,
   ) {
     const saleReturn = await client.query.saleReturnTable.findFirst({
-      where: eq(saleReturnTable.id, saleReturnID),
+      where: and(eq(saleReturnTable.id, saleReturnID), eq(saleReturnTable.isDeleted, false)),
       with: {
         customer: true,
         sale: true,
@@ -145,5 +175,65 @@ export default class SaleReturnRepository {
     });
 
     return { saleReturn, products: items };
+  }
+
+  static async getSaleItemsBySaleID(
+    saleID: number,
+    client: QueryClient = db,
+  ) {
+    return client.query.saleItemsTable.findMany({
+      where: eq(saleItemsTable.saleID, saleID),
+      with: {
+        product: {
+          columns: {
+            id: true,
+            name: true,
+            manageStock: true,
+            manageWarranty: true,
+            stock: true,
+          },
+          with: {
+            unit: {
+              columns: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        batch: {
+          columns: {
+            id: true,
+            serial: true,
+          },
+          with: {
+            variant: {
+              columns: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  static async getReturnedQtyBySaleID(
+    saleID: number,
+    client: QueryClient = db,
+  ) {
+    return client
+      .select({
+        batchID: saleReturnItemsTable.batchID,
+        totalReturned: sum(saleReturnItemsTable.saleReturnedQty),
+      })
+      .from(saleReturnItemsTable)
+      .innerJoin(
+        saleReturnTable,
+        eq(saleReturnItemsTable.saleReturnID, saleReturnTable.id),
+      )
+      .where(eq(saleReturnTable.saleID, saleID))
+      .groupBy(saleReturnItemsTable.batchID);
   }
 }

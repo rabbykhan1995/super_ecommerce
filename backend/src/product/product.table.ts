@@ -118,6 +118,8 @@ export const productTable = pgTable(
       .notNull(),
 
     totalReviews: integer("total_reviews").default(0).notNull(),
+    isDeleted: boolean("is_deleted").default(false).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
     // barcode empty/null হলে ignore করবে

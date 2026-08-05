@@ -118,7 +118,6 @@ export class OrderService {
             const items = input.items;
 
             let subtotal = 0;
-            let totalDiscount = 0;
             const orderItemsData: any[] = [];
 
             for (const item of items) {
@@ -133,36 +132,18 @@ export class OrderService {
                     throw new ApiError(400, `Insufficient stock`);
                 }
 
-                const salePrice = variant.salePrice as number;
-
-                let effectivePrice = salePrice;
-
-                if (
-                    variant.discountPrice != null &&
-                    (variant.discountPrice as number) > 0 &&
-                    (variant.discountPrice as number) < salePrice
-                ) {
-                    effectivePrice = variant.discountPrice as number;
-                }
-
-                const lineTotal = effectivePrice * item.quantity;
-
-                const lineDiscount = (salePrice - effectivePrice) * item.quantity;
+                const salePrice = item.salePrice;
+                const lineTotal = item.lineTotal ?? salePrice * item.quantity;
 
                 subtotal += lineTotal;
-
-                totalDiscount += lineDiscount;
 
                 orderItemsData.push({
                     productID: item.productID,
                     variantID: item.variantID,
-                    productName: item.productName,
-                    variantAttrs: item.variantAttrs || null,
-                    thumbnail: item.thumbnail || null,
                     salePrice,
-                    discountPrice: effectivePrice !== salePrice ? effectivePrice : null,
                     quantity: item.quantity,
                     lineTotal,
+                    serial: item.serial || null,
                 });
             }
 
@@ -173,7 +154,7 @@ export class OrderService {
                 status: "Pending",
                 subtotal,
                 shippingCost: 0,
-                discount: totalDiscount,
+                discount: 0,
                 totalAmount,
                 paymentMethod: input.paymentMethod || null,
                 paymentStatus: "unpaid",
@@ -309,6 +290,12 @@ export class OrderService {
         const order = await OrderRepository.findOrderByID(orderId);
         if (!order) throw new ApiError(404, "Order not found");
         if (order.contactID !== contact.id) throw new ApiError(403, "Forbidden");
+        return order;
+    }
+
+    static async getAdminOrderDetail(orderId: number) {
+        const order = await OrderRepository.findOrderByID(orderId);
+        if (!order) throw new ApiError(404, "Order not found");
         return order;
     }
 

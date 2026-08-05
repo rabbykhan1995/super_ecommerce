@@ -23,6 +23,7 @@ import adminRoute from "../src/admin/role.route"
 import parcelRoute from "../src/parcel/parcel.route"
 import ecomRoute from "../src/ecom/ecom.route"
 import orderRoute from "../src/order/order.route"
+import paymentRoute from "../src/payment/payment.route"
 
 const router = Router();
 router.use("/product", productRoute);
@@ -48,5 +49,6 @@ router.use("/parcel", parcelRoute)
 router.use("/image", imageRoute)
 router.use("/ecom", ecomRoute)
 router.use("/order", orderRoute)
+router.use("/payment", paymentRoute)
 
 export default router;

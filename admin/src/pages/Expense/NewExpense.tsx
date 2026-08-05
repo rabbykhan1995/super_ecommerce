@@ -54,8 +54,8 @@ export default function NewExpense() {
         type: "Debit",
       }));
 
-      const defaultAccount = formatted.find((a) => a.default === true);
-      const rest = formatted.filter((a) => a.default !== true);
+      const defaultAccount = formatted.find((a) => a.isDefault === true);
+      const rest = formatted.filter((a) => a.isDefault !== true);
 
       setAccounts(rest);
       if (defaultAccount) {

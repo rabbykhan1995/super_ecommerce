@@ -24,6 +24,7 @@ import * as parcelSchema from "../src/parcel/parcel.table"
 import * as warrantySchema from "../src/warranty/warranty.table"
 import * as ecomSchema from "../src/ecom/ecom.table"
 import * as orderSchema from "../src/order/order.table"
+import * as paymentSchema from "../src/payment/payment.table"
 // সব টেবিল এবং তাদের রিলেশন একসাথে কম্বাইন করা হলো
 export const dbSchema = {
   ...productSchema,
@@ -52,4 +53,5 @@ export const dbSchema = {
   ...warrantySchema,
   ...ecomSchema,
   ...orderSchema,
+  ...paymentSchema,
 };

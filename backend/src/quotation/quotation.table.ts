@@ -46,10 +46,6 @@ export const saleQuotationTable = pgTable("sale_quotations", {
     length: 255,
   }),
 
-  deletable: boolean("deletable")
-    .default(true)
-    .notNull(),
-
   totalProductPrice: numeric("total_product_price", {
     precision: 12,
     scale: 2,
@@ -109,6 +105,8 @@ export const saleQuotationTable = pgTable("sale_quotations", {
   })
     .defaultNow()
     .notNull(),
+  isDeleted: boolean("is_deleted").default(false).notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 /* ===========================

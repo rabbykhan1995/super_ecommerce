@@ -45,7 +45,7 @@ export const purchaseTable = pgTable(
 
     costName: varchar("cost_name", { length: 255 }),
 
-    deletable: boolean("deletable").default(true).notNull(),
+
 
     // ডেসিমেল সংখ্যার জন্য numeric টাইপ ব্যবহার করা বেস্ট (Precision, Scale)
     totalProductPrice: numeric("total_product_price", { precision: 12, scale: 2, mode: "number" }).default(0).notNull(),
@@ -58,8 +58,12 @@ export const purchaseTable = pgTable(
     balanceBefore: numeric("balance_before", { precision: 12, scale: 2, mode: "number" }).default(0).notNull(),
     balanceAfter: numeric("balance_after", { precision: 12, scale: 2, mode: "number" }).default(0).notNull(),
 
+    deletable: boolean("deletable").default(true).notNull(),
+
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    isDeleted: boolean("is_deleted").default(false).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
     index("purchases_supplier_id_idx").on(table.supplierID),

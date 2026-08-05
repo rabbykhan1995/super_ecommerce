@@ -19,6 +19,7 @@ import { withTransaction } from "../../utils/withTransaction";
 import { LedgerPayload } from "../ledger/ledger.type";
 import { TransactionPayload } from "../transaction/transaction.type";
 import SaleRepository from "../sale/sale.repository";
+import WarrantyService from "../warranty/warranty.service";
 
 export default class SaleReturnService {
   static async create(payload: CreateSaleReturnInput) {
@@ -63,7 +64,7 @@ export default class SaleReturnService {
 
           if (!batch)
             throw new ApiError(404, `Batch not found: ${p.batchID}`);
-
+          
           const allSaleFlows =
             await ProductService.findStockFlowDynamically(
               p.batchID,
@@ -134,6 +135,10 @@ export default class SaleReturnService {
               tx,
             ),
           ]);
+
+          if(batch.serial){
+            await WarrantyService.deleteBySerial(batch.serial);
+          }
         }),
       );
 
@@ -225,8 +230,12 @@ export default class SaleReturnService {
 
   static async delete(saleReturnID: number) {
     const saleReturn: SaleReturn | null =
-      await SaleReturnRepository.findByID(saleReturnID);
+      await SaleReturnRepository.findByIDRaw(saleReturnID);
     if (!saleReturn) throw new ApiError(404, "Sale return not found");
+
+    if (saleReturn.isDeleted) {
+      throw new ApiError(400, "Sale return is already deleted");
+    }
 
     await withTransaction(async (tx) => {
       let customer = null;
@@ -322,10 +331,8 @@ export default class SaleReturnService {
         );
       }
 
-      await SaleReturnRepository.deleteSaleReturnByID(
-        saleReturnID,
-        tx,
-      );
+      // Soft delete: set isDeleted = true, deletedAt = now
+      await SaleReturnRepository.softDelete(saleReturnID, tx);
 
       await RedisReportService.updateSaleReturnReport({
         amount: -returnedItems.reduce(
@@ -343,9 +350,152 @@ export default class SaleReturnService {
     });
   }
 
+  static async restore(saleReturnID: number) {
+    const saleReturn: SaleReturn | null =
+      await SaleReturnRepository.findByIDRaw(saleReturnID);
+    if (!saleReturn) throw new ApiError(404, "Sale return not found");
+
+    if (!saleReturn.isDeleted) {
+      throw new ApiError(400, "Sale return is not deleted");
+    }
+
+    await withTransaction(async (tx) => {
+      let customer = null;
+      if (saleReturn.customerID) {
+        customer = await ContactService.findByID(saleReturn.customerID);
+        if (!customer)
+          throw new ApiError(404, "Customer not found");
+      }
+
+      const returnedItems: SaleReturnItem[] =
+        await SaleReturnRepository.itemsBySaleReturnID(
+          saleReturnID,
+          tx,
+        );
+
+      // Decrease stock (reverse of what delete does)
+      await Promise.all(
+        returnedItems.map(async (p: SaleReturnItem) => {
+          await Promise.all([
+            ProductService.decreaseVariantStock(
+              p.productID,
+              p.saleReturnedQty,
+              tx,
+            ),
+            ProductService.decreaseProductStock(
+              p.productID,
+              p.saleReturnedQty,
+              tx,
+            ),
+            ProductService.decreaseBatchStock(
+              p.batchID,
+              p.saleReturnedQty,
+              tx,
+            ),
+          ]);
+        }),
+      );
+
+      const allTransactions = await TransactionService.findBySourceID(
+        saleReturnID,
+        "sale_return",
+      );
+
+      const isPaymentHappened: boolean = saleReturn.paid > 0;
+      if (isPaymentHappened) {
+        const accTrans = allTransactions.filter((a) => a.type === "debit");
+
+        const accounts = accTrans.map((a) => ({
+          accountID: a.accountID,
+          amount: a.amount as number,
+        }));
+
+        await AccountService.decreaseBalance(accounts, tx);
+      }
+
+      const isExchangeHappened: boolean = saleReturn.exchangeAmount > 0;
+      if (isExchangeHappened) {
+        const accTrans = allTransactions.filter((a) => a.type === "credit");
+
+        const exchangeAccounts = accTrans.map((a) => ({
+          accountID: a.accountID,
+          amount: a.amount as number,
+        }));
+
+        await AccountService.increaseBalance(exchangeAccounts, tx);
+      }
+
+      if (customer) {
+        const rollbackAmount = saleReturn.balanceAfter - saleReturn.balanceBefore;
+
+        await ContactService.updateBalance(
+          saleReturn.customerID!,
+          rollbackAmount,
+          tx,
+        );
+      }
+
+      // Mark sale as non-deletable again
+      await SaleRepository.update(
+        saleReturn.saleID,
+        { deletable: false },
+        tx,
+      );
+
+      // Restore: set isDeleted = false, deletedAt = null
+      await SaleReturnRepository.restore(saleReturnID, tx);
+
+      await RedisReportService.updateSaleReturnReport({
+        amount: returnedItems.reduce(
+          (acc, b) => acc + b.salePrice,
+          0,
+        ),
+        qty: returnedItems.reduce(
+          (acc, b) => acc + b.saleReturnedQty,
+          0,
+        ),
+        paid: saleReturn.paid,
+        discount: saleReturn.discount ?? 0,
+        date: new Date(),
+      });
+    });
+  }
+
   static async saleReturnInvoiceByID(saleReturnID: number) {
     return await SaleReturnRepository.getSaleReturnInvoice(
       saleReturnID,
     );
+  }
+
+  static async getSaleReturnProducts(saleID: number) {
+    const saleItems = await SaleReturnRepository.getSaleItemsBySaleID(saleID);
+    const returnedQtyRows = await SaleReturnRepository.getReturnedQtyBySaleID(saleID);
+
+    const returnedQtyMap: Record<number, number> = {};
+    for (const row of returnedQtyRows) {
+      returnedQtyMap[row.batchID] = Number(row.totalReturned ?? 0);
+    }
+
+    return saleItems.map((item) => {
+      const soldQty = Number(item.soldQty);
+      const saleReturnedQty = returnedQtyMap[item.batchID] ?? 0;
+      return {
+        _id: item.batchID,
+        productID: item.productID,
+        variantID: item.variantID,
+        batchID: item.batchID,
+        name: item.product?.name ?? "",
+        serial: item.batch?.serial ?? null,
+        salePrice: Number(item.salePrice),
+        soldQty,
+        saleReturnedQty,
+        remainingQty: soldQty - saleReturnedQty,
+        manageStock: item.product?.manageStock ?? true,
+        manageWarranty: item.product?.manageWarranty ?? false,
+        unitName: item.product?.unit?.name ?? "",
+        warranty: item.warranty ?? 0,
+        stock: item.product?.stock ?? 0,
+      };
+    });
   }
 }

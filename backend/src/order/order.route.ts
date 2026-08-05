@@ -16,6 +16,7 @@ router
     .post("/checkout", authMiddleware, validate(checkoutOrderSchema), asyncHandler(OrderController.checkout))
     .post("/create", authMiddleware, adminMiddleware, validate(createOrderSchema), asyncHandler(OrderController.createOrder))
     .get("/all-orders", authMiddleware, adminMiddleware, asyncHandler(OrderController.allOrders))
+    .get("/admin-order/:id", authMiddleware, adminMiddleware, asyncHandler(OrderController.adminOrderDetail))
     .get("/my-orders", authMiddleware, asyncHandler(OrderController.myOrders))
     .get("/my-orders/:id", authMiddleware, asyncHandler(OrderController.myOrderDetail))
     .post("/cancel/:id", authMiddleware, asyncHandler(OrderController.cancelOrder))

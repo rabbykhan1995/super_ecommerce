@@ -44,7 +44,7 @@ export const saleTable = pgTable(
 
     costName: varchar("cost_name", { length: 255 }),
 
-    deletable: boolean("deletable").default(true).notNull(),
+
 
     // ফাইনান্সিয়াল হিসাবের জন্য numeric টাইপ
     totalProductPrice: numeric("total_product_price", {
@@ -94,8 +94,11 @@ export const saleTable = pgTable(
       scale: 2,
       mode: "number",
     }).default(0).notNull(),
+    deletable: boolean("deletable").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    isDeleted: boolean("is_deleted").default(false).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
     index("sales_customer_id_idx").on(table.customerID),

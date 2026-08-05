@@ -8,6 +8,7 @@ import {
   varchar,
   index,
   pgEnum,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 // আপনার প্রোজেক্টের পাথ অনুযায়ী ইমপোর্ট চেক করে নেবেন
@@ -95,7 +96,7 @@ export const warrantyTable = pgTable(
 
     otherCost: numeric("other_cost", { precision: 12, scale: 2, mode:"number" }).default(0).notNull(),
 
-    warranty: numeric("warranty", { precision: 4, scale: 2, mode:'number' }).default(0).notNull(),
+    warranty: integer("warranty").default(0).notNull(),
 
     resolvedDate: timestamp("resolved_date", { withTimezone: true }),
 
@@ -104,6 +105,8 @@ export const warrantyTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    isDeleted: boolean("is_deleted").default(false).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
     index("warranties_sale_id_idx").on(table.saleID),

@@ -29,7 +29,14 @@ export class SaleController {
     const { id } = req.params;
     await SaleService.delete(Number(id));
 
-    res.status(201).json({ success: true, msg: "Sale deleted successfully" });
+    res.status(200).json({ success: true, msg: "Sale deleted successfully" });
+  }
+
+  static async restore(req: Request, res: Response) {
+    const { id } = req.params;
+    await SaleService.restore(Number(id));
+
+    res.status(200).json({ success: true, msg: "Sale restored successfully" });
   }
 
   static async fifoSale(req: Request, res: Response){

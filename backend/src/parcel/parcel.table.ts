@@ -81,7 +81,7 @@ export const parcelTable = pgTable(
       .defaultNow()
       .notNull(),
 
-    deletable: boolean("deletable").default(true).notNull(),
+
 
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -90,6 +90,8 @@ export const parcelTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    isDeleted: boolean("is_deleted").default(false).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
     index("parcels_sale_id_idx").on(table.saleID),

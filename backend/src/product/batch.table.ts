@@ -94,6 +94,8 @@ export const batchTable = pgTable(
     })
       .defaultNow()
       .notNull(),
+    isDeleted: boolean("is_deleted").default(false).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
     index("batches_product_idx").on(table.productID),

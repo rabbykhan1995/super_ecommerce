@@ -10,14 +10,14 @@ import {
   pgEnum,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-// আপনার প্রোজেক্টের পাথ অনুযায়ী ইমপোর্টগুলো চেক করে নেবেন
+// আপনার প্রোজেক্টের পাথ অনুযায়ী ইমপোর্টগুলো চেক করে নেবেন
 
 import { saleTable } from "../sale/sale.table";
 import { purchaseTable } from "../purchase/purchase.table";
 import { saleReturnTable } from "../sale_return/sale_return.table";
 import { purchaseReturnTable } from "../purchase_return/purchase_return.table";
-import { transactionTable } from "../transaction/transaction.table";
 import { contactTable } from "../contact/contact.table";
+import { paymentTable } from "../payment/payment.table";
 
 // ১. লেজার এন্ট্রির টাইপ এনাম
 export const ledgerTypeEnum = pgEnum("ledger_type", [
@@ -53,11 +53,12 @@ export const ledgerTable = pgTable(
       onDelete: "cascade",
     }),
 
-    // payment_in বা payment_out হলে transactionTable কে reference করবে
-    transactionID: integer("transaction_id").references(() => transactionTable.id, {
+    // payment_in বা payment_out হলে paymentTable কে reference করবে
+    paymentID: integer("payment_id").references(() => paymentTable.id, {
       onDelete: "cascade",
     }),
-    // ৩. কোন কাস্টমার বা সাপ্লায়ারের লেজার
+
+    // ৩. কোন কাস্টমার বা সাপ্লায়ারের লেজার
     contactID: integer("contact_id")
       .notNull()
       .references(() => contactTable.id),
@@ -77,13 +78,13 @@ export const ledgerTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    // মঙ্গুসের প্রথম ইন্ডেক্স: কন্টাক্ট ধরে ডেট ওয়াইজ স্টেটমেন্ট খোঁজা (খুবই ইম্পর্টেন্ট)
+    // মঙ্গুসের প্রথম ইন্ডেক্স: কন্টাক্ট ধরে ডেট ওয়াইজ স্টেটমেন্ট খোঁজা (খুবই ইম্পর্টেন্ট)
     index("ledgers_contact_date_idx").on(table.contactID, table.date),
 
-    // মঙ্গুসের দ্বিতীয় ইন্ডেক্স: নির্দিষ্ট কোনো সেল/পারচেজের লেজার খোঁজা
+    // মঙ্গুসের দ্বিতীয় ইন্ডেক্স: নির্দিষ্ট কোনো সেল/পারচেজের লেজার খোঁজা
     index("ledgers_sale_id_idx").on(table.saleID),
     index("ledgers_purchase_id_idx").on(table.purchaseID),
-    index("ledgers_transaction_id_idx").on(table.transactionID),
+    index("ledgers_payment_id_idx").on(table.paymentID),
   ]
 );
 
@@ -108,8 +109,8 @@ export const ledgerRelations = relations(ledgerTable, ({ one }) => ({
     fields: [ledgerTable.purchaseReturnID],
     references: [purchaseReturnTable.id],
   }),
-  transaction: one(transactionTable, {
-    fields: [ledgerTable.transactionID],
-    references: [transactionTable.id],
+  payment: one(paymentTable, {
+    fields: [ledgerTable.paymentID],
+    references: [paymentTable.id],
   }),
 }));

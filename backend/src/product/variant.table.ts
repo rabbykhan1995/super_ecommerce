@@ -8,6 +8,7 @@ import {
   index,
   pgSequence,
   jsonb,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { productTable } from "./product.table";
 import { relations, sql } from "drizzle-orm";
@@ -67,6 +68,8 @@ export const variantTable = pgTable(
     })
       .defaultNow()
       .notNull(),
+    isDeleted: boolean("is_deleted").default(false).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [index("variants_product_id_idx").on(table.productID)],
 );

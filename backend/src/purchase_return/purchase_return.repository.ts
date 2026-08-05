@@ -9,7 +9,7 @@ import {
   purchaseReturnItemsTable,
   purchaseReturnTable,
 } from "./purchase_return.table";
-import { eq } from "drizzle-orm";
+import { and, eq, ne, count } from "drizzle-orm";
 import db, { QueryClient } from "../../drizzle/src";
 
 export default class PurchaseReturnRepository {
@@ -44,27 +44,50 @@ export default class PurchaseReturnRepository {
     const [purchaseReturn] = await client
       .select()
       .from(purchaseReturnTable)
+      .where(and(eq(purchaseReturnTable.id, returnID), eq(purchaseReturnTable.isDeleted, false)))
+      .limit(1);
+
+    return purchaseReturn;
+  }
+
+  static async findByIDRaw(
+    returnID: number,
+    client: QueryClient = db,
+  ): Promise<PurchaseReturn> {
+    const [purchaseReturn] = await client
+      .select()
+      .from(purchaseReturnTable)
       .where(eq(purchaseReturnTable.id, returnID))
       .limit(1);
 
     return purchaseReturn;
   }
 
-  static async deletePurchaseReturnByID(
-    purchaseID: number,
-    client: QueryClient = db,
-  ) {
-    const deleted = await client
-      .delete(purchaseReturnTable)
-      .where(eq(purchaseReturnTable.id, purchaseID));
+  static async softDelete(returnID: number, client: QueryClient = db) {
+    const [purchaseReturn] = await client
+      .update(purchaseReturnTable)
+      .set({ isDeleted: true, deletedAt: new Date() })
+      .where(eq(purchaseReturnTable.id, returnID))
+      .returning();
 
-    return deleted;
+    return purchaseReturn ?? null;
+  }
+
+  static async restore(returnID: number, client: QueryClient = db) {
+    const [purchaseReturn] = await client
+      .update(purchaseReturnTable)
+      .set({ isDeleted: false, deletedAt: null })
+      .where(eq(purchaseReturnTable.id, returnID))
+      .returning();
+
+    return purchaseReturn ?? null;
   }
 
   static async list(query: { page?: number; limit?: number; search?: string }) {
     return paginateQuery({
       query: db.query.purchaseReturnTable,
       countTable: purchaseReturnTable,
+      where: [eq(purchaseReturnTable.isDeleted, false)],
       page: query.page,
       limit: query.limit,
       search: query.search,
@@ -94,6 +117,25 @@ static async itemsByPurchaseReturnID(
   });
 }
 
+static async countOtherPurchaseReturns(
+  purchaseID: number,
+  excludeReturnID: number,
+  client: QueryClient = db,
+): Promise<number> {
+  const [totalAll] = await client
+    .select({ total: count() })
+    .from(purchaseReturnTable)
+    .where(
+      and(
+        eq(purchaseReturnTable.purchaseID, purchaseID),
+        eq(purchaseReturnTable.isDeleted, false),
+        ne(purchaseReturnTable.id, excludeReturnID)
+      )
+    );
+
+  return totalAll?.total ?? 0;
+}
+
 
     static async getPurchaseReturnInvoice(
         purchaseReturnID: number,
@@ -101,7 +143,7 @@ static async itemsByPurchaseReturnID(
     ) {
         
         const purchaseReturn = await client.query.purchaseReturnTable.findFirst({
-          where:eq(purchaseReturnTable.id, purchaseReturnID),
+          where: and(eq(purchaseReturnTable.id, purchaseReturnID), eq(purchaseReturnTable.isDeleted, false)),
           with:{
             supplier:true
           }

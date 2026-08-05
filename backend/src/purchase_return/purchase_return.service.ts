@@ -186,6 +186,14 @@ export default class PurchaseReturnService {
       };
 
       await LedgerService.create(ledgerPayload, tx);
+
+      // Mark purchase as non-deletable
+      await PurchaseService.purchaseUpdateDynamic(
+        purchase.id,
+        { deletable: false },
+        tx,
+      );
+
       // ৮. Report update
       await RedisReportService.updatePurchaseReturnReport({
         amount: totalReturnAmount,
@@ -203,8 +211,12 @@ export default class PurchaseReturnService {
 
   static async delete(purchaseReturnID: number) {
     const purchaseReturn: PurchaseReturn | null =
-      await PurchaseReturnRepository.findByID(purchaseReturnID);
+      await PurchaseReturnRepository.findByIDRaw(purchaseReturnID);
     if (!purchaseReturn) throw new ApiError(404, "Purchase return not found");
+
+    if (purchaseReturn.isDeleted) {
+      throw new ApiError(400, "Purchase return is already deleted");
+    }
 
     await withTransaction(async (tx) => {
       // ১. Supplier আনো
@@ -266,7 +278,7 @@ export default class PurchaseReturnService {
         await AccountService.increaseBalance(exchangeAccounts, tx);
       }
 
-      // customer balance restore
+      // supplier balance restore
 
       const rollbackAmount = -(
         purchaseReturn.balanceAfter - purchaseReturn.balanceBefore
@@ -278,16 +290,129 @@ export default class PurchaseReturnService {
         tx,
       );
 
-      await PurchaseReturnRepository.deletePurchaseReturnByID(
-        purchaseReturnID,
-        tx,
-      );
+      // Check if other returns exist for this purchase
+      const otherReturns =
+        await PurchaseReturnRepository.countOtherPurchaseReturns(
+          purchaseReturn.purchaseID,
+          purchaseReturnID,
+          tx,
+        );
+
+      if (otherReturns === 0) {
+        await PurchaseService.purchaseUpdateDynamic(
+          purchaseReturn.purchaseID,
+          { deletable: true },
+          tx,
+        );
+      }
+
+      // Soft delete: set isDeleted = true, deletedAt = now
+      await PurchaseReturnRepository.softDelete(purchaseReturnID, tx);
 
       await RedisReportService.updatePurchaseReturnReport({
         amount: -returnedItems.reduce((acc, b) => acc + b.purchasePrice, 0),
         qty: -returnedItems.reduce((acc, b) => acc + b.purchaseReturnedQty, 0),
         paid: -purchaseReturn.paid,
         discount: -purchaseReturn.discount,
+        date: new Date(),
+      });
+    });
+  }
+
+  static async restore(purchaseReturnID: number) {
+    const purchaseReturn: PurchaseReturn | null =
+      await PurchaseReturnRepository.findByIDRaw(purchaseReturnID);
+    if (!purchaseReturn) throw new ApiError(404, "Purchase return not found");
+
+    if (!purchaseReturn.isDeleted) {
+      throw new ApiError(400, "Purchase return is not deleted");
+    }
+
+    await withTransaction(async (tx) => {
+      const supplier = await ContactService.findByID(purchaseReturn.supplierID);
+      if (!supplier) throw new ApiError(404, "Supplier not found");
+
+      const returnedItems: PurchaseReturnItem[] =
+        await PurchaseReturnRepository.itemsByPurchaseReturnID(
+          purchaseReturnID,
+          tx,
+        );
+
+      // Decrease stock (reverse of what delete does)
+      await Promise.all(
+        returnedItems.map(async (p: PurchaseReturnItem) => {
+          await Promise.all([
+            ProductService.decreaseVariantStock(
+              p.productID,
+              p.purchaseReturnedQty,
+              tx,
+            ),
+            ProductService.decreaseProductStock(
+              p.productID,
+              p.purchaseReturnedQty,
+              tx,
+            ),
+            ProductService.decreaseBatchStock(
+              p.batchID,
+              p.purchaseReturnedQty,
+              tx,
+            ),
+          ]);
+        }),
+      );
+
+      const allTransactions = await TransactionService.findBySourceID(
+        purchaseReturnID,
+        "purchase_return",
+      );
+
+      const isPaymentHappened: boolean = purchaseReturn.paid > 0;
+      if (isPaymentHappened) {
+        const accTrans = allTransactions.filter((a) => a.type === "credit");
+
+        const accounts = accTrans.map((a) => ({
+          accountID: a.accountID,
+          amount: a.amount as number,
+        }));
+
+        await AccountService.increaseBalance(accounts, tx);
+      }
+
+      const isExchangeHappened: boolean = purchaseReturn.exchangeAmount > 0;
+      if (isExchangeHappened) {
+        const accTrans = allTransactions.filter((a) => a.type === "debit");
+
+        const exchangeAccounts = accTrans.map((a) => ({
+          accountID: a.accountID,
+          amount: a.amount as number,
+        }));
+        await AccountService.decreaseBalance(exchangeAccounts, tx);
+      }
+
+      // Restore supplier balance
+      const rollbackAmount = purchaseReturn.balanceAfter - purchaseReturn.balanceBefore;
+
+      await ContactService.updateBalance(
+        purchaseReturn.supplierID,
+        rollbackAmount,
+        tx,
+      );
+
+      // Mark purchase as non-deletable again
+      await PurchaseService.purchaseUpdateDynamic(
+        purchaseReturn.purchaseID,
+        { deletable: false },
+        tx,
+      );
+
+      // Restore: set isDeleted = false, deletedAt = null
+      await PurchaseReturnRepository.restore(purchaseReturnID, tx);
+
+      await RedisReportService.updatePurchaseReturnReport({
+        amount: returnedItems.reduce((acc, b) => acc + b.purchasePrice, 0),
+        qty: returnedItems.reduce((acc, b) => acc + b.purchaseReturnedQty, 0),
+        paid: purchaseReturn.paid,
+        discount: purchaseReturn.discount,
         date: new Date(),
       });
     });
@@ -307,7 +432,7 @@ export default class PurchaseReturnService {
 
     const batchesWithReturnableQty = (purchase.batches || []).map((batch: any) => {
       const alreadyReturned = (batch.stockFlows || [])
-        .filter((f: any) => f.type === "out")
+        .filter((f: any) => f.referenceType === "purchase_return")
         .reduce((acc: number, f: any) => acc + Number(f.qty), 0);
 
       const { stockFlows, ...batchWithoutStockFlows } = batch;

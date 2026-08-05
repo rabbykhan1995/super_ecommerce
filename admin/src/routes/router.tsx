@@ -26,7 +26,7 @@ import NewSale from "../pages/Sale/NewSale";
 import SaleList from "../pages/Sale/SaleList";
 import SaleInvoice from "../pages/Sale/SaleInvoice";
 import Transactions from "../pages/Account/Transactions";
-import TransactionDetails from "../pages/Transaction/TransactionDetails";
+import PaymentDetails from "../pages/PaymentDetails/PaymentDetails";
 import SaleReturn from "../pages/Sale/SaleReturn";
 import SaleReturnList from "../pages/Sale/SaleReturnList";
 import CreateDamage from "../pages/Damage/CreateDamage";
@@ -42,6 +42,7 @@ import SaleQuotationList from "../pages/quotation/SaleQuotationList";
 import GenerateBarcode from "../pages/Barcode/GenerateBarcode";
 import SaleQuotationInvoice from "../pages/quotation/SaleQuotationInvoice";
 import CreateParcel from "../pages/Parcel/CreateParcel";
+import OrderPack from "../pages/Parcel/OrderPack";
 import ParcelList from "../pages/Parcel/ParcelList";
 import EcomProductList from "../pages/Ecommerce/EcomProductList";
 import EditEcomProduct from "../pages/Ecommerce/EditEcomProduct";
@@ -209,8 +210,8 @@ export const router = createBrowserRouter([
             Component: Transactions,
           },
           {
-            path: "transaction-details/:id",
-            Component: TransactionDetails,
+            path: "payment-details/:id",
+            Component: PaymentDetails,
           },
 
         ],
@@ -313,6 +314,10 @@ export const router = createBrowserRouter([
           {
             path: "create",
             Component: CreateParcel,
+          },
+          {
+            path: "order-pack/:id",
+            Component: OrderPack,
           },
           {
             path: "list",

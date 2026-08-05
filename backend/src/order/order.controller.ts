@@ -39,6 +39,12 @@ export class OrderController {
         return res.status(200).json({ success: true, data });
     }
 
+    static async adminOrderDetail(req: Request, res: Response) {
+        const orderId = Number(req.params.id);
+        const data = await OrderService.getAdminOrderDetail(orderId);
+        return res.status(200).json({ success: true, data });
+    }
+
     static async cancelOrder(req: Request, res: Response) {
         const userID = (req as any).user!.id;
         const orderId = Number(req.params.id);

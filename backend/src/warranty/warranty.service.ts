@@ -19,6 +19,12 @@ export default class WarrantyService {
         return result;
     }
 
+        static async deleteBySerial(serial: string, tx?: QueryClient) {
+        const result = await WarrantyRepository.deleteBySerial(serial, tx);
+        return result;
+    }
+
+
     static async list(query: any) {
         return await WarrantyRepository.list(query);
     }

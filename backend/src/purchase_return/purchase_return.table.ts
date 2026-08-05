@@ -6,6 +6,7 @@ import {
   numeric,
   text,
   index,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { contactTable } from "../contact/contact.table";
@@ -76,6 +77,8 @@ export const purchaseReturnTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    isDeleted: boolean("is_deleted").default(false).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
     index("purchase_returns_purchase_id_idx").on(table.purchaseID),

@@ -17,6 +17,7 @@ import { accountTable } from "../account/account.table";
 import { balanceTransferTable } from "../account/balance_transfer.table";
 import { randomUUID } from "crypto";
 import { expenseTable } from "../expense/expense.table";
+import { paymentTable } from "../payment/payment.table";
 
 // ১. ট্রানজেকশনের সোর্স মডিউল (কিসের মাধ্যমে জেনারেট হলো)
 export const txSourceEnum = pgEnum("tx_source", [
@@ -28,7 +29,8 @@ export const txSourceEnum = pgEnum("tx_source", [
   "warranty",
   "balance_transfer",
   "deposit",
-  "withdraw"
+  "withdraw",
+  "payment",
 ]);
 
 export const txTypeEnum = pgEnum("tx_type", ["credit", "debit"]);
@@ -79,6 +81,10 @@ export const transactionTable = pgTable(
       onDelete: "cascade",
     }),
 
+    paymentID: integer("payment_id").references(() => paymentTable.id, {
+      onDelete: "cascade",
+    }),
+
     date: timestamp("date", { withTimezone: true }).defaultNow().notNull(),
 
   },
@@ -90,6 +96,7 @@ export const transactionTable = pgTable(
     index("transactions_sale_return_id_idx").on(table.saleReturnID),
     index("transactions_warranty_id_idx").on(table.warrantyID),
     index("transactions_expense_id_idx").on(table.expenseID),
+    index("transactions_payment_id_idx").on(table.paymentID),
   ]
 );
 
@@ -122,5 +129,9 @@ export const transactionRelations = relations(transactionTable, ({ one }) => ({
    expense: one(expenseTable, {
     fields: [transactionTable.expenseID],
     references: [expenseTable.id],
+  }),
+  payment: one(paymentTable, {
+    fields: [transactionTable.paymentID],
+    references: [paymentTable.id],
   }),
 }));

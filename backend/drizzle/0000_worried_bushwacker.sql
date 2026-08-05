@@ -78,7 +78,6 @@ CREATE TABLE "sales" (
 	"customer_id" integer,
 	"note" text,
 	"cost_name" varchar(255),
-	"deletable" boolean DEFAULT true NOT NULL,
 	"total_product_price" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"other_cost" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"discount" numeric(12, 2) DEFAULT 0 NOT NULL,
@@ -87,8 +86,11 @@ CREATE TABLE "sales" (
 	"exchange_amount" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"balance_before" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"balance_after" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"deletable" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone,
 	CONSTRAINT "sales_invoice_no_unique" UNIQUE("invoice_no")
 );
 --> statement-breakpoint
@@ -153,6 +155,8 @@ CREATE TABLE "products" (
 	"sort_order" integer DEFAULT 0 NOT NULL,
 	"average_rating" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"total_reviews" integer DEFAULT 0 NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone,
 	CONSTRAINT "products_slug_unique" UNIQUE("slug"),
 	CONSTRAINT "products_sku_unique" UNIQUE("sku")
 );
@@ -171,6 +175,8 @@ CREATE TABLE "variants" (
 	"images" jsonb DEFAULT '[]'::jsonb,
 	"image_file_ids" jsonb DEFAULT '[]'::jsonb,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone,
 	CONSTRAINT "variants_barcode_unique" UNIQUE("barcode")
 );
 --> statement-breakpoint
@@ -189,6 +195,8 @@ CREATE TABLE "batches" (
 	"is_active" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone,
 	CONSTRAINT "batches_serial_unique" UNIQUE("serial"),
 	CONSTRAINT "batches_warranty_check" CHECK ("batches"."warranty" >= 0)
 );
@@ -236,7 +244,9 @@ CREATE TABLE "purchase_returns" (
 	"balance_after" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"date" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "purchases" (
@@ -246,7 +256,6 @@ CREATE TABLE "purchases" (
 	"supplier_id" integer NOT NULL,
 	"note" text,
 	"cost_name" varchar(255),
-	"deletable" boolean DEFAULT true NOT NULL,
 	"total_product_price" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"other_cost" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"discount" numeric(12, 2) DEFAULT 0 NOT NULL,
@@ -255,8 +264,11 @@ CREATE TABLE "purchases" (
 	"exchange_amount" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"balance_before" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"balance_after" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"deletable" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone,
 	CONSTRAINT "purchases_invoice_no_unique" UNIQUE("invoice_no")
 );
 --> statement-breakpoint
@@ -284,7 +296,9 @@ CREATE TABLE "sale_returns" (
 	"balance_after" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"date" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "warranties" (
@@ -310,11 +324,13 @@ CREATE TABLE "warranties" (
 	"replaced_batch_id" integer,
 	"refund_amount" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"other_cost" numeric(12, 2) DEFAULT 0 NOT NULL,
-	"warranty" numeric(4, 2) DEFAULT 0 NOT NULL,
+	"warranty" integer DEFAULT 0 NOT NULL,
 	"resolved_date" timestamp with time zone,
 	"note" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "permissions" (
@@ -402,7 +418,9 @@ CREATE TABLE "expenses" (
 	"document_image" varchar(500),
 	"expense_date" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "expense_types" (
@@ -424,9 +442,10 @@ CREATE TABLE "damages" (
 	"reason" varchar(20) DEFAULT 'manual' NOT NULL,
 	"note" text,
 	"damage_date" timestamp with time zone DEFAULT now() NOT NULL,
-	"deletable" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "carts" (
@@ -461,9 +480,10 @@ CREATE TABLE "parcels" (
 	"cod_amount" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"due_amount" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"parcel_date" timestamp with time zone DEFAULT now() NOT NULL,
-	"deletable" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "banners" (
@@ -539,7 +559,9 @@ CREATE TABLE "orders" (
 	"order_from" "order_from" DEFAULT 'Ecommerce' NOT NULL,
 	"ordered_by" varchar,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

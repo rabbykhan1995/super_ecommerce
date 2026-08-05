@@ -13,10 +13,10 @@ type TableProps<T> = {
   data: T[];
   keyExtractor: (row: T, index: number) => string | number;
   footer?: (columnCount: number) => React.ReactNode;
-
+  rowClassName?: (row: T) => string;
 };
 
-export default function Table<T>({ columns, data, keyExtractor ,footer}: TableProps<T>) {
+export default function Table<T>({ columns, data, keyExtractor, footer, rowClassName }: TableProps<T>) {
   return (
     <div className="overflow-x-auto w-full">
       <table className="global_table">
@@ -38,7 +38,7 @@ export default function Table<T>({ columns, data, keyExtractor ,footer}: TablePr
             </tr>
           ) : (
             data.map((row, rowIndex) => (
-              <tr key={keyExtractor(row, rowIndex)} className="global_tr"> {/* ✅ rowIndex */}
+              <tr key={keyExtractor(row, rowIndex)} className={`global_tr ${rowClassName?.(row) ?? ""}`}> {/* ✅ rowIndex */}
                 {columns.map((col, i) => (
                   <td key={i} className={`global_td ${col.className ?? ""}`}>
                     {typeof col.accessor === "function"

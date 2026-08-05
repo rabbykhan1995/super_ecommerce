@@ -39,7 +39,8 @@ export type trxConfig = {
     saleReturnID?: number;
     balanceTransferID?: number;
     warrantyID?: number;
-    expenseID?:number;
+    expenseID?: number;
+    paymentID?: number;
 }
 
 export default class PayloadBuilder {

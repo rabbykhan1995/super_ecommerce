@@ -4,6 +4,7 @@ import {
   serial,
   timestamp,
   varchar,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { transactionTable } from "../transaction/transaction.table";
@@ -45,6 +46,8 @@ export const expenseTable = pgTable("expenses", {
   })
     .defaultNow()
     .notNull(),
+  isDeleted: boolean("is_deleted").default(false).notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const expenseTypeTable = pgTable("expense_types", {

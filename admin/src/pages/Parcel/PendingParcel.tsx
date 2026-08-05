@@ -174,7 +174,7 @@ export default function PendingParcels() {
             accessor: (row) => {
 
               return (
-                 <Link className="global_button" to={`/parcel/create/${row.id}`}>Create</Link>
+                 <Link className="global_button" to={`/parcel/order-pack/${row.id}`}>Create</Link>
               );
             },
             className:"text-end"

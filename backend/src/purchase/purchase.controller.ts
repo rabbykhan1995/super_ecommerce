@@ -16,11 +16,16 @@ export class PurchaseController {
 
   static async delete(req: Request, res: Response) {
     const { id } = req.params;
-    await PurchaseService.delete(id.toString());
+    await PurchaseService.delete(Number(id));
 
     res.status(200).json({ success: true, msg: "Purchase deleted successfully" });
+  }
 
+  static async restore(req: Request, res: Response) {
+    const { id } = req.params;
+    await PurchaseService.restore(Number(id));
 
+    res.status(200).json({ success: true, msg: "Purchase restored successfully" });
   }
 
   static async purchaseInvoiceByID(

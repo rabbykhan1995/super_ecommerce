@@ -50,11 +50,11 @@ export default function SaleReturn() {
       const formatted: AccountOption[] = res.data.data.map((a: Account) => ({
         ...a,
         label: a.name,
-        value: a._id,
+        value: a.id,
         amount: 0,
       }));
-      const defaultAccount = formatted.find((a) => a.default === true);
-      const rest = formatted.filter((a) => a.default !== true);
+      const defaultAccount = formatted.find((a) => a.isDefault === true);
+      const rest = formatted.filter((a) => a.isDefault !== true);
       setAccounts(rest);
       if (defaultAccount) setSelectedAccounts([defaultAccount]);
     }
@@ -65,16 +65,16 @@ export default function SaleReturn() {
   }, [id]);
 
   // checkbox toggle
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: number) => {
     selectedProducts.value = selectedProducts.value.map((p) =>
-      p._id === id ? { ...p, selected: !p.selected } : p
+      p.id === id ? { ...p, selected: !p.selected } : p
     );
   };
 
   // qty change
-  const handleQtyChange = (id: string, value: number) => {
+  const handleQtyChange = (id: number, value: number) => {
     selectedProducts.value = selectedProducts.value.map((p) =>
-      p._id === id ? { ...p, qty: value } : p
+      p.id === id ? { ...p, qty: value } : p
     );
   };
 
@@ -96,20 +96,33 @@ export default function SaleReturn() {
     }
     
 
+    const balanceBefore = sale?.contact?.balance ?? 0;
+    const unpaid = totalReturnAmount - paid;
+    const balanceAfter = balanceBefore + Math.max(unpaid, 0);
+
     const payload = {
-      saleID: id as string,
-      note,
-      paid,
-      discount: 0,
-      date: saleReturnDate,
-      batches: selectedOnly.map((p) => ({
-        batchID: p._id,
+      saleReturn: {
+        saleID: Number(id),
+        note,
+        paid,
+        discount: 0,
+        exchangeAmount: 0,
+        date: saleReturnDate,
+        balanceBefore,
+        balanceAfter,
+      },
+      products: selectedOnly.map((p: any) => ({
+        productID: p.productID,
+        batchID: p.batchID,
+        variantID: p.variantID,
         saleReturnQty: p.qty,
+        salePrice: p.salePrice,
       })),
       accounts: selectedAccounts.map((a) => ({
         accountID: a.value,
         amount: a.amount,
       })),
+      exchangeAccounts: [],
     };
 
     try {
@@ -117,7 +130,7 @@ export default function SaleReturn() {
       const res = await api.post("/sale-return/create", payload);
       if (res.data.success) {
         toast.success("Sale return successful");
-        navigate(`/sale/return/invoice/${res.data.data._id}`);
+        navigate(`/sale/return/invoice/${res.data.data.id}`);
       }
     } catch {
       toast.error("Something went wrong");
@@ -133,10 +146,10 @@ export default function SaleReturn() {
       {/* Header */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Supplier</label>
+          <label className="block text-sm font-medium mb-1">Customer</label>
           <input
             type="text"
-            value={sale?.customer?.name ?? ""}
+            value={sale?.contact ? `${sale?.contact?.name}-(${sale?.contact?.mobile})`: ""}
             disabled
             className="global_input w-full cursor-not-allowed"
           />
@@ -173,7 +186,8 @@ export default function SaleReturn() {
       {/* Table */}
       <Table
         data={selectedProducts.value}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
+        rowClassName={(row) => row.saleReturnedQty === row.soldQty ? "text-gray-400" : ""}
         columns={[
           {
             header: "Select",
@@ -184,7 +198,7 @@ export default function SaleReturn() {
                 type="checkbox"
                 checked={!!row.selected}
                 disabled={row.saleReturnedQty=== row.soldQty}
-                onChange={() => toggleSelect(row._id)}
+                onChange={() => toggleSelect(row.id)}
                 className="w-4 h-4 cursor-pointer"
               />
             ),
@@ -230,7 +244,7 @@ export default function SaleReturn() {
                   onChange={(e) => {
                     const val = e.target.value === "" ? 0 : Number(e.target.value);
                     if (val > (row.soldQty- row.saleReturnedQty)) return toast.error(`Max returnable qty is ${row.soldQty- row.saleReturnedQty}`);
-                    handleQtyChange(row._id, val);
+                    handleQtyChange(row.id, val);
                   }}
                   max={row.soldQty- row.saleReturnedQty}
                   min={1}
@@ -302,7 +316,7 @@ export default function SaleReturn() {
             const remaining = totalReturnAmount - paid;
             if (remaining > 0) return (
               <div className="flex justify-between font-semibold border-t pt-2">
-                <label>Supplier Still Owes:</label>
+                <label>Customer Still Owes:</label>
                 <input type="number" value={remaining.toFixed(2)} disabled
                   className="global_input w-40 cursor-not-allowed text-right text-orange-500" />
               </div>

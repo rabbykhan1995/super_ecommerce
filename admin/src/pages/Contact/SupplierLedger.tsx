@@ -70,7 +70,7 @@ export default function SupplierLedger() {
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           {
             header: "Type", accessor: (row) => (
@@ -134,15 +134,15 @@ export default function SupplierLedger() {
             accessor: (row) => (
               <div className="flex gap-2 justify-end">
                 {row.type === "sale" ? (
-                  <Link to={`/sale/invoice/${row?.typeID}`} className="global_button bg-[#238b95]">Sale</Link>
+                  <Link to={`/sale/invoice/${row?.saleID}`} className="global_button bg-[#238b95]">Sale</Link>
                 ) : row.type === "sale_return" ? (
-                  <Link to={`/sale/invoice/${row?.typeID}`} className="global_button bg-[#e07b39]">Sale Return</Link>
+                  <Link to={`/sale/invoice/${row?.saleReturnID}`} className="global_button bg-[#e07b39]">Sale Return</Link>
                 ) : row.type === "purchase" ? (
-                  <Link to={`/purchase/${row?.typeID}`} className="global_button bg-[#7b52ab]">Purchase</Link>
+                  <Link to={`/purchase/invoice/${row?.purchaseID}`} className="global_button bg-[#7b52ab]">Purchase</Link>
                 ) : row.type === "purchase_return" ? (
-                  <Link to={`/purchase/${row?.typeID}`} className="global_button bg-[#c0392b]">Purchase Return</Link>
+                  <Link to={`/purchase/${row?.purchaseReturnID}`} className="global_button bg-[#c0392b]">Purchase Return</Link>
                 ) : row.type === "payment_in" || row.type === "payment_out" ? (
-                  <Link to={`/account/transaction-details/${row?.typeID}`} className="global_button bg-[#38ad51]">Transaction</Link>
+                  <Link to={`/account/payment-details/${row?.paymentID}`} className="global_button bg-[#38ad51]">PaymentDetails</Link>
                 ) : ""}
 
               </div>

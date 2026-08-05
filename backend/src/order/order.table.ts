@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, varchar, timestamp, serial, text, integer, numeric, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, varchar, timestamp, serial, text, integer, numeric, jsonb, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { productTable } from "../product/product.table";
 
 import { saleTable } from "../sale/sale.table";
@@ -62,6 +62,8 @@ export const orderTable = pgTable("orders", {
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    isDeleted: boolean("is_deleted").default(false).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 // ─── Order Item ─────────────────────────────────────────────────────────────
 export const orderItemTable = pgTable("order_items", {

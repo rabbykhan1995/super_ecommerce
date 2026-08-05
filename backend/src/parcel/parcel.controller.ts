@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import {
   CreateParcelInput,
+  CreateOrderPackInput,
   UpdateParcelStatusInput,
   UpdateParcelInput,
 } from "./parcel.type";
@@ -15,6 +16,17 @@ export class ParcelController {
       success: true,
       data: parcel,
       msg: "Parcel created successfully",
+    });
+  }
+
+  static async createOrderPack(req: Request, res: Response) {
+    const payload: CreateOrderPackInput = req.body;
+    const result = await ParcelService.createOrderPack(payload);
+
+    res.status(201).json({
+      success: true,
+      data: result,
+      msg: "Order packed and parcel created successfully",
     });
   }
 

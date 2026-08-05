@@ -31,12 +31,13 @@ export default function TransactionModal({ contact, open, onClose, type }: Trans
     });
 
     const [contacts, setContacts] = useState<SelectOption<Contact>[]>([]);
+
     const fetchContacts = async () => {
         const res = await api("/contact/list", {
             params: { search: params.search, limit: params.limit, page: params.page, type: type },
         });
         if (res.data.success) setContacts(
-            res.data.data.items.map((u: Contact) => ({ value: u._id, label: `${u.name} balance(${u.balance})`, ...u }))
+            res.data.data.items.map((u: Contact) => ({ value: u.id, label: `${u.name} balance(${u.balance})`, ...u }))
         );;
     };
     useEffect(() => {
@@ -51,12 +52,13 @@ export default function TransactionModal({ contact, open, onClose, type }: Trans
     const fetchAccount = async () => {
         const res = await api("/account/list");
         if (res.data.success) {
-            const formatted: AccountOption[] = res.data.data.map((a: Account) => ({ ...a, label: a.name, value: a._id, amount: 0, type: "Credit" }));
+            const formatted: AccountOption[] = res.data.data.map((a: Account) => ({ ...a, label: a.name, value: a.id, amount: 0, type: "Credit" }));
             setAccounts(formatted);
         }
     };
 
     useEffect(() => {
+         setSelectedContact({...contact, value:contact!.id, label: `${contact!.name} balance(${contact!.balance})`})
         fetchAccount();
     }, []);
     const prevBal = selectedContact?.balance || 0;
@@ -80,26 +82,31 @@ export default function TransactionModal({ contact, open, onClose, type }: Trans
             return toast.error("Select One contact");
         }
 
-           const accounts = selectedAccounts.map(a => ({
+        const accountsPayload = selectedAccounts.map(a => ({
             accountID: a.value,
             amount: a.amount,
         }));
 
+        // Determine payment type based on transaction type and contact type
+        let paymentType: "customer_receive" | "customer_pay" | "supplier_pay" | "supplier_receive";
+        
+        if (type === "customer") {
+            paymentType = transactionType === "credit" ? "customer_receive" : "customer_pay";
+        } else {
+            paymentType = transactionType === "credit" ? "supplier_receive" : "supplier_pay";
+        }
+
         const payload = {
-            accounts,
-            transaction: {
-                contactID: selectedContact.value,
-                balanceBefore: prevBal,
-                balanceAfter: currentBal,
-                amount: totalPaid,
-                note: note,
-                type:transactionType==="credit"?"Credit":"Debit",
-            }
+            contactID: selectedContact.value,
+            type: paymentType,
+            accounts: accountsPayload,
+            note: note,
+            paymentDate: new Date(),
         };
 
-        const res = await api.post('/transaction/create', payload);
+        const res = await api.post('/payment/create', payload);
         if (res.status === 201) {
-            navigate(`/account/transaction-details/${res.data.data[0]._id}`)
+            toast.success("Payment created successfully");
             return onClose();
         }
     };
@@ -133,11 +140,11 @@ export default function TransactionModal({ contact, open, onClose, type }: Trans
                     <AnyDropdown
                         value={transactionType}
                         options={[
-                            { _id: "credit", name: `Credit from ${type}` },
-                            { _id: "debit", name: `Debit to ${type}` }
+                            { id: "credit", name: `Credit from ${type}` },
+                            { id: "debit", name: `Debit to ${type}` }
                         ]}
                         onChange={(id: string) => setTransactionType(id as "credit" | "debit")}
-                        idKey="_id"
+                        idKey="id"
                         labelKey="name"
                     />
                 </div>

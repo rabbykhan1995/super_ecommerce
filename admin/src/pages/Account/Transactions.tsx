@@ -72,7 +72,7 @@ export default function Transactions() {
 
 
       <TableFilterBar
-        title="Transaction"
+        title="PaymentDetails"
         subtitle={`Total: ${data.total}`}
         search={search}
         onSearchChange={(val) => { setSearch(val); setPage(1); }}
@@ -128,6 +128,11 @@ export default function Transactions() {
               <div className="flex gap-2 justify-end">
                 {row.source === "sale" && row.saleID && <Link to={`/sale/invoice/${row.saleID}`} className="global_button bg-[#238b95]">Sale Invoice</Link>}
                 {row.source === "purchase" && row.purchaseID && <Link to={`/purchase/invoice/${row.purchaseID}`} className="global_button bg-[#238b95]">Purchase Invoice</Link>}
+                {row.source === "sale_return" && row.saleReturnID && <Link to={`/sale/return/${row.saleReturnID}`} className="global_button bg-[#e67e22]">Sale Return</Link>}
+                {row.source === "purchase_return" && row.purchaseReturnID && <Link to={`/purchase/return/${row.purchaseReturnID}`} className="global_button bg-[#e67e22]">Purchase Return</Link>}
+                {row.source === "expense" && row.expenseID && <Link to={`/expense/list`} className="global_button bg-[#e74c3c]">Expense</Link>}
+                {row.source === "payment" && row.paymentID && <Link to={`/account/payment-details/${row.paymentID}`} className="global_button bg-[#38ad51]">Payment Details</Link>}
+                {row.source === "warranty" && row.warrantyID && <Link to={`/warranty/list`} className="global_button bg-[#9b59b6]">Warranty</Link>}
               </div>
             ),
           },

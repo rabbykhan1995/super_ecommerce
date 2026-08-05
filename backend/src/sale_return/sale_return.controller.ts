@@ -22,11 +22,25 @@ export class SaleReturnController {
     res.status(200).json({ success: true, data: invoice });
   }
 
+  static async productByID(req: Request, res: Response) {
+    const { id } = req.params;
+    const products = await SaleReturnService.getSaleReturnProducts(Number(id));
+    res.status(200).json({ success: true, data: products });
+  }
+
   static async delete(req: Request, res: Response) {
     const { id } = req.params;
     await SaleReturnService.delete(Number(id));
     return res
       .status(200)
       .json({ success: true, msg: "Sale return deleted" });
+  }
+
+  static async restore(req: Request, res: Response) {
+    const { id } = req.params;
+    await SaleReturnService.restore(Number(id));
+    return res
+      .status(200)
+      .json({ success: true, msg: "Sale return restored" });
   }
 }

@@ -1,7 +1,7 @@
 import db, { QueryClient } from "../../drizzle/src";
 import { warrantyTable } from "./warranty.table";
 import { WarrantyPayload, WarrantyResponse } from "./warranty.type";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { paginateQuery } from "../../utils/queryBuilder";
 
 export default class WarrantyRepository {
@@ -24,7 +24,7 @@ export default class WarrantyRepository {
         const [warranty] = await client
             .select()
             .from(warrantyTable)
-            .where(eq(warrantyTable.id, id))
+            .where(and(eq(warrantyTable.id, id), eq(warrantyTable.isDeleted, false)))
             .limit(1);
         return warranty ?? null;
     }
@@ -33,7 +33,7 @@ export default class WarrantyRepository {
         return await client
             .select()
             .from(warrantyTable)
-            .where(eq(warrantyTable.saleID, saleID));
+            .where(and(eq(warrantyTable.saleID, saleID), eq(warrantyTable.isDeleted, false)));
     }
 
     static async updateByID(id: number, payload: Partial<WarrantyPayload>, client: QueryClient = db) {
@@ -47,7 +47,8 @@ export default class WarrantyRepository {
 
     static async deleteByID(id: number, client: QueryClient = db) {
         const [warranty] = await client
-            .delete(warrantyTable)
+            .update(warrantyTable)
+            .set({ isDeleted: true, deletedAt: new Date() })
             .where(eq(warrantyTable.id, id))
             .returning();
         return warranty ?? null;
@@ -55,8 +56,17 @@ export default class WarrantyRepository {
 
     static async deleteManyBySaleID(saleID: number, client: QueryClient = db) {
         return await client
-            .delete(warrantyTable)
+            .update(warrantyTable)
+            .set({ isDeleted: true, deletedAt: new Date() })
             .where(eq(warrantyTable.saleID, saleID))
+            .returning();
+    }
+
+    static async deleteBySerial(serial: string, client: QueryClient = db) {
+        return await client
+            .update(warrantyTable)
+            .set({ isDeleted: true, deletedAt: new Date() })
+            .where(eq(warrantyTable.serial, serial))
             .returning();
     }
 
@@ -68,6 +78,7 @@ export default class WarrantyRepository {
             countTable: warrantyTable,
             search: query.search,
             searchColumns: [warrantyTable.serial, warrantyTable.note],
+            where: [eq(warrantyTable.isDeleted, false)],
             with: {
                 product: {
                     columns: { id: true, name: true },

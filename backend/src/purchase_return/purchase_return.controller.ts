@@ -43,4 +43,10 @@ static async purchaseForReturnByID(req: Request, res: Response) {
       await PurchaseReturnService.delete(Number(id));
       return res.status(200).json({ success: true, msg: "Purchase return deleted" });
   }
+
+  static async restore(req: Request, res: Response) {
+    const { id } = req.params;
+    await PurchaseReturnService.restore(Number(id));
+    return res.status(200).json({ success: true, msg: "Purchase return restored" });
+  }
 }

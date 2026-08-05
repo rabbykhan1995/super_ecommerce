@@ -1,4 +1,4 @@
-import { ClientSession } from "mongoose";
+
 import { ApiError } from "../../utils/ApiError";
 import Helper from "../../utils/helper";
 import ContactService from "../contact/contact.service";
@@ -211,12 +211,17 @@ export default class SaleService {
     static async saleInvoiceByID(saleID: number) {
 
         const sale: Sale = await SaleRepository.getSaleByID(saleID);
-
+        let contact=null;
         if (!sale) {
 
             throw new ApiError(404, "sale not found");
 
         }
+         
+        if(sale.customerID){
+            contact = await ContactService.findByID(sale.customerID);
+        }
+
 
         let transactions;
 
@@ -235,11 +240,11 @@ export default class SaleService {
         }
 
         const saleProducts = await SaleRepository.getSoldProductsBySaleID(saleID);
-
+        
         return {
 
             ...sale,
-
+            contact,
             accounts: transactions?.map((t) => ({
                 name: t.account.name,
                 amount: t.amount
@@ -258,13 +263,17 @@ export default class SaleService {
 
     static async delete(id: number) {
         
-        const sale = await SaleRepository.getSaleByID(id);
+        const sale = await SaleRepository.getSaleByIDRaw(id);
 
         if (!sale) throw new ApiError(404, "Sale not found");
 
         if (!sale.deletable) {
 
             throw new ApiError(400, "Sale can not be deleted");
+        }
+
+        if (sale.isDeleted) {
+            throw new ApiError(400, "Sale is already deleted");
         }
 
         await withTransaction(async (tx) => {
@@ -316,7 +325,8 @@ export default class SaleService {
                 );
             }
 
-            await SaleRepository.delete(sale.id, tx);
+            // Soft delete: set isDeleted = true, deletedAt = now
+            await SaleRepository.softDelete(sale.id, tx);
 
 
             await RedisReportService.updateSaleReport({
@@ -330,6 +340,76 @@ export default class SaleService {
         })
 
 
+    }
+
+    static async restore(id: number) {
+        
+        const sale = await SaleRepository.getSaleByIDRaw(id);
+
+        if (!sale) throw new ApiError(404, "Sale not found");
+
+        if (!sale.isDeleted) {
+            throw new ApiError(400, "Sale is not deleted");
+        }
+
+        await withTransaction(async (tx) => {
+
+            const saleItems = await SaleRepository.getSoldProductsBySaleID(id, tx)
+
+            // Restore stock
+            await Promise.all(
+                saleItems
+                    .map(async (p) => {
+                        await Promise.all(
+                            [
+                                ProductService.decreaseBatchStock(p.batchID, p.soldQty, tx),
+                                ProductService.decreaseProductStock(p.productID, p.soldQty, tx),
+                                ProductService.decreaseVariantStock(p.variantID, p.soldQty, tx)
+                            ]
+                        );
+                    })
+            );
+
+            const allTransactions = await TransactionService.findBySourceID(sale.id, "sale");
+
+            // Restore account balance
+            const isPaymentHappened: boolean = sale.paid > 0;
+            if (isPaymentHappened) {
+                const accTrans = allTransactions.filter(a => a.type === "credit");
+                const accounts = accTrans.map(a => ({ accountID: a.accountID, amount: a.amount as number }));
+                await AccountService.increaseBalance(accounts, tx);
+            }
+
+            const isExchangeHappened: boolean = sale.exchangeAmount > 0;
+            if (isExchangeHappened) {
+                const accTrans = allTransactions.filter(a => a.type === "debit");
+                const exchangeAccounts = accTrans.map(a => ({ accountID: a.accountID, amount: a.amount as number }));
+                await AccountService.decreaseBalance(exchangeAccounts, tx);
+            }
+
+            // Restore customer balance
+            if (sale.customerID) {
+                const rollbackAmount = sale.balanceAfter - sale.balanceBefore;
+                await ContactService.updateBalance(
+                    sale.customerID,
+                    rollbackAmount,
+                    tx
+                );
+            }
+
+            // Restore sale: set isDeleted = false, deletedAt = null
+            await SaleRepository.restore(sale.id, tx);
+
+            // Restore Redis report
+            await RedisReportService.updateSaleReport({
+                amount: sale.totalAmount,
+                qty: saleItems.reduce((sum, p) => sum + p.soldQty, 0),
+                due: sale.totalAmount - sale.paid,
+                paid: sale.paid,
+                discount: sale.discount ?? 0,
+                date: sale.saleDate,
+            });
+        })
     }
 
     static async getSaleByID(saleID: number) {
@@ -361,7 +441,7 @@ export default class SaleService {
         }
 
         await withTransaction(async (tx) => {
-
+         const saleCreated = await SaleRepository.create(sale, tx);
             await Promise.all(products.map(async (p) => {
 
                 const [product, variant] = await Promise.all([
@@ -498,7 +578,7 @@ export default class SaleService {
                 // __________________
             }))
             // purchase create
-            const saleCreated = await SaleRepository.create(sale, tx);
+   
 
             //  Accounts
             const isPaymentHappened: boolean = saleCreated.paid > 0;

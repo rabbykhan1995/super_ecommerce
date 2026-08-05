@@ -138,12 +138,16 @@ export default class PurchaseService {
   }
 
   static async delete(purchaseID: number) {
-    const purchase = await PurchaseRepository.findByID(purchaseID);
+    const purchase = await PurchaseRepository.findByIDRaw(purchaseID);
 
     if (!purchase) throw new ApiError(404, "Purchase not found");
 
     if (!purchase.deletable) {
       throw new ApiError(400, "Purchase Couldn't be deleted due to it is returned or items are sold");
+    }
+
+    if (purchase.isDeleted) {
+      throw new ApiError(400, "Purchase is already deleted");
     }
 
      await withTransaction(async (tx) => {
@@ -185,7 +189,7 @@ export default class PurchaseService {
                 await AccountService.decreaseBalance(exchangeAccounts, tx);
             }
 
-            // customer balance restore
+            // supplier balance restore
 
                 const rollbackAmount = -(purchase.balanceAfter - purchase.balanceBefore);
 
@@ -196,7 +200,8 @@ export default class PurchaseService {
                 );
 
 
-            await PurchaseRepository.deletePurchaseByID(purchaseID, tx);
+            // Soft delete: set isDeleted = true, deletedAt = now
+            await PurchaseRepository.softDelete(purchaseID, tx);
 
 
             await RedisReportService.updateSaleReport({
@@ -208,6 +213,73 @@ export default class PurchaseService {
                 date: purchase.purchaseDate,
             });
         })
+  }
+
+  static async restore(purchaseID: number) {
+    const purchase = await PurchaseRepository.findByIDRaw(purchaseID);
+
+    if (!purchase) throw new ApiError(404, "Purchase not found");
+
+    if (!purchase.isDeleted) {
+      throw new ApiError(400, "Purchase is not deleted");
+    }
+
+    await withTransaction(async (tx) => {
+
+      const batches = await ProductService.findBatchesByPurchaseID(purchaseID, tx);
+
+      // Restore stock
+      await Promise.all(
+        batches
+          .map(async (p) => {
+            await Promise.all(
+              [
+                ProductService.increaseBatchStock(p.id, p.purchasedQty, tx),
+                ProductService.increaseProductStock(p.productID, p.purchasedQty, tx),
+                ProductService.increaseVariantStock(p.variantID, p.purchasedQty, tx)
+              ]
+            );
+          })
+      );
+
+      const allTransactions = await TransactionService.findBySourceID(purchase.id, "purchase");
+
+      // Restore account balance
+      const isPaymentHappened: boolean = purchase.paid > 0;
+      if (isPaymentHappened) {
+        const accTrans = allTransactions.filter(a => a.type === "debit");
+        const accounts = accTrans.map(a => ({ accountID: a.accountID, amount: a.amount as number }));
+        await AccountService.decreaseBalance(accounts, tx);
+      }
+
+      const isExchangeHappened: boolean = purchase.exchangeAmount > 0;
+      if (isExchangeHappened) {
+        const accTrans = allTransactions.filter(a => a.type === "credit");
+        const exchangeAccounts = accTrans.map(a => ({ accountID: a.accountID, amount: a.amount as number }));
+        await AccountService.increaseBalance(exchangeAccounts, tx);
+      }
+
+      // Restore supplier balance
+      const rollbackAmount = purchase.balanceAfter - purchase.balanceBefore;
+      await ContactService.updateBalance(
+        purchase.supplierID,
+        rollbackAmount,
+        tx
+      );
+
+      // Restore purchase: set isDeleted = false, deletedAt = null
+      await PurchaseRepository.restore(purchaseID, tx);
+
+      // Restore Redis report
+      await RedisReportService.updatePurchaseReport({
+        amount: purchase.totalAmount,
+        qty: batches.reduce((sum, p) => sum + p.purchasedQty, 0),
+        due: purchase.totalAmount - purchase.paid,
+        paid: purchase.paid - purchase.exchangeAmount,
+        discount: purchase.discount ?? 0,
+        date: purchase.purchaseDate,
+      });
+    })
   }
 
   static async purchaseInvoiceByID(

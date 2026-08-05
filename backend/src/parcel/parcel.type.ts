@@ -1,6 +1,7 @@
 import z from "zod";
 import {
   createParcelSchema,
+  createOrderPackSchema,
   updateParcelStatusSchema,
   updateParcelSchema,
 } from "./parcel.validator";
@@ -11,6 +12,8 @@ export type Parcel = typeof parcelTable.$inferSelect;
 export type ParcelPayload = typeof parcelTable.$inferInsert;
 
 export type CreateParcelInput = z.infer<typeof createParcelSchema>;
+
+export type CreateOrderPackInput = z.infer<typeof createOrderPackSchema>;
 
 export type UpdateParcelStatusInput = z.infer<typeof updateParcelStatusSchema>;
 

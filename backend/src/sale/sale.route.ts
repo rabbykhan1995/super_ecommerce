@@ -33,5 +33,6 @@ router
   .get("/list", authMiddleware, asyncHandler(SaleController.list))
   .get("/saleByID/:id", authMiddleware, asyncHandler(SaleController.saleByID))
   .delete('/delete/:id', authMiddleware, asyncHandler(SaleController.delete))
+  .patch('/restore/:id', authMiddleware, asyncHandler(SaleController.restore))
 
 export default router;

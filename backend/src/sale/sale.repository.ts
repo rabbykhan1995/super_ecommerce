@@ -1,13 +1,25 @@
-import { ClientSession, Types } from "mongoose";
 import db, { QueryClient } from "../../drizzle/src";
 import { saleTable } from "./sale.table";
 import { paginateQuery } from "../../utils/queryBuilder";
 import { OnlySalePayload, SaleItemPayload } from "./sale.type";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { saleItemsTable } from "./sale_items.table";
 
 export default class SaleRepository {
     static async getSaleByID(
+        saleID: number,
+        client: QueryClient = db
+    ) {
+        const [sale] = await client
+            .select()
+            .from(saleTable)
+            .where(and(eq(saleTable.id, saleID), eq(saleTable.isDeleted, false)))
+            .limit(1);
+
+        return sale;
+    }
+
+    static async getSaleByIDRaw(
         saleID: number,
         client: QueryClient = db
     ) {
@@ -20,12 +32,26 @@ export default class SaleRepository {
         return sale;
     }
 
-    static async delete(
+    static async softDelete(
         saleID: number,
         client: QueryClient = db
     ) {
         const [sale] = await client
-            .delete(saleTable)
+            .update(saleTable)
+            .set({ isDeleted: true, deletedAt: new Date() })
+            .where(eq(saleTable.id, saleID))
+            .returning();
+
+        return sale ?? null;
+    }
+
+    static async restore(
+        saleID: number,
+        client: QueryClient = db
+    ) {
+        const [sale] = await client
+            .update(saleTable)
+            .set({ isDeleted: false, deletedAt: null })
             .where(eq(saleTable.id, saleID))
             .returning();
 
@@ -48,6 +74,7 @@ export default class SaleRepository {
             query: db.query.saleTable,
             countTable: saleTable,
             searchColumns: [saleTable.invoiceNo],
+            where: [eq(saleTable.isDeleted, false)],
             page: query.page,
             limit: query.limit,
             search: query.search,

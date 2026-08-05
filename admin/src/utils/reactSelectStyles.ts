@@ -1,17 +1,10 @@
 import type { StylesConfig } from "react-select";
 import type { SelectOption } from "../types/type";
-import { useState, useEffect } from "react";
 
 const isDark = () => document.documentElement.classList.contains("dark");
 
 export const getReactSelectStyles = <T extends { value: string; label: string } = SelectOption>(): StylesConfig<T> => {
-  const [dark, setDark] = useState(isDark());
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => setDark(isDark()));
-    observer.observe(document.documentElement, { attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
+  const dark = isDark();
 
   return {
     menuPortal: (base) => ({ ...base, zIndex: 9999 }),

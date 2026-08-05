@@ -102,7 +102,7 @@ export default function PurchaseReturn() {
     
 
     const balanceBefore = purchase?.supplier?.balance ?? 0;
-    const balanceAfter = balanceBefore - (totalReturnAmount - paid);
+    const balanceAfter = balanceBefore - totalReturnAmount;
 
     const payload = {
       purchaseReturn: {
@@ -313,7 +313,7 @@ export default function PurchaseReturn() {
           />
 
           <div className="flex justify-between">
-            <label>Paying Now:</label>
+            <label>Receiving Now:</label>
             <input type="number" value={paid.toFixed(2)} disabled
               className="global_input w-40 cursor-not-allowed text-right text-green-500" />
           </div>
