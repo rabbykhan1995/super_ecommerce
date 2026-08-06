@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { X, Loader2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../lib/axios";
@@ -36,6 +36,12 @@ const ImageUploader = ({
   const [loading, setLoading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const urls = multiple ? (value as string[]) || [] : value ? [value as string] : [];
+    const newImages = urls.map((url, i) => ({ url, fileId: fileIds[i] || "" }));
+    setImages(newImages);
+  }, [value, fileIds, multiple]);
 
   const handleFileUpload = async (files: FileList) => {
     if (!files.length) return;

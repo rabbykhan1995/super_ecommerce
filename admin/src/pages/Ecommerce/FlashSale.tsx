@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import api from "../../lib/axios";
 import TableFilterBar from "../../components/filters/TableFilterBar";
 import Pagination from "../../components/filters/Pagination";
-import { Edit, Trash2, Plus } from "lucide-react";
+import { Edit, Trash2, Plus, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import type { FlashSaleListItem, PaginatedResult } from "../../types/type";
 import ToggleSwitch from "../../components/buttons/ToggleSwitch";
+import DatePicker from "react-datepicker";
+import { createPortal } from "react-dom";
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function FlashSale() {
   const [data, setData] = useState<PaginatedResult<FlashSaleListItem>>({ items: [], total: 0, page: 1, limit: 10 });
@@ -14,7 +17,7 @@ export default function FlashSale() {
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<FlashSaleListItem | null>(null);
-  const [form, setForm] = useState({ name: "", startDate: "", endDate: "", isActive: true });
+  const [form, setForm] = useState({ name: "", startDate: new Date(), endDate: new Date(), isActive: true });
 
   const fetchData = async () => {
     const res = await api("/ecom/flash-sale/list", { params: { search, limit, page } });
@@ -28,14 +31,14 @@ export default function FlashSale() {
   }, [search]);
 
   const resetForm = () => {
-    setForm({ name: "", startDate: "", endDate: "", isActive: true });
+    setForm({ name: "", startDate: new Date(), endDate: new Date(), isActive: true });
     setEditItem(null);
     setShowForm(false);
   };
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.startDate || !form.endDate) {
-      toast.error("Name, start date and end date are required");
+    if (!form.name.trim()) {
+      toast.error("Name is required");
       return;
     }
     if (editItem) {
@@ -48,9 +51,7 @@ export default function FlashSale() {
   };
 
   const handleEdit = (item: FlashSaleListItem) => {
-    const startDate = new Date(item.startDate).toISOString().slice(0, 16);
-    const endDate = new Date(item.endDate).toISOString().slice(0, 16);
-    setForm({ name: item.name, startDate, endDate, isActive: item.isActive });
+    setForm({ name: item.name, startDate: new Date(item.startDate), endDate: new Date(item.endDate), isActive: item.isActive });
     setEditItem(item);
     setShowForm(true);
   };
@@ -86,11 +87,45 @@ export default function FlashSale() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-gray-500 mb-1 block">Start Date</label>
-              <input className="global_input" type="datetime-local" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                </div>
+                <DatePicker
+                  selected={form.startDate}
+                  onChange={(date: Date | null) => date && setForm({ ...form, startDate: date })}
+                  showTimeSelect
+                  dateFormat="MM-dd-yyyy, h:mm aa"
+                  className="global_input pl-10 w-full"
+                  popperPlacement="bottom"
+                  popperClassName="z-[9999]"
+                  calendarClassName="react-datepicker-custom"
+                  popperContainer={(props) =>
+                    createPortal(<div {...props} />, document.body)
+                  }
+                />
+              </div>
             </div>
             <div>
               <label className="text-sm text-gray-500 mb-1 block">End Date</label>
-              <input className="global_input" type="datetime-local" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                </div>
+                <DatePicker
+                  selected={form.endDate}
+                  onChange={(date: Date | null) => date && setForm({ ...form, endDate: date })}
+                  showTimeSelect
+                  dateFormat="MM-dd-yyyy, h:mm aa"
+                  className="global_input pl-10 w-full"
+                  popperPlacement="bottom"
+                  popperClassName="z-[9999]"
+                  calendarClassName="react-datepicker-custom"
+                  popperContainer={(props) =>
+                    createPortal(<div {...props} />, document.body)
+                  }
+                />
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -116,7 +151,7 @@ export default function FlashSale() {
               <div>
                 <h3 className="font-semibold">{sale.name}</h3>
                 <p className="text-xs text-gray-500">
-                  {new Date(sale.startDate).toLocaleDateString()} - {new Date(sale.endDate).toLocaleDateString()}
+                  {new Date(sale.startDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true })} - {new Date(sale.endDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}
                 </p>
               </div>
               <div className="flex items-center gap-2">

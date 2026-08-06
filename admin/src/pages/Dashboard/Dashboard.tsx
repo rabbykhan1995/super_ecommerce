@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import api from "../../lib/axios";
 import DatePicker from "react-datepicker";
 import {
@@ -8,11 +8,10 @@ import {
 import { createPortal } from "react-dom";
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement,
-  LineElement, BarElement, Tooltip, Legend, Filler,
+  LineElement, LineController, Tooltip, Filler,
 } from "chart.js";
-import { Line } from "react-chartjs-2";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend, Filler);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, LineController, Tooltip, Filler);
 
 // ─── Types ───────────────────────────────────────────────
 interface TrendPoint  { date: string; amount: number }
@@ -63,7 +62,7 @@ const getPresetDates = (key: PresetKey): { from: Date; to: Date } => {
       return { from: today, to: today };
 
     case "this_week": {
-      const day = today.getDay(); // 0=Sun
+      const day = today.getDay();
       const mon = new Date(today); mon.setDate(today.getDate() - ((day + 6) % 7));
       const sun = new Date(mon);   sun.setDate(mon.getDate() + 6);
       return { from: mon, to: sun };
@@ -101,6 +100,99 @@ const fmt = (n: number) =>
 
 const pct = (a: number, b: number) =>
   b === 0 ? 0 : Math.round((a / b) * 100);
+
+// ─── Progressive line chart (raw Chart.js) ───────────────
+interface ProgressiveLineChartProps {
+  labels: string[];
+  data: (number | null)[];
+  color: string;
+}
+const ProgressiveLineChart = ({ labels, data, color }: ProgressiveLineChartProps) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const existingChart = ChartJS.getChart(canvas);
+    if (existingChart) existingChart.destroy();
+
+    if (!labels.length) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+    gradient.addColorStop(0, color + "40");
+    gradient.addColorStop(0.5, color + "15");
+    gradient.addColorStop(1, color + "02");
+
+    chartRef.current = new ChartJS(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          data: data as (number | null)[],
+          borderColor: color,
+          borderWidth: 1,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          tension: 0.4,
+          fill: true,
+          spanGaps: true,
+          backgroundColor: gradient,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { intersect: false, mode: "index" },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(0,0,0,0.85)",
+            titleColor: "#fff",
+            bodyColor: "#fff",
+            borderColor: color,
+            borderWidth: 1,
+            cornerRadius: 8,
+            padding: 10,
+            callbacks: {
+              label: (tooltipCtx: any) =>
+                `${fmt(tooltipCtx.parsed.y ?? 0)}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+            grid: { display: false },
+            border: { display: false },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (v: any) => "৳" + (Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(0) + "k" : v),
+              font: { size: 10 },
+              maxTicksLimit: 5,
+            },
+            grid: { color: "rgba(128,128,128,0.06)" },
+            border: { display: false },
+          },
+        },
+      },
+    });
+
+    return () => {
+      const ch = ChartJS.getChart(canvas);
+      if (ch) ch.destroy();
+    };
+  }, [labels, data, color]);
+
+  return <canvas ref={canvasRef} />;
+};
 
 // ─── StatCard ─────────────────────────────────────────────
 interface StatCardProps {
@@ -174,41 +266,30 @@ const Dashboard = () => {
 
   useEffect(() => { fetchReport(fromDate, toDate); }, [fromDate, toDate]);
 
-  // ─── Chart ───────────────────────────────────────────
-  const buildChartData = () => {
-    if (!report) return null;
+  // ─── Chart data (memoized) ─────────────────────────────
+  const { chartLabels, saleData, purchaseData, profitData } = useMemo(() => {
+    if (!report) return { chartLabels: [], saleData: [], purchaseData: [], profitData: [] };
+
     const { salesTrend, purchaseTrend, profitTrend } = report.charts;
+
     const allDates = [...new Set([
       ...salesTrend.map(x => x.date),
       ...purchaseTrend.map(x => x.date),
       ...profitTrend.map(x => x.date),
     ])].sort();
+
     const sMap  = Object.fromEntries(salesTrend.map(x   => [x.date, x.amount]));
     const pMap  = Object.fromEntries(purchaseTrend.map(x => [x.date, x.amount]));
     const prMap = Object.fromEntries(profitTrend.map(x   => [x.date, x.profit]));
+
     return {
-      labels: allDates.map(d => d.slice(5)),
-      datasets: [
-        { label: "Sale",         data: allDates.map(d => sMap[d]  ?? null), borderColor: "#378ADD", backgroundColor: "rgba(55,138,221,0.08)",  tension: 0.3, spanGaps: false, pointRadius: 4, borderWidth: 2, fill: true },
-        { label: "Purchase",     data: allDates.map(d => pMap[d]  ?? null), borderColor: "#1D9E75", backgroundColor: "rgba(29,158,117,0.06)",   tension: 0.3, spanGaps: false, pointRadius: 4, borderWidth: 2, fill: true },
-        { label: "Profit / Loss",data: allDates.map(d => prMap[d] ?? null), borderColor: "#D85A30", backgroundColor: "rgba(216,90,48,0.05)",    tension: 0.3, spanGaps: false, pointRadius: 4, borderWidth: 2, borderDash: [4, 3] },
-      ],
+      chartLabels: allDates.map(d => d.slice(5)),
+      saleData:     allDates.map(d => sMap[d]  ?? null),
+      purchaseData: allDates.map(d => pMap[d]  ?? null),
+      profitData:   allDates.map(d => prMap[d] ?? null),
     };
-  };
+  }, [report]);
 
-  const chartOptions = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: { callbacks: { label: (ctx: any) => `${ctx.dataset.label}: ৳${ctx.parsed.y?.toLocaleString("en-IN") ?? "—"}` } },
-    },
-    scales: {
-      x: { ticks: { font: { size: 11 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 14 }, grid: { display: false } },
-      y: { ticks: { callback: (v: any) => "৳" + (Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(0) + "k" : v), font: { size: 11 } }, grid: { color: "rgba(128,128,128,0.1)" } },
-    },
-  };
-
-  const chartData   = buildChartData();
   const c           = report?.cards;
   const o           = report?.overview;
   const topSaleDays = report
@@ -252,7 +333,7 @@ const Dashboard = () => {
             )}
           </div>
 
-          {/* Custom date pickers — only when custom */}
+          {/* Custom date pickers */}
           {preset === "custom" && (
             <>
               {[
@@ -304,26 +385,40 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* ── Trend chart ── */}
-      {chartData && (
-        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-zinc-200">Sale vs purchase trend</span>
-            <div className="flex gap-4 text-xs text-gray-500 dark:text-zinc-400">
-              {[
-                { label: "Sale",          color: "#378ADD" },
-                { label: "Purchase",      color: "#1D9E75" },
-                { label: "Profit / Loss", color: "#D85A30" },
-              ].map(l => (
-                <span key={l.label} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: l.color }} />
-                  {l.label}
-                </span>
-              ))}
+      {/* ── Charts ── */}
+      {report && chartLabels.length > 0 && (
+        <div className="grid grid-cols-1 gap-4">
+          {/* Sale */}
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#378ADD" }} />
+              <span className="text-sm font-medium text-gray-700 dark:text-zinc-200">Sale Trend</span>
+            </div>
+            <div style={{ height: 260 }}>
+              <ProgressiveLineChart labels={chartLabels} data={saleData} color="#378ADD" />
             </div>
           </div>
-          <div style={{ height: 260 }}>
-            <Line data={chartData} options={chartOptions as any} />
+
+          {/* Purchase */}
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#1D9E75" }} />
+              <span className="text-sm font-medium text-gray-700 dark:text-zinc-200">Purchase Trend</span>
+            </div>
+            <div style={{ height: 260 }}>
+              <ProgressiveLineChart labels={chartLabels} data={purchaseData} color="#1D9E75" />
+            </div>
+          </div>
+
+          {/* Profit / Loss */}
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#D85A30" }} />
+              <span className="text-sm font-medium text-gray-700 dark:text-zinc-200">Profit / Loss Trend</span>
+            </div>
+            <div style={{ height: 260 }}>
+              <ProgressiveLineChart labels={chartLabels} data={profitData} color="#D85A30" />
+            </div>
           </div>
         </div>
       )}

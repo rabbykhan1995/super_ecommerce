@@ -115,7 +115,7 @@ export default function NewSale() {
     };
 
     const handleAddProduct = async (p: SelectOption<VariantListItem>) => {
-        
+        console.log(p);
         if (!p.product.manageStock) {
             const existing = selectedProducts.value.find(
                 product => product.id === p.id

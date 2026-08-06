@@ -11,6 +11,7 @@ import MobileNavigation from "@/components/Head&Foot/MobileNavigation";
 import CartSlider from "@/components/Sliders/CartSlider";
 import VariantModal from "@/components/Modals/VariantModal";
 import UpdateProfileModal from "@/components/Modals/UpdateProfileModal";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,9 +31,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning={true}>
       {/* google analytics setup script for traffic analysis */}
-      {/* <head> */}
+      <head>
       {/* GA4 Script */}
-      {/* <Script
+      <Script
           strategy="afterInteractive"
           src={`https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX`}
         />
@@ -48,7 +49,7 @@ export default function RootLayout({
             `,
           }}
         />
-      </head> */}
+      </head>
       <body
         className={`${inter.variable} antialiased`}
         suppressHydrationWarning={true}

@@ -14,7 +14,8 @@ import PurchaseReturnRepository from "./purchase_return.repository";
 import { AccountService } from "../account/account.service";
 import TransactionService from "../transaction/transaction.service";
 import LedgerService from "../ledger/ledger.service";
-import { RedisReportService } from "../../utils/ReportServiceRedis";
+
+import { DashboardSummaryService } from "../dashboard/dashboard.service";
 import { withTransaction } from "../../utils/withTransaction";
 import { LedgerPayload } from "../ledger/ledger.type";
 import { TransactionPayload } from "../transaction/transaction.type";
@@ -194,8 +195,7 @@ export default class PurchaseReturnService {
         tx,
       );
 
-      // ৮. Report update
-      await RedisReportService.updatePurchaseReturnReport({
+      await DashboardSummaryService.updatePurchaseReturn({
         amount: totalReturnAmount,
         qty: products.reduce((s: any, b: any) => s + b.purchaseReturnQty, 0),
         paid: purchaseReturn.paid,
@@ -309,7 +309,7 @@ export default class PurchaseReturnService {
       // Soft delete: set isDeleted = true, deletedAt = now
       await PurchaseReturnRepository.softDelete(purchaseReturnID, tx);
 
-      await RedisReportService.updatePurchaseReturnReport({
+      await DashboardSummaryService.updatePurchaseReturn({
         amount: -returnedItems.reduce((acc, b) => acc + b.purchasePrice, 0),
         qty: -returnedItems.reduce((acc, b) => acc + b.purchaseReturnedQty, 0),
         paid: -purchaseReturn.paid,
@@ -408,7 +408,7 @@ export default class PurchaseReturnService {
       // Restore: set isDeleted = false, deletedAt = null
       await PurchaseReturnRepository.restore(purchaseReturnID, tx);
 
-      await RedisReportService.updatePurchaseReturnReport({
+      await DashboardSummaryService.updatePurchaseReturn({
         amount: returnedItems.reduce((acc, b) => acc + b.purchasePrice, 0),
         qty: returnedItems.reduce((acc, b) => acc + b.purchaseReturnedQty, 0),
         paid: purchaseReturn.paid,

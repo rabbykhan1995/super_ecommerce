@@ -22,6 +22,13 @@
       "when": 1785924489311,
       "tag": "0002_steep_raza",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1754458800000,
+      "tag": "0003_create_dashboard_summary",
+      "breakpoints": true
     }
   ]
 }

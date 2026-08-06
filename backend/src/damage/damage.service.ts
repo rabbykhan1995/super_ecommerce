@@ -5,7 +5,7 @@ import DamageRepository from "./damage.repository";
 import { withTransaction } from "../../utils/withTransaction";
 import { text } from "drizzle-orm/mysql-core";
 import { stockFlowPayload } from "../product/product.type";
-import { RedisReportService } from "../../utils/ReportServiceRedis";
+import { DashboardSummaryService } from "../dashboard/dashboard.service";
 
 export default class DamageService {
     static async create(payload: CreateDamageInput) {
@@ -52,6 +52,12 @@ export default class DamageService {
                 }
 
                 await ProductService.createStockFlow(stockFlowPayload, tx);
+
+                await DashboardSummaryService.updateDamage({
+                    amount: item.damageLoss || 0,
+                    qty: item.damagedQty,
+                    date: damage.damageDate,
+                });
             }
 
         })
@@ -80,6 +86,11 @@ export default class DamageService {
                 ProductService.increaseProductStock(damage.productID!, damage.damagedQty, tx)
             ]);
 
+            await DashboardSummaryService.updateDamage({
+                amount: -(damage.damageLoss || 0),
+                qty: -damage.damagedQty,
+                date: damage.damageDate,
+            });
 
             return await DamageRepository.delete(damage.id, tx);
 

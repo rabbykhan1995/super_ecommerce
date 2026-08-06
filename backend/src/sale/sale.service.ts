@@ -9,7 +9,8 @@ import SaleRepository from "./sale.repository";
 import { AccountService } from "../account/account.service";
 import TransactionService from "../transaction/transaction.service";
 import LedgerService from "../ledger/ledger.service";
-import { RedisReportService } from "../../utils/ReportServiceRedis";
+
+import { DashboardSummaryService } from "../dashboard/dashboard.service";
 import WarrantyService from "../warranty/warranty.service";
 import PurchaseService from "../purchase/purchase.service";
 import { withTransaction } from "../../utils/withTransaction";
@@ -191,14 +192,15 @@ export default class SaleService {
             }
 
 
-            await RedisReportService.updateSaleReport({
+            await DashboardSummaryService.updateSale({
                 amount: sale.totalAmount,
                 qty: products.reduce((sum, p) => sum + p.soldQty, 0),
                 due: sale.totalAmount - sale.paid,
                 paid: sale.paid,
                 discount: sale.discount ?? 0,
-                date: saleCreated.saleDate
+                date: saleCreated.saleDate,
             });
+
             return saleCreated
         })
          return saleCreated;
@@ -329,7 +331,7 @@ export default class SaleService {
             await SaleRepository.softDelete(sale.id, tx);
 
 
-            await RedisReportService.updateSaleReport({
+            await DashboardSummaryService.updateSale({
                 amount: -sale.totalAmount,
                 qty: -saleItems.reduce((sum, p) => sum + p.soldQty, 0),
                 due: -(sale.totalAmount - sale.paid),
@@ -400,8 +402,7 @@ export default class SaleService {
             // Restore sale: set isDeleted = false, deletedAt = null
             await SaleRepository.restore(sale.id, tx);
 
-            // Restore Redis report
-            await RedisReportService.updateSaleReport({
+            await DashboardSummaryService.updateSale({
                 amount: sale.totalAmount,
                 qty: saleItems.reduce((sum, p) => sum + p.soldQty, 0),
                 due: sale.totalAmount - sale.paid,
@@ -643,14 +644,15 @@ export default class SaleService {
             }
 
 
-            await RedisReportService.updateSaleReport({
+            await DashboardSummaryService.updateSale({
                 amount: sale.totalAmount,
                 qty: products.reduce((sum, p) => sum + p.soldQty, 0),
                 due: sale.totalAmount - sale.paid,
                 paid: sale.paid,
                 discount: sale.discount ?? 0,
-                date: sale.saleDate
+                date: sale.saleDate,
             });
+
             return saleCreated
         })
 

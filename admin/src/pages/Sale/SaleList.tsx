@@ -115,7 +115,7 @@ export default function SaleList() {
   return (
     <div className=" space-y-4">
       <TableFilterBar
-        title="Products"
+        title="Sale List"
         subtitle={`Total: ${data.total}`}
         search={search}
         onSearchChange={(val) => { setSearch(val); setPage(1); }}
@@ -126,6 +126,13 @@ export default function SaleList() {
       />
 
       <Table
+        printEnable={true}
+        printHeader={
+          <div className="text-sm">
+            <h2 className="font-bold text-base">Sale List</h2>
+            <p>Total: {data.total} | Page {data.page} of {Math.ceil(data.total / data.limit)}</p>
+          </div>
+        }
         data={data.items}
         keyExtractor={(row) => String(row.id)}
         columns={[
@@ -206,6 +213,7 @@ export default function SaleList() {
             header: "Action",
             headerClassName: "text-right",
             className: "text-right",
+            printHide:true,
             accessor: (row) => (
               <Dropdown
                 // @ts-ignore

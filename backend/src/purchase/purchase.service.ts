@@ -6,7 +6,8 @@ import ProductService from "../product/product.service";
 import { AccountService } from "../account/account.service";
 import TransactionService from "../transaction/transaction.service";
 import LedgerService from "../ledger/ledger.service";
-import { RedisReportService } from "../../utils/ReportServiceRedis";
+
+import { DashboardSummaryService } from "../dashboard/dashboard.service";
 import { QueryClient } from "../../drizzle/src";
 import { withTransaction } from "../../utils/withTransaction";
 import { BatchPayload, stockFlowPayload } from "../product/product.type";
@@ -123,13 +124,13 @@ export default class PurchaseService {
 
       await LedgerService.create(ledgerPayload, tx)
 
-      await RedisReportService.updatePurchaseReport({
+      await DashboardSummaryService.updatePurchase({
         amount: purchase.totalAmount,
         qty: products.reduce((sum, p) => sum + p.purchasedQty, 0),
         due: purchase.totalAmount - purchase.paid,
         paid: purchase.paid - purchase.exchangeAmount,
         discount: purchase.discount ?? 0,
-        date: purchase.purchaseDate
+        date: purchase.purchaseDate,
       });
 
       return purchaseCreated;
@@ -204,7 +205,7 @@ export default class PurchaseService {
             await PurchaseRepository.softDelete(purchaseID, tx);
 
 
-            await RedisReportService.updateSaleReport({
+            await DashboardSummaryService.updatePurchase({
                 amount: -purchase.totalAmount,
                 qty: -batches.reduce((sum, p) => sum + p.purchasedQty, 0),
                 due: -(purchase.totalAmount - purchase.paid),
@@ -270,8 +271,7 @@ export default class PurchaseService {
       // Restore purchase: set isDeleted = false, deletedAt = null
       await PurchaseRepository.restore(purchaseID, tx);
 
-      // Restore Redis report
-      await RedisReportService.updatePurchaseReport({
+      await DashboardSummaryService.updatePurchase({
         amount: purchase.totalAmount,
         qty: batches.reduce((sum, p) => sum + p.purchasedQty, 0),
         due: purchase.totalAmount - purchase.paid,

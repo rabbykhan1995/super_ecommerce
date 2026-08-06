@@ -26,7 +26,7 @@ export default function FlashProducts() {
       setFlashSales(
         res.data.data.items.map((s: FlashSaleListItem) => ({
           value: String(s.id),
-          label: `${s.name} (${new Date(s.startDate).toLocaleDateString()} - ${new Date(s.endDate).toLocaleDateString()})`,
+          label: `${s.name} (${new Date(s.startDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true })} - ${new Date(s.endDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true })})`,
           ...s,
         }))
       );

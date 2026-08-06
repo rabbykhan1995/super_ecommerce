@@ -14,7 +14,8 @@ import SaleReturnRepository from "./sale_return.repository";
 import { AccountService } from "../account/account.service";
 import TransactionService from "../transaction/transaction.service";
 import LedgerService from "../ledger/ledger.service";
-import { RedisReportService } from "../../utils/ReportServiceRedis";
+
+import { DashboardSummaryService } from "../dashboard/dashboard.service";
 import { withTransaction } from "../../utils/withTransaction";
 import { LedgerPayload } from "../ledger/ledger.type";
 import { TransactionPayload } from "../transaction/transaction.type";
@@ -214,7 +215,7 @@ export default class SaleReturnService {
         tx,
       );
 
-      await RedisReportService.updateSaleReturnReport({
+      await DashboardSummaryService.updateSaleReturn({
         amount: totalReturnAmount,
         qty: products.reduce((s, b) => s + b.saleReturnQty, 0),
         paid: saleReturn.paid,
@@ -334,7 +335,7 @@ export default class SaleReturnService {
       // Soft delete: set isDeleted = true, deletedAt = now
       await SaleReturnRepository.softDelete(saleReturnID, tx);
 
-      await RedisReportService.updateSaleReturnReport({
+      await DashboardSummaryService.updateSaleReturn({
         amount: -returnedItems.reduce(
           (acc, b) => acc + b.salePrice,
           0,
@@ -445,7 +446,7 @@ export default class SaleReturnService {
       // Restore: set isDeleted = false, deletedAt = null
       await SaleReturnRepository.restore(saleReturnID, tx);
 
-      await RedisReportService.updateSaleReturnReport({
+      await DashboardSummaryService.updateSaleReturn({
         amount: returnedItems.reduce(
           (acc, b) => acc + b.salePrice,
           0,

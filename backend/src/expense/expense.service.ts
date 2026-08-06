@@ -3,7 +3,8 @@ import ExpenseRepository from "./expense.repository";
 import { CreateExpenseInput, Expense, ExpensePayload } from "./expense.type";
 import { AccountService } from "../account/account.service";
 import TransactionService from "../transaction/transaction.service";
-import { RedisReportService } from "../../utils/ReportServiceRedis";
+
+import { DashboardSummaryService } from "../dashboard/dashboard.service";
 import { withTransaction } from "../../utils/withTransaction";
 import { TransactionPayload } from "../transaction/transaction.type";
 
@@ -116,11 +117,10 @@ export default class ExpenseService {
     })
 
 
-    await RedisReportService.updateExpenseReport(
-      { paid: expense!.paid, date: expense!.expenseDate }
-    );
-
-
+    await DashboardSummaryService.updateExpense({
+      amount: expense!.paid,
+      date: expense!.expenseDate,
+    });
 
   }
 
@@ -145,7 +145,7 @@ export default class ExpenseService {
 
         const accounts = accTrans.map(a => ({ accountID: a.accountID, amount: a.amount as number }));
 
-        await AccountService.decreaseBalance(
+        await AccountService.increaseBalance(
           accounts, tx
         );
       }
@@ -155,13 +155,14 @@ export default class ExpenseService {
         const accTrans = allTransactions.filter(a => a.type === "credit");
 
         const exchangeAccounts = accTrans.map(a => ({ accountID: a.accountID, amount: a.amount as number }));
-        await AccountService.increaseBalance(exchangeAccounts, tx);
+        await AccountService.decreaseBalance(exchangeAccounts, tx);
       }
       await ExpenseRepository.deleteExpense(expense.id, tx);
 
-      await RedisReportService.updateExpenseReport(
-        { paid: -expense.paid, date: expense.expenseDate }
-      );
+      await DashboardSummaryService.updateExpense({
+        amount: -expense.paid,
+        date: expense.expenseDate,
+      });
     })
 
   }
