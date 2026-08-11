@@ -1,4 +1,4 @@
-CREATE TYPE "public"."tx_source" AS ENUM('purchase', 'purchase_return', 'sale', 'sale_return', 'expense', 'warranty', 'balance_transfer', 'deposit', 'withdraw');--> statement-breakpoint
+CREATE TYPE "public"."tx_source" AS ENUM('purchase', 'purchase_return', 'sale', 'sale_return', 'expense', 'warranty', 'balance_transfer', 'deposit', 'withdraw', 'payment');--> statement-breakpoint
 CREATE TYPE "public"."tx_type" AS ENUM('credit', 'debit');--> statement-breakpoint
 CREATE TYPE "public"."contact_type" AS ENUM('customer', 'supplier', 'both');--> statement-breakpoint
 CREATE TYPE "public"."stock_flow_reference_type" AS ENUM('purchase', 'purchase_return', 'sale', 'sale_return', 'damage', 'adjustment', 'opening_stock', 'stock_transfer');--> statement-breakpoint
@@ -9,6 +9,7 @@ CREATE TYPE "public"."ledger_type" AS ENUM('sale', 'purchase', 'payment_in', 'pa
 CREATE TYPE "public"."parcel_status" AS ENUM('Packed', 'Shipped', 'Hold', 'Delivered', 'Returned', 'Cancelled');--> statement-breakpoint
 CREATE TYPE "public"."order_from" AS ENUM('Ecommerce', 'Manual');--> statement-breakpoint
 CREATE TYPE "public"."order_status" AS ENUM('Pending', 'Confirmed', 'Packed', 'Shipped', 'Hold', 'Returned', 'Cancelled', 'Delivered');--> statement-breakpoint
+CREATE TYPE "public"."payment_type" AS ENUM('customer_receive', 'customer_pay', 'supplier_pay', 'supplier_receive');--> statement-breakpoint
 CREATE SEQUENCE "public"."sale_invoice_no_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 100001 CACHE 1;--> statement-breakpoint
 CREATE SEQUENCE "public"."variant_barcode_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 100001 CACHE 1;--> statement-breakpoint
 CREATE SEQUENCE "public"."purchase_invoice_no_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 100001 CACHE 1;--> statement-breakpoint
@@ -50,6 +51,7 @@ CREATE TABLE "transactions" (
 	"balance_transfer_id" integer,
 	"warranty_id" integer,
 	"expense_id" integer,
+	"payment_id" integer,
 	"date" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "transactions_tx_no_unique" UNIQUE("tx_no")
 );
@@ -395,7 +397,7 @@ CREATE TABLE "ledgers" (
 	"purchase_id" integer,
 	"sale_return_id" integer,
 	"purchase_return_id" integer,
-	"transaction_id" integer,
+	"payment_id" integer,
 	"contact_id" integer NOT NULL,
 	"amount" numeric(12, 2) DEFAULT 0 NOT NULL,
 	"discount" numeric(12, 2) DEFAULT 0 NOT NULL,
@@ -445,6 +447,7 @@ CREATE TABLE "damages" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deletable" boolean DEFAULT true NOT NULL,
 	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
@@ -483,6 +486,7 @@ CREATE TABLE "parcels" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"is_deleted" boolean DEFAULT false NOT NULL,
+	"deletable" boolean DEFAULT true NOT NULL,
 	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
@@ -564,6 +568,55 @@ CREATE TABLE "orders" (
 	"deleted_at" timestamp with time zone
 );
 --> statement-breakpoint
+CREATE TABLE "payments" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"contact_id" integer NOT NULL,
+	"type" "payment_type" NOT NULL,
+	"amount" numeric(12, 2) NOT NULL,
+	"balance_before" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"balance_after" numeric(12, 2) DEFAULT 0 NOT NULL,
+	"note" text,
+	"payment_date" timestamp with time zone DEFAULT now() NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "dashboard_summary" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"date" date NOT NULL,
+	"total_sale" numeric(12, 2) DEFAULT '0',
+	"total_sale_paid" numeric(12, 2) DEFAULT '0',
+	"total_sale_due" numeric(12, 2) DEFAULT '0',
+	"total_sale_count" integer DEFAULT 0,
+	"total_sale_qty" integer DEFAULT 0,
+	"total_sale_discount" numeric(12, 2) DEFAULT '0',
+	"total_purchase" numeric(12, 2) DEFAULT '0',
+	"total_purchase_paid" numeric(12, 2) DEFAULT '0',
+	"total_purchase_due" numeric(12, 2) DEFAULT '0',
+	"total_purchase_count" integer DEFAULT 0,
+	"total_purchase_qty" integer DEFAULT 0,
+	"total_purchase_discount" numeric(12, 2) DEFAULT '0',
+	"total_sale_return" numeric(12, 2) DEFAULT '0',
+	"total_sale_return_paid" numeric(12, 2) DEFAULT '0',
+	"total_sale_return_count" integer DEFAULT 0,
+	"total_sale_return_qty" integer DEFAULT 0,
+	"total_sale_return_discount" numeric(12, 2) DEFAULT '0',
+	"total_purchase_return" numeric(12, 2) DEFAULT '0',
+	"total_purchase_return_paid" numeric(12, 2) DEFAULT '0',
+	"total_purchase_return_count" integer DEFAULT 0,
+	"total_purchase_return_qty" integer DEFAULT 0,
+	"total_purchase_return_discount" numeric(12, 2) DEFAULT '0',
+	"total_expense" numeric(12, 2) DEFAULT '0',
+	"total_expense_count" integer DEFAULT 0,
+	"total_damage" numeric(12, 2) DEFAULT '0',
+	"total_damage_count" integer DEFAULT 0,
+	"total_damage_qty" integer DEFAULT 0,
+	"profit" numeric(12, 2) DEFAULT '0',
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now(),
+	CONSTRAINT "dashboard_summary_date_unique" UNIQUE("date")
+);
+--> statement-breakpoint
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_purchase_id_purchases_id_fk" FOREIGN KEY ("purchase_id") REFERENCES "public"."purchases"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_sale_id_sales_id_fk" FOREIGN KEY ("sale_id") REFERENCES "public"."sales"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -572,6 +625,7 @@ ALTER TABLE "transactions" ADD CONSTRAINT "transactions_sale_return_id_sale_retu
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_balance_transfer_id_balance_transfer_id_fk" FOREIGN KEY ("balance_transfer_id") REFERENCES "public"."balance_transfer"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_warranty_id_warranties_id_fk" FOREIGN KEY ("warranty_id") REFERENCES "public"."warranties"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_expense_id_expenses_id_fk" FOREIGN KEY ("expense_id") REFERENCES "public"."expenses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_payment_id_payments_id_fk" FOREIGN KEY ("payment_id") REFERENCES "public"."payments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "balance_transfer" ADD CONSTRAINT "balance_transfer_from_account_id_accounts_id_fk" FOREIGN KEY ("from_account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "balance_transfer" ADD CONSTRAINT "balance_transfer_to_account_id_accounts_id_fk" FOREIGN KEY ("to_account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sales" ADD CONSTRAINT "sales_customer_id_contacts_id_fk" FOREIGN KEY ("customer_id") REFERENCES "public"."contacts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -623,7 +677,7 @@ ALTER TABLE "ledgers" ADD CONSTRAINT "ledgers_sale_id_sales_id_fk" FOREIGN KEY (
 ALTER TABLE "ledgers" ADD CONSTRAINT "ledgers_purchase_id_purchases_id_fk" FOREIGN KEY ("purchase_id") REFERENCES "public"."purchases"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ledgers" ADD CONSTRAINT "ledgers_sale_return_id_sale_returns_id_fk" FOREIGN KEY ("sale_return_id") REFERENCES "public"."sale_returns"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ledgers" ADD CONSTRAINT "ledgers_purchase_return_id_purchase_returns_id_fk" FOREIGN KEY ("purchase_return_id") REFERENCES "public"."purchase_returns"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ledgers" ADD CONSTRAINT "ledgers_transaction_id_transactions_id_fk" FOREIGN KEY ("transaction_id") REFERENCES "public"."transactions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ledgers" ADD CONSTRAINT "ledgers_payment_id_payments_id_fk" FOREIGN KEY ("payment_id") REFERENCES "public"."payments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ledgers" ADD CONSTRAINT "ledgers_contact_id_contacts_id_fk" FOREIGN KEY ("contact_id") REFERENCES "public"."contacts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_expense_type_id_expense_types_id_fk" FOREIGN KEY ("expense_type_id") REFERENCES "public"."expense_types"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "damages" ADD CONSTRAINT "damages_batch_id_batches_id_fk" FOREIGN KEY ("batch_id") REFERENCES "public"."batches"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -643,6 +697,7 @@ ALTER TABLE "order_items" ADD CONSTRAINT "order_items_product_id_products_id_fk"
 ALTER TABLE "order_items" ADD CONSTRAINT "order_items_variant_id_variants_id_fk" FOREIGN KEY ("variant_id") REFERENCES "public"."variants"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "orders" ADD CONSTRAINT "orders_contact_id_contacts_id_fk" FOREIGN KEY ("contact_id") REFERENCES "public"."contacts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "orders" ADD CONSTRAINT "orders_sale_id_sales_id_fk" FOREIGN KEY ("sale_id") REFERENCES "public"."sales"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "payments" ADD CONSTRAINT "payments_contact_id_contacts_id_fk" FOREIGN KEY ("contact_id") REFERENCES "public"."contacts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "transactions_account_idx" ON "transactions" USING btree ("account_id");--> statement-breakpoint
 CREATE INDEX "transactions_purchase_id_idx" ON "transactions" USING btree ("purchase_id");--> statement-breakpoint
 CREATE INDEX "transactions_purchase_return_id_idx" ON "transactions" USING btree ("purchase_return_id");--> statement-breakpoint
@@ -650,6 +705,7 @@ CREATE INDEX "transactions_sale_id_idx" ON "transactions" USING btree ("sale_id"
 CREATE INDEX "transactions_sale_return_id_idx" ON "transactions" USING btree ("sale_return_id");--> statement-breakpoint
 CREATE INDEX "transactions_warranty_id_idx" ON "transactions" USING btree ("warranty_id");--> statement-breakpoint
 CREATE INDEX "transactions_expense_id_idx" ON "transactions" USING btree ("expense_id");--> statement-breakpoint
+CREATE INDEX "transactions_payment_id_idx" ON "transactions" USING btree ("payment_id");--> statement-breakpoint
 CREATE INDEX "balance_transfer_from_account_idx" ON "balance_transfer" USING btree ("from_account_id");--> statement-breakpoint
 CREATE INDEX "balance_transfer_to_account_idx" ON "balance_transfer" USING btree ("to_account_id");--> statement-breakpoint
 CREATE INDEX "sales_customer_id_idx" ON "sales" USING btree ("customer_id");--> statement-breakpoint
@@ -696,7 +752,7 @@ CREATE UNIQUE INDEX "users_mobile_unique" ON "users" USING btree ("mobile");--> 
 CREATE INDEX "ledgers_contact_date_idx" ON "ledgers" USING btree ("contact_id","date");--> statement-breakpoint
 CREATE INDEX "ledgers_sale_id_idx" ON "ledgers" USING btree ("sale_id");--> statement-breakpoint
 CREATE INDEX "ledgers_purchase_id_idx" ON "ledgers" USING btree ("purchase_id");--> statement-breakpoint
-CREATE INDEX "ledgers_transaction_id_idx" ON "ledgers" USING btree ("transaction_id");--> statement-breakpoint
+CREATE INDEX "ledgers_payment_id_idx" ON "ledgers" USING btree ("payment_id");--> statement-breakpoint
 CREATE INDEX "damage_product_idx" ON "damages" USING btree ("product_id");--> statement-breakpoint
 CREATE INDEX "damage_batch_idx" ON "damages" USING btree ("batch_id");--> statement-breakpoint
 CREATE INDEX "damage_purchase_idx" ON "damages" USING btree ("purchase_id");--> statement-breakpoint

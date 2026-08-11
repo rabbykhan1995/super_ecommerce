@@ -1,5 +1,5 @@
 {
-  "id": "fcfb4588-3ea0-4b78-98b1-ec6efc5050d2",
+  "id": "a29bf79f-f5b1-4dc5-9086-7f30724f17f8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -231,6 +231,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "payment_id": {
+          "name": "payment_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "date": {
           "name": "date",
           "type": "timestamp with time zone",
@@ -344,6 +350,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "transactions_payment_id_idx": {
+          "name": "transactions_payment_id_idx",
+          "columns": [
+            {
+              "expression": "payment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -444,6 +465,19 @@
           "tableTo": "expenses",
           "columnsFrom": [
             "expense_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "transactions_payment_id_payments_id_fk": {
+          "name": "transactions_payment_id_payments_id_fk",
+          "tableFrom": "transactions",
+          "tableTo": "payments",
+          "columnsFrom": [
+            "payment_id"
           ],
           "columnsTo": [
             "id"
@@ -3881,8 +3915,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "transaction_id": {
-          "name": "transaction_id",
+        "payment_id": {
+          "name": "payment_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -4015,11 +4049,11 @@
           "method": "btree",
           "with": {}
         },
-        "ledgers_transaction_id_idx": {
-          "name": "ledgers_transaction_id_idx",
+        "ledgers_payment_id_idx": {
+          "name": "ledgers_payment_id_idx",
           "columns": [
             {
-              "expression": "transaction_id",
+              "expression": "payment_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4084,12 +4118,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "ledgers_transaction_id_transactions_id_fk": {
-          "name": "ledgers_transaction_id_transactions_id_fk",
+        "ledgers_payment_id_payments_id_fk": {
+          "name": "ledgers_payment_id_payments_id_fk",
           "tableFrom": "ledgers",
-          "tableTo": "transactions",
+          "tableTo": "payments",
           "columnsFrom": [
-            "transaction_id"
+            "payment_id"
           ],
           "columnsTo": [
             "id"
@@ -4346,6 +4380,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "deletable": {
+          "name": "deletable",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "deleted_at": {
           "name": "deleted_at",
@@ -4779,6 +4820,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "deletable": {
+          "name": "deletable",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "deleted_at": {
           "name": "deleted_at",
@@ -5456,6 +5504,342 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.payments": {
+      "name": "payments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "contact_id": {
+          "name": "contact_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "payment_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "balance_before": {
+          "name": "balance_before",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "balance_after": {
+          "name": "balance_after",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payment_date": {
+          "name": "payment_date",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "payments_contact_id_contacts_id_fk": {
+          "name": "payments_contact_id_contacts_id_fk",
+          "tableFrom": "payments",
+          "tableTo": "contacts",
+          "columnsFrom": [
+            "contact_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dashboard_summary": {
+      "name": "dashboard_summary",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_sale": {
+          "name": "total_sale",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_sale_paid": {
+          "name": "total_sale_paid",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_sale_due": {
+          "name": "total_sale_due",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_sale_count": {
+          "name": "total_sale_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "total_sale_qty": {
+          "name": "total_sale_qty",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "total_sale_discount": {
+          "name": "total_sale_discount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_purchase": {
+          "name": "total_purchase",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_purchase_paid": {
+          "name": "total_purchase_paid",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_purchase_due": {
+          "name": "total_purchase_due",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_purchase_count": {
+          "name": "total_purchase_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "total_purchase_qty": {
+          "name": "total_purchase_qty",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "total_purchase_discount": {
+          "name": "total_purchase_discount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_sale_return": {
+          "name": "total_sale_return",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_sale_return_paid": {
+          "name": "total_sale_return_paid",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_sale_return_count": {
+          "name": "total_sale_return_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "total_sale_return_qty": {
+          "name": "total_sale_return_qty",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "total_sale_return_discount": {
+          "name": "total_sale_return_discount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_purchase_return": {
+          "name": "total_purchase_return",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_purchase_return_paid": {
+          "name": "total_purchase_return_paid",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_purchase_return_count": {
+          "name": "total_purchase_return_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "total_purchase_return_qty": {
+          "name": "total_purchase_return_qty",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "total_purchase_return_discount": {
+          "name": "total_purchase_return_discount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_expense": {
+          "name": "total_expense",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_expense_count": {
+          "name": "total_expense_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "total_damage": {
+          "name": "total_damage",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_damage_count": {
+          "name": "total_damage_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "total_damage_qty": {
+          "name": "total_damage_qty",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "profit": {
+          "name": "profit",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dashboard_summary_date_unique": {
+          "name": "dashboard_summary_date_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "date"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -5471,7 +5855,8 @@
         "warranty",
         "balance_transfer",
         "deposit",
-        "withdraw"
+        "withdraw",
+        "payment"
       ]
     },
     "public.tx_type": {
@@ -5582,6 +5967,16 @@
         "Returned",
         "Cancelled",
         "Delivered"
+      ]
+    },
+    "public.payment_type": {
+      "name": "payment_type",
+      "schema": "public",
+      "values": [
+        "customer_receive",
+        "customer_pay",
+        "supplier_pay",
+        "supplier_receive"
       ]
     }
   },
