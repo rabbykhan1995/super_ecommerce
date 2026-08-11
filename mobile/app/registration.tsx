@@ -7,15 +7,20 @@ import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import Toast from "react-native-toast-message";
 import api from "../lib/api";
+import AuthHelper from "../lib/auth";
+import { useUserStore } from "../store/user.store";
+import { signInWithGoogle } from "../lib/google-auth";
 
 
 export default function RegistrationScreen() {
   const router = useRouter();
+  const fetchUser = useUserStore((s) => s.fetchUser);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleRegister = async () => {
     if (!name || !email || !phone || !password) {
@@ -31,6 +36,24 @@ export default function RegistrationScreen() {
       // Error handled by interceptor
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      await fetchUser();
+      Toast.show({ type: "success", text1: "Account created successfully" });
+      router.replace("/");
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text1: "Google sign up failed",
+        text2: err.message || "Please try again",
+      });
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -51,6 +74,27 @@ export default function RegistrationScreen() {
           <Input label="Password" value={password} onChangeText={setPassword} placeholder="••••••••" secureTextEntry />
 
           <Button title="Register" onPress={handleRegister} loading={loading} className="mt-2" />
+
+          <View className="flex-row items-center my-6">
+            <View className="flex-1 h-px bg-gray-300" />
+            <Text className="mx-4 text-gray-400 text-sm">Or continue with</Text>
+            <View className="flex-1 h-px bg-gray-300" />
+          </View>
+
+          <Pressable
+            onPress={handleGoogleSignUp}
+            disabled={googleLoading}
+            className="flex-row items-center justify-center border border-gray-300 rounded-lg py-3 px-6"
+          >
+            {googleLoading ? (
+              <Text className="text-gray-500">Signing up...</Text>
+            ) : (
+              <>
+                <Text className="text-lg mr-2">G</Text>
+                <Text className="text-gray-700 font-medium">Sign up with Google</Text>
+              </>
+            )}
+          </Pressable>
 
           <View className="flex-row justify-center mt-6">
             <Text className="text-gray-500">Already have an account? </Text>

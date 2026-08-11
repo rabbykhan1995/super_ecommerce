@@ -1,3 +1,4 @@
+import { Banner } from "@/components/Sections/Hero";
 import type { EcomProduct, PaginatedResponse, ApiResponse } from "@/types/product.types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
@@ -9,6 +10,21 @@ export type FlashSaleInfo = {
   endDate: string;
   isActive: boolean;
 };
+
+export async function getBanners(): Promise<Banner[]> {
+  try {
+    const res = await fetch(`${API_URL}/ecom/banner/active`, {
+      next: { tags: ["home-active-banner"] },
+    });
+
+    if (!res.ok) return [];
+
+    const response: ApiResponse<Banner[]> = await res.json();
+    return response.data;
+  } catch {
+    return [];
+  }
+}
 
 export async function getActiveFlashSale(): Promise<FlashSaleInfo | null> {
   try {

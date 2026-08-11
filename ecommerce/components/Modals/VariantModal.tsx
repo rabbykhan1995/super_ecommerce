@@ -1,11 +1,12 @@
 "use client";
 
-import { X, Star, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { X, Star, ChevronLeft, ChevronRight, ZoomIn, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Helper from "@/helper/helper";
 import useOpenCloseState from "@/zustand/openclose.store";
+import { cartStore } from "@/zustand/cart.store";
 import { fetchVariantsByProduct } from "@/utils/productApi";
 import type { EcomVariantDetail } from "@/types/product.types";
 
@@ -15,10 +16,19 @@ const VariantModal = () => {
   const { variantModalOpen, variantModalProduct, setVariantModalOpen } =
     useOpenCloseState();
 
+  const { cart, addItem, updateItem, removeItem, isAdding, isUpdating, isRemoving, setOpenCartSlider, fetchCart } = cartStore();
+
   const [isMounted, setIsMounted] = useState(false);
   const [variants, setVariants] = useState<EcomVariantDetail[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<EcomVariantDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+
+  // Find if the selected variant is already in the cart
+  const cartItem = useMemo(() => {
+    if (!selectedVariant) return null;
+    return cart.find((item) => item.variantID === selectedVariant.id) ?? null;
+  }, [cart, selectedVariant]);
 
   // Slider state
   const [activeSlide, setActiveSlide] = useState(0);
@@ -33,7 +43,6 @@ const VariantModal = () => {
   const [mobileZoomOpen, setMobileZoomOpen] = useState(false);
   const [mobileZoomIndex, setMobileZoomIndex] = useState(0);
   const [mobileZoomPosition, setMobileZoomPosition] = useState({ x: 50, y: 50 });
-  const mobileZoomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -42,6 +51,8 @@ const VariantModal = () => {
   // Fetch variants when modal opens
   useEffect(() => {
     if (!variantModalOpen || !variantModalProduct?.id) return;
+
+    fetchCart();
 
     const loadVariants = async () => {
       setLoading(true);
@@ -61,7 +72,7 @@ const VariantModal = () => {
     };
 
     loadVariants();
-  }, [variantModalOpen, variantModalProduct?.id]);
+  }, [variantModalOpen, variantModalProduct?.id, fetchCart]);
 
   // Prevent background scroll
   useEffect(() => {
@@ -85,15 +96,63 @@ const VariantModal = () => {
       setIsAutoPlaying(true);
       setIsHovering(false);
       setMobileZoomOpen(false);
+      setQuantity(1);
     }
   }, [variantModalOpen]);
 
+  // Reset quantity when variant changes
+  useEffect(() => {
+    setQuantity(1);
+  }, [selectedVariant?.id]);
+
+  const handleIncrement = useCallback(() => {
+    if (!selectedVariant) return;
+    const maxStock = selectedVariant.stock ?? 0;
+    if (cartItem) {
+      if (cartItem.quantity + 1 > maxStock) return;
+      updateItem(cartItem.id, { quantity: cartItem.quantity + 1 });
+    } else {
+      if (quantity >= maxStock) return;
+      setQuantity((prev) => prev + 1);
+    }
+  }, [selectedVariant, cartItem, quantity, updateItem]);
+
+  const handleDecrement = useCallback(() => {
+    if (!selectedVariant) return;
+    if (cartItem) {
+      if (cartItem.quantity - 1 < 1) return;
+      updateItem(cartItem.id, { quantity: cartItem.quantity - 1 });
+    } else {
+      if (quantity <= 1) return;
+      setQuantity((prev) => prev - 1);
+    }
+  }, [selectedVariant, cartItem, quantity, updateItem]);
+
+  const handleAddToCart = useCallback(async () => {
+    if (!selectedVariant || !variantModalProduct) return;
+    const success = await addItem({
+      productID: variantModalProduct.id,
+      variantID: selectedVariant.id,
+      quantity,
+    });
+    if (success) {
+      setQuantity(1);
+      setOpenCartSlider(true);
+    }
+  }, [selectedVariant, variantModalProduct, quantity, addItem, setOpenCartSlider]);
+
+  const handleClose = useCallback(() => {
+    setVariantModalOpen(false);
+  }, [setVariantModalOpen]);
+
   // Current images from selected variant
-  const currentImages: string[] = selectedVariant?.images?.length
-    ? selectedVariant.images
-    : variantModalProduct?.thumbnail
-      ? [variantModalProduct.thumbnail]
-      : [];
+  const currentImages: string[] = useMemo(() => {
+    return selectedVariant?.images?.length
+      ? selectedVariant.images
+      : variantModalProduct?.thumbnail
+        ? [variantModalProduct.thumbnail]
+        : [];
+  }, [selectedVariant?.images, variantModalProduct?.thumbnail]);
 
   // Auto-slide logic
   const stopAutoPlay = useCallback(() => {
@@ -118,55 +177,40 @@ const VariantModal = () => {
     setActiveSlide(0);
   }, [selectedVariant?.id]);
 
-  const goToSlide = (index: number) => {
+  const goToSlide = useCallback((index: number) => {
     setActiveSlide(index);
     setIsAutoPlaying(true);
-  };
+  }, []);
 
-  const goPrev = () => {
+  const goPrev = useCallback(() => {
     setActiveSlide((prev) => (prev - 1 + currentImages.length) % currentImages.length);
-  };
+  }, [currentImages.length]);
 
-  const goNext = () => {
+  const goNext = useCallback(() => {
     setActiveSlide((prev) => (prev + 1) % currentImages.length);
-  };
+  }, [currentImages.length]);
 
   // Desktop hover zoom
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     setZoomPosition({ x, y });
-  };
+  }, []);
 
   // Mobile touch zoom
-  const handleMobileTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+  const handleMobileTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const touch = e.touches[0];
     const x = ((touch.clientX - rect.left) / rect.width) * 100;
     const y = ((touch.clientY - rect.top) / rect.height) * 100;
     setMobileZoomPosition({ x, y });
-  };
-
-  const handleClose = () => {
-    setVariantModalOpen(false);
-  };
+  }, []);
 
   if (!variantModalOpen || !variantModalProduct) return null;
 
   const product = variantModalProduct;
   const isOutOfStock = selectedVariant ? selectedVariant.stock === 0 : true;
-
-  // Group attributes by name for display
-  const attributeGroups: Record<string, string[]> = {};
-  if (selectedVariant?.attributes) {
-    for (const attr of selectedVariant.attributes) {
-      if (!attributeGroups[attr.name]) attributeGroups[attr.name] = [];
-      if (!attributeGroups[attr.name].includes(attr.value)) {
-        attributeGroups[attr.name].push(attr.value);
-      }
-    }
-  }
 
   return (
     <>
@@ -419,20 +463,93 @@ const VariantModal = () => {
             )}
 
             {/* Actions */}
-            <div className="flex items-center gap-3 mt-auto pt-2">
+            <div className="flex flex-col gap-3 mt-auto pt-2">
               {isOutOfStock ? (
                 <span className="text-red-500 font-semibold text-sm">Out of Stock</span>
+              ) : cartItem ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-gray-600">
+                    In Cart:
+                  </span>
+                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                    <button
+                      onClick={handleDecrement}
+                      disabled={isUpdating}
+                      className="px-3 py-2 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    >
+                      <Minus size={16} />
+                    </button>
+                    <span className="px-4 py-2 text-sm font-semibold min-w-[40px] text-center">
+                      {isUpdating ? (
+                        <span className="w-4 h-4 border-2 border-gray-300 border-t-gray-700 rounded-full animate-spin inline-block" />
+                      ) : (
+                        cartItem.quantity
+                      )}
+                    </span>
+                    <button
+                      onClick={handleIncrement}
+                      disabled={isUpdating}
+                      className="px-3 py-2 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => removeItem(cartItem.id)}
+                    disabled={isRemoving}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isRemoving ? (
+                      <span className="w-4 h-4 border-2 border-gray-300 border-t-red-500 rounded-full animate-spin inline-block" />
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
+                  </button>
+                </div>
               ) : (
-                <>
-                  {/* TODO: Cart_Button / CartButtonForMobile */}
-                </>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                    <button
+                      onClick={handleDecrement}
+                      className="px-3 py-2 hover:bg-gray-100 transition-colors"
+                    >
+                      <Minus size={16} />
+                    </button>
+                    <span className="px-4 py-2 text-sm font-semibold min-w-[40px] text-center">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={handleIncrement}
+                      className="px-3 py-2 hover:bg-gray-100 transition-colors"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={isAdding || isOutOfStock}
+                    className="flex-1 bg-[#F7311E] text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#e02a18] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isAdding ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag size={16} />
+                        Add To Cart
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
 
               <Link
                 onClick={handleClose}
                 href={`/product/${product.slug}`}
                 prefetch={false}
-                className="ml-auto text-sm text-green-600 border border-green-600 px-4 py-1.5 rounded-lg hover:bg-green-50 transition-colors font-medium"
+                className="text-sm text-green-600 border border-green-600 px-4 py-1.5 rounded-lg hover:bg-green-50 transition-colors font-medium text-center"
               >
                 More Info
               </Link>
@@ -444,7 +561,6 @@ const VariantModal = () => {
       {/* ===== MOBILE FULLSCREEN ZOOM OVERLAY ===== */}
       {mobileZoomOpen && (
         <div
-          ref={mobileZoomRef}
           className="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-center"
           onTouchMove={handleMobileTouchMove}
           onClick={() => setMobileZoomOpen(false)}

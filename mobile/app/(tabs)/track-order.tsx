@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import api from "@/lib/api";
 import { useRouter } from "expo-router";
-import api from "@/utils/api";
+import { useState } from "react";
+import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function TrackOrderScreen() {
   const [orderId, setOrderId] = useState("");

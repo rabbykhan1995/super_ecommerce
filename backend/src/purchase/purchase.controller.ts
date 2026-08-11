@@ -35,7 +35,7 @@ export class PurchaseController {
     const { id } = req.params;
     const result =
       await PurchaseService.purchaseInvoiceByID(
-        id.toString()
+        Number(id)
       );
 
     return res.status(200).json({

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const createTransactionSchema = z.object({
-  accountID: z.number({ required_error: "Account ID is required" }),
+  accountID: z.number( "Account ID is required" ),
   amount: z.number().positive("Amount must be greater than 0"),
   source: z.enum([
     "purchase",

@@ -94,6 +94,10 @@ export const checkoutMobileSchema = z.object({
     }, "mobile must be a valid number"),
 });
 
+export const mobileGoogleAuthSchema = z.object({
+  idToken: z.string().min(1, "Google ID token is required"),
+});
+
 export const passwordResetSchema = z.object({
   password: z
     .string()

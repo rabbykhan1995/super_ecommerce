@@ -14,7 +14,7 @@ export const createLedgerSchema = z.object({
   saleReturnID: z.number().optional(),
   purchaseReturnID: z.number().optional(),
   paymentID: z.number().optional(),
-  contactID: z.number({ required_error: "Contact ID required" }),
+  contactID: z.number( "Contact ID required"),
   amount: z.number().positive("Amount must be positive"),
   discount: z.number().min(0).optional(),
   paidAmount: z.number().min(0).optional(),

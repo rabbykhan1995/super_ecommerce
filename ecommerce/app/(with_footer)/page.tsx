@@ -7,13 +7,18 @@ import BannerSkeleton from "@/components/Skeletons/BannerSkeleton";
 import FlashProductsSkeleton from "@/components/Skeletons/FlashProductsSkeleton";
 import FeaturedProductsSkeleton from "@/components/Skeletons/FeaturedProductsSkeleton";
 import OfferProductsSkeleton from "@/components/Skeletons/OfferProductsSkeleton";
-import { getFlashProducts, getFeaturedProducts, getOfferProducts, getActiveFlashSale } from "@/utils/homeApi";
+import { getFlashProducts, getFeaturedProducts, getOfferProducts, getActiveFlashSale, getBanners } from "@/utils/homeApi";
 
 export const revalidate = 3600;
 
 async function FlashProductsSection() {
-  const [items, sale] = await Promise.all([getFlashProducts(), getActiveFlashSale()]);
+  const [banners ,items, sale] = await Promise.all([getBanners() ,getFlashProducts(), getActiveFlashSale()]);
   return <FlashSaleProductSlider products={items} endDate={sale?.endDate} />;
+}
+
+async function BannersSection() {
+  const banners = await getBanners();
+  return <Hero banners={banners} />;
 }
 
 async function FeaturedProductsSection() {
@@ -31,7 +36,7 @@ export default function Home() {
     <div className="">
       <div className="relative w-full overflow-hidden mb-10">
         <Suspense fallback={<BannerSkeleton />}>
-          <Hero />
+         <BannersSection />
         </Suspense>
         <Suspense fallback={<FlashProductsSkeleton />}>
           <FlashProductsSection />

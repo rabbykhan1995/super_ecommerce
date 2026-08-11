@@ -40,7 +40,7 @@ export class BrandService {
         const brand = await BrandRepository.findByID(brandID);
         if (!brand) throw new ApiError(404, "Brand not found");
 
-        const isUsed = await ProductService.countProduct({ brandID });
+        const isUsed = await ProductService.countProduct("brandID",brandID );
         if (isUsed > 0) throw new ApiError(400, "Brand is used in products, cannot delete");
 
         return await BrandRepository.delete(brandID);

@@ -6,41 +6,22 @@ import { Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import api from "@/utils/apiconfig";
-import BannerSkeleton from "../Skeletons/BannerSkeleton";
 
-interface Banner {
+export interface Banner {
   id: number;
   title: string;
   photo: string;
   slug: string | null;
 }
+interface HeroProps {
+  banners: Banner[];
+}
 
-const Hero = () => {
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api
-      .get("/ecom/banner/active")
-      .then((res) => {
-        if (res.data.success) setBanners(res.data.data);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  const handleBannerClick = (slug: string | null) => {
-    if (slug) window.location.href = `/product/${slug}`;
-  };
-
+const Hero = ({ banners }: HeroProps) => {
   return (
     <div className="flex flex-col lg:flex-row gap-1 w-full font-medium lg:py-2 pt-10">
       {/* Left / Top with Swiper */}
-      {loading ? (
-        <BannerSkeleton />
-      ) : banners.length > 0 ? (
+      {banners.length > 0 ? (
         <Swiper
           modules={[Pagination, Autoplay]}
           pagination={{
@@ -58,14 +39,17 @@ const Hero = () => {
         >
           {banners.map((item, i) => (
             <SwiperSlide key={item.id} className="rounded-md relative">
-              <Image
-                src={item.photo}
-                alt={item.title}
-                onClick={() => handleBannerClick(item.slug)}
-                fill
-                priority={i === 0}
-                className="object-cover cursor-pointer"
-              />
+              <Link href={`/product/${item.slug}`}>
+                <Image
+                  src={item.photo}
+                  alt={item.title}
+                  // onClick={() => handleBannerClick(item.slug)}
+                  fill
+                  priority={i === 0}
+                  className="object-cover cursor-pointer"
+                />
+              </Link>
+
             </SwiperSlide>
           ))}
           <div className="custom-pagination"></div>

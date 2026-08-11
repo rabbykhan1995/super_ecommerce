@@ -91,6 +91,7 @@ export const parcelTable = pgTable(
       .defaultNow()
       .notNull(),
     isDeleted: boolean("is_deleted").default(false).notNull(),
+        deletable: boolean("deletable").default(true).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [

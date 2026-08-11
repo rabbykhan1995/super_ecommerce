@@ -125,20 +125,31 @@ export class ProductController {
   static async productBySlug(req: Request, res: Response) {
     const { slug } = req.params;
 
-    const product = await ProductService.findBySlug(slug);
+    const product = await ProductService.findBySlug(slug.toString());
 
     res.status(200).json({ success: true, data: product });
   }
 
-  static async productByBarcode(req: Request, res: Response) {
+  // static async productByBarcode(req: Request, res: Response) {
+  //   const { barcode } = req.query;
+
+  //   if (!barcode) throw new ApiError(400, "Barcode is required");
+
+  //   const product = await ProductService.productByBarcode(req.query);
+
+  //   res.status(200).json({ success: true, data: product });
+  // }
+
+  static async variantByBarcode(req: Request, res: Response) {
     const { barcode } = req.query;
 
     if (!barcode) throw new ApiError(400, "Barcode is required");
 
-    const product = await ProductService.productByBarcode(req.query);
+    const product = await ProductService.variantByBarcode(req.query.toString());
 
     res.status(200).json({ success: true, data: product });
   }
+
   static async batchByVariant(req: Request, res: Response) {
     const variantID = req.params.id;
 
@@ -148,14 +159,14 @@ export class ProductController {
     res.status(200).json({ success: true, data: batches });
   }
 
-  static async serialByProduct(req: Request, res: Response) {
-    const productID = req.params.id;
+  // static async serialByProduct(req: Request, res: Response) {
+  //   const productID = req.params.id;
 
-    const serials = await ProductService.serialByProduct(productID as string);
+  //   const serials = await ProductService.serialByProduct(productID as string);
 
 
-    res.status(200).json({ success: true, data: serials });
-  }
+  //   res.status(200).json({ success: true, data: serials });
+  // }
   // to validate the serial,
   static async findBatchBySerial(req: Request, res: Response) {
        const { serial } = req.query;

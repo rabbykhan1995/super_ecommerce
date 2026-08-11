@@ -114,7 +114,7 @@ function AttributeCell({
             {/* Modal Body */}
             <div className="p-4 overflow-y-auto max-h-[50vh]">
               {variant.attributes.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+                <p className="text-center py-4">
                   No attributes added yet
                 </p>
               ) : (

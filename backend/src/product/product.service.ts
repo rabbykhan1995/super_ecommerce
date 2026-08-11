@@ -181,6 +181,12 @@ export default class ProductService {
     });
   }
 
+
+
+  static async variantByBarcode(barcode: string) {
+    const variant = await ProductRepository.findVariantByBarcode(barcode);
+    return variant;
+  }
   static async list(query: any) {
     const result = await ProductRepository.list(query);
     return result;

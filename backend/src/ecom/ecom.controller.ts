@@ -8,18 +8,21 @@ import { triggerRevalidation } from "../../utils/revalidate";
 export class BannerController {
     static async create(req: Request, res: Response) {
         const banner = await BannerService.create(req.body);
+        triggerRevalidation(["home-active-banner"]);
         res.status(201).json({ success: true, data: banner, msg: "Banner created" });
     }
 
     static async update(req: Request, res: Response) {
         const { id } = req.params;
         const banner = await BannerService.update(Number(id), req.body);
+        triggerRevalidation(["home-active-banner"]);
         res.status(200).json({ success: true, data: banner, msg: "Banner updated" });
     }
 
     static async delete(req: Request, res: Response) {
         const { id } = req.params;
         await BannerService.delete(Number(id));
+        triggerRevalidation(["home-active-banner"]);
         res.status(200).json({ success: true, message: "Banner deleted" });
     }
 

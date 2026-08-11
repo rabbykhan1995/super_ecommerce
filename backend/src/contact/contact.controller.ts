@@ -22,7 +22,7 @@ export class ContactController {
     const { id } = req.params;
     const data: UpdateContactInput = req.body;
 
-    const contact = await ContactService.update(id as string, data);
+    const contact = await ContactService.update(Number(id), data);
 
 
 
@@ -36,7 +36,7 @@ export class ContactController {
   static async getContactByID(req: Request, res: Response) {
     const { id } = req.params;
 
-    const contact = await ContactService.findByID(id.toString());
+    const contact = await ContactService.findByID(Number(id));
 
 
     res.status(200).json({

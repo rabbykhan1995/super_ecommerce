@@ -7,11 +7,15 @@ export async function POST(req: NextRequest) {
     const { slug, tag, secret } = body;
 
     if (secret !== process.env.REVALIDATE_SECRET) {
-      return NextResponse.json({ error: "Invalid secret" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid secret" },
+        { status: 401 }
+      );
     }
 
     if (tag) {
-      revalidateTag(tag);
+      revalidateTag(tag, "max");
+
       return NextResponse.json({
         revalidated: true,
         tag,
@@ -20,8 +24,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (slug) {
-      revalidateTag(`product-${slug}`);
+      revalidateTag(`product-${slug}`, "max");
       revalidatePath("/products");
+
       return NextResponse.json({
         revalidated: true,
         slug,
@@ -31,12 +36,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       { error: "Slug or tag is required" },
-      { status: 400 },
+      { status: 400 }
     );
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to revalidate" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

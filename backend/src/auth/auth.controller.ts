@@ -138,6 +138,22 @@ export class AuthController {
     res.redirect(redirectURL);
   }
 
+  static async mobileGoogleAuth(req: Request, res: Response) {
+    const { token, user } = await AuthService.mobileGoogleAuth(req.body.idToken);
+   console.log(token);
+   console.log(user)
+    res.cookie("token", token, {
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      success: true,
+      msg: "Google login successful",
+      data: user,
+      token,
+    });
+  }
+
   static async adminGoogleCallback(req: Request, res: Response) {
     const { token, user, clientRedirectURL } = await AuthService.adminGoogleCallback(req.query);
 

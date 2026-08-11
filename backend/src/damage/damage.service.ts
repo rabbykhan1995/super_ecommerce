@@ -3,7 +3,6 @@ import ProductService from "../product/product.service";
 import { ApiError } from "../../utils/ApiError";
 import DamageRepository from "./damage.repository";
 import { withTransaction } from "../../utils/withTransaction";
-import { text } from "drizzle-orm/mysql-core";
 import { stockFlowPayload } from "../product/product.type";
 import { DashboardSummaryService } from "../dashboard/dashboard.service";
 

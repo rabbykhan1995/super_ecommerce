@@ -369,6 +369,56 @@ export class AuthService {
 
   }
 
+  static async mobileGoogleAuth(idToken: string) {
+    console.log("ok")
+    const mobileClientId = process.env.GOOGLE_MOBILE_WEB_CLIENT_ID;
+
+    if (!mobileClientId) {
+      throw new ApiError(500, "GOOGLE_MOBILE_WEB_CLIENT_ID is not configured");
+    }
+
+    // Verify idToken with Google's tokeninfo endpoint
+    const tokenInfoResponse = await axios.get(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`
+    );
+
+    const googleUser = tokenInfoResponse.data;
+
+    if (!googleUser || !googleUser.email) {
+      throw new ApiError(401, "Invalid Google token");
+    }
+
+    // Verify the audience matches our mobile web client ID
+    if (googleUser.aud !== mobileClientId) {
+      throw new ApiError(401, "Invalid Google token audience");
+    }
+
+    // Find or create user
+    let user = await AuthRepository.findByEmail(googleUser.email);
+
+    if (!user) {
+      user = await AuthRepository.createUser({
+        name: googleUser.name || googleUser.email.split("@")[0],
+        email: googleUser.email,
+        openID: googleUser.sub,
+        image: googleUser.picture || null,
+      });
+    }
+
+    if (user && !user.openID) {
+      await AuthRepository.updateUser(user.id, { openID: googleUser.sub });
+    }
+
+    const token = Helper.generateToken({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+    });
+   console.log("token", user)
+    return { token, user };
+  }
+
   static async checkOutMobile(userID: string, mobile: string, address?: string) {
 
     const targetUser = await AuthRepository.findByID(userID);

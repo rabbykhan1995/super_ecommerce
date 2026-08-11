@@ -1,5 +1,5 @@
 import express from "express";
-import { adminLoginSchema, checkoutMobileSchema, passwordResetSchema, userLoginSchema } from "./auth.validator";
+import { adminLoginSchema, checkoutMobileSchema, mobileGoogleAuthSchema, passwordResetSchema, userLoginSchema } from "./auth.validator";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { AuthController } from "./auth.controller";
 import { validate } from "../../middlewares/validation.middleware";
@@ -29,6 +29,11 @@ router
 // ===========================
 router.get("/user-google-auth", asyncHandler(AuthController.getUserGoogleAuthAPI));
 router.get("/user-google-callback", asyncHandler(AuthController.userGoogleAuthCallbackAPI));
+
+// ===========================
+// Mobile Google Auth
+// ===========================
+router.post("/mobile-google-auth", validate(mobileGoogleAuthSchema), asyncHandler(AuthController.mobileGoogleAuth));
 
 // ===========================
 // Admin / Staff Auth

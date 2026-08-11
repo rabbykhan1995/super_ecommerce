@@ -24,11 +24,13 @@
 
 import { fetchVariantsByProduct } from "@/lib/productApi";
 import { getImageUrl } from "@/lib/utils";
+import { useCartStore } from "@/store/cart.store";
 import useOpenCloseState from "@/store/openclose.store";
+import { useUserStore } from "@/store/user.store";
 import type { EcomVariantDetail } from "@/types/product.types";
 import { useRouter } from "expo-router";
-import { ChevronLeft, ChevronRight, Star, X, ZoomIn } from "lucide-react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag, Star, Trash2, X, ZoomIn } from "lucide-react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Animated,
@@ -51,10 +53,20 @@ const VariantModal = () => {
   const { variantModalOpen, variantModalProduct, setVariantModalOpen } =
     useOpenCloseState();
 
+  const { cart, addItem, updateItem, removeItem, isAdding, isUpdating, isRemoving, fetchCart } = useCartStore();
+  const user = useUserStore((s) => s.user);
+
   const [variants, setVariants] = useState<EcomVariantDetail[]>([]);
   const [selectedVariant, setSelectedVariant] =
     useState<EcomVariantDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+
+  // Find if the selected variant is already in the cart
+  const cartItem = useMemo(() => {
+    if (!selectedVariant) return null;
+    return cart.find((item) => item.variantID === selectedVariant.id) ?? null;
+  }, [cart, selectedVariant]);
 
   // Slider state
   const [activeSlide, setActiveSlide] = useState(0);
@@ -69,6 +81,8 @@ const VariantModal = () => {
   // Fetch variants when modal opens
   useEffect(() => {
     if (!variantModalOpen || !variantModalProduct?.id) return;
+
+    fetchCart();
 
     const loadVariants = async () => {
       setLoading(true);
@@ -90,7 +104,7 @@ const VariantModal = () => {
     };
 
     loadVariants();
-  }, [variantModalOpen, variantModalProduct?.id]);
+  }, [variantModalOpen, variantModalProduct?.id, fetchCart]);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -100,8 +114,56 @@ const VariantModal = () => {
       setActiveSlide(0);
       setIsAutoPlaying(true);
       setZoomOpen(false);
+      setQuantity(1);
     }
   }, [variantModalOpen]);
+
+  // Reset quantity when variant changes
+  useEffect(() => {
+    setQuantity(1);
+  }, [selectedVariant?.id]);
+
+  const handleIncrement = useCallback(() => {
+    if (!selectedVariant) return;
+    const maxStock = selectedVariant.stock ?? 0;
+    if (cartItem) {
+      if (cartItem.quantity + 1 > maxStock) return;
+      updateItem(cartItem.id, { quantity: cartItem.quantity + 1 });
+    } else {
+      if (quantity >= maxStock) return;
+      setQuantity((prev) => prev + 1);
+    }
+  }, [selectedVariant, cartItem, quantity, updateItem]);
+
+  const handleDecrement = useCallback(() => {
+    if (!selectedVariant) return;
+    if (cartItem) {
+      if (cartItem.quantity - 1 < 1) return;
+      updateItem(cartItem.id, { quantity: cartItem.quantity - 1 });
+    } else {
+      if (quantity <= 1) return;
+      setQuantity((prev) => prev - 1);
+    }
+  }, [selectedVariant, cartItem, quantity, updateItem]);
+
+  const handleClose = useCallback(() => setVariantModalOpen(false), [setVariantModalOpen]);
+
+  const handleAddToCart = useCallback(async () => {
+    if (!selectedVariant || !variantModalProduct) return;
+    if (!user) {
+      handleClose();
+      router.push("/login");
+      return;
+    }
+    const success = await addItem({
+      productID: variantModalProduct.id,
+      variantID: selectedVariant.id,
+      quantity,
+    });
+    if (success) {
+      setQuantity(1);
+    }
+  }, [selectedVariant, variantModalProduct, quantity, addItem, user, router, handleClose]);
 
   const currentImages: string[] = selectedVariant?.images?.length
     ? selectedVariant.images
@@ -144,8 +206,6 @@ const VariantModal = () => {
 
   const goNext = () =>
     setActiveSlide((prev) => (prev + 1) % currentImages.length);
-
-  const handleClose = () => setVariantModalOpen(false);
 
   // Drag-to-pan while zoomed, snaps back on release (RN has no CSS
   // transform-origin follow-the-cursor, so this is the closest analog).
@@ -421,8 +481,72 @@ const VariantModal = () => {
                 <View style={styles.actionsRow}>
                   {isOutOfStock ? (
                     <Text style={styles.outOfStockAction}>Out of Stock</Text>
+                  ) : cartItem ? (
+                    <View style={styles.cartControls}>
+                      <Text style={styles.inCartLabel}>In Cart:</Text>
+                      <View style={styles.quantityControls}>
+                        <TouchableOpacity
+                          onPress={handleDecrement}
+                          disabled={isUpdating}
+                          style={styles.quantityBtn}
+                        >
+                          <Minus size={16} color="#374151" />
+                        </TouchableOpacity>
+                        <Text style={styles.quantityText}>
+                          {isUpdating ? "..." : cartItem.quantity}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={handleIncrement}
+                          disabled={isUpdating}
+                          style={styles.quantityBtn}
+                        >
+                          <Plus size={16} color="#374151" />
+                        </TouchableOpacity>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => removeItem(cartItem.id)}
+                        disabled={isRemoving}
+                        style={styles.removeBtn}
+                      >
+                        {isRemoving ? (
+                          <ActivityIndicator size="small" color="#ef4444" />
+                        ) : (
+                          <Trash2 size={16} color="#ef4444" />
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   ) : (
-                    <>{/* TODO: Cart_Button / CartButtonForMobile */}</>
+                    <View style={styles.addToCartRow}>
+                      <View style={styles.quantityControls}>
+                        <TouchableOpacity
+                          onPress={handleDecrement}
+                          style={styles.quantityBtn}
+                        >
+                          <Minus size={16} color="#374151" />
+                        </TouchableOpacity>
+                        <Text style={styles.quantityText}>{quantity}</Text>
+                        <TouchableOpacity
+                          onPress={handleIncrement}
+                          style={styles.quantityBtn}
+                        >
+                          <Plus size={16} color="#374151" />
+                        </TouchableOpacity>
+                      </View>
+                      <TouchableOpacity
+                        onPress={handleAddToCart}
+                        disabled={isAdding || isOutOfStock}
+                        style={[styles.addToCartBtn, (isAdding || isOutOfStock) && styles.addToCartBtnDisabled]}
+                      >
+                        {isAdding ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <>
+                            <ShoppingBag size={16} color="#fff" />
+                            <Text style={styles.addToCartText}>Add To Cart</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   )}
 
                   <TouchableOpacity
@@ -627,6 +751,62 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   moreInfoText: { color: "#16a34a", fontWeight: "600", fontSize: 13 },
+  cartControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  inCartLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#4b5563",
+  },
+  quantityControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  quantityBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  quantityText: {
+    fontSize: 14,
+    fontWeight: "600",
+    minWidth: 40,
+    textAlign: "center",
+  },
+  removeBtn: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  addToCartRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  addToCartBtn: {
+    flex: 1,
+    backgroundColor: "#F7311E",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  addToCartBtnDisabled: {
+    opacity: 0.5,
+  },
+  addToCartText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
   zoomOverlay: { flex: 1, backgroundColor: "#000", justifyContent: "center", alignItems: "center" },
   zoomCloseBtn: {
     position: "absolute",
