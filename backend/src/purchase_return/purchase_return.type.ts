@@ -1,4 +1,3 @@
-import { Document, HydratedDocument, Types } from "mongoose";
 import z from "zod";
 import {
   purchaseReturnSchema,
@@ -27,25 +26,3 @@ export type PaginatedResponse<T> = {
   limit: number;
 };
 
-export interface PurchaseReturnDetail {
-  _id: Types.ObjectId;
-  purchaseID: Types.ObjectId;
-  supplierID: Types.ObjectId;
-  invoiceNo: string;
-  totalAmount: number;
-  paid: number;
-  balanceBefore: number;
-  balanceAfter: number;
-  discount: number;
-  note?: string;
-  date: Date;
-  status: string;
-  accounts: { accountID: Types.ObjectId; amount: number; name: string }[];
-  batches: {
-    batchID: Types.ObjectId;
-    purchaseReturnedQty: number;
-    reason?: string;
-  }[];
-  supplier: any;
-  purchase: any;
-}

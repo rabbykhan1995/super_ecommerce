@@ -6,10 +6,10 @@ dotenv.config();
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import redis from "../config/redis.config";
-import PurchaseCounter from "../src/purchase/purchaseCounter.model";
+
 import dayjs from "dayjs";
 import { Sale } from "../src/sale/sale.type";
-import { Types } from "mongoose";
+
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const BCRYPT_SECRET = process.env.BCRYPT_SECRET;
@@ -106,17 +106,7 @@ export default class Helper {
     return true;
   }
 
-  static async generateInvoiceNo(): Promise<string> {
-    const counter = await PurchaseCounter.findOneAndUpdate(
-      {},
-      { $inc: { counter: 1 } },
-      { new: true, upsert: true }
-    );
 
-    return `INV-${counter!.counter}`;
-
-    // INV-1, INV-2, INV-3...
-  }
 
   static getWeekNumber(date: Date) {
 
@@ -145,31 +135,6 @@ export default class Helper {
     return dayjs(saleDate).add(warrantyDay, "day").toDate()
   }
 
-  static resolveCustomerBalanceMovement(
-    sale: Partial<Sale>,
-    accounts: { accountID: string | Types.ObjectId;amount: number }[] | null = [],
-  ):number {
-    let paidWithAcc = 0;
-    let paidWithBal = 0;
-    if (accounts?.length) {
-      paidWithAcc = accounts.reduce((acc, a) => acc + a.amount, 0);
-    }
 
-    if (sale.paid! > paidWithAcc) {
-      paidWithBal = sale.paid! - paidWithAcc;
-    }
-
-
-    const totalPaid = paidWithAcc + paidWithBal;
-
-    const net = sale.totalAmount! - totalPaid;
-
-    // 🔥 THIS IS THE ONLY THING YOU NEED
-    const balanceChange = -net;
-
-    return balanceChange;
-
-
-  }
 
 }

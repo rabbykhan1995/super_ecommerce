@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import {  Account, AllAccountResponse, CreateAccountInput, UpdateAccountInput } from "./account.type";
-import { Types } from "mongoose";
 import { AccountService } from "./account.service";
 
 export class AccountController {

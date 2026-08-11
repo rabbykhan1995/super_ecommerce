@@ -1,25 +1,24 @@
-import { Document, HydratedDocument, Types } from "mongoose";
+
 import z from "zod";
 import {
   createBrandSchema,
   updateBrandSchema,
 } from "./brand.validator";
+import { brandTable } from "./brand.table";
 
-export interface IBrand extends Document {
-  name:string
-}
+export type Brand = typeof brandTable.$inferSelect;
 
-export type BrandResponse = HydratedDocument<IBrand>;
+
 
 export type CreateBrandInput = z.infer<typeof createBrandSchema>;
 
 export type UpdateBrandInput = z.infer<typeof updateBrandSchema>;
 
 export type BrandListItem = Pick<
-  IBrand,
+  Brand,
   "name"
 > & {
-  _id: Types.ObjectId;
+  id: number;
 };
 
 

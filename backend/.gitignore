@@ -1,0 +1,5 @@
+# Compiled JS output (ts sources are the source of truth)
+# Keep seed files
+*.js
+!src/admin/seed-permissions.js
+!src/admin/seed-super-admin.js

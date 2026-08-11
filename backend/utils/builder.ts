@@ -1,4 +1,3 @@
-import { Types } from "mongoose";
 import { CreateLedgerInput } from "../src/ledger/ledger.type";
 import { TxSource, TxType } from "../src/transaction/transaction.type";
 import { AccBalancePayload } from "../src/account/account.type";
@@ -6,9 +5,9 @@ import { AccBalancePayload } from "../src/account/account.type";
 
 
 export type BatchPayloadItem = {
-    productID: Types.ObjectId;
+    productID: number;
 
-    purchaseID?: Types.ObjectId;
+    purchaseID?: number;
 
     serial?: string;
 
@@ -50,13 +49,9 @@ export default class PayloadBuilder {
         return {
             type: config.type,
 
-            typeID: config.typeID,
-
-            typeModel: config.typeModel,
 
             contactID: config.contactID,
 
-            contactType: config.contactType,
 
             amount: config.amount,
 
