@@ -126,7 +126,7 @@ export default class SaleRepository {
                         variant: {
                             columns: {
                                 id: true,
-                                name: true,
+                                attributes: true,
                             },
                         },
                     },

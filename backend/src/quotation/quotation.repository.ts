@@ -97,7 +97,7 @@ export default class QuotationRepository {
                         variant: {
                             columns: {
                                 id: true,
-                                name: true,
+                                attributes: true,
                             },
                         },
                     },

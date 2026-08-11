@@ -13,6 +13,36 @@ import { saleItemsTable } from "../sale/sale_items.table";
 import { and, count, eq, ne, sum } from "drizzle-orm";
 import db, { QueryClient } from "../../drizzle/src";
 
+type SaleItemWithRelations = {
+  id: number;
+  saleID: number;
+  productID: number;
+  variantID: number;
+  batchID: number;
+  soldQty: number;
+  salePrice: number;
+  warranty: number;
+  product: {
+    id: number;
+    name: string;
+    manageStock: boolean;
+    manageWarranty: boolean;
+    stock: number;
+    unit: {
+      id: number;
+      name: string;
+    };
+  };
+  batch: {
+    id: number;
+    serial: string | null;
+    variant: {
+      id: number;
+      attributes: { name: string; value: string }[];
+    };
+  };
+};
+
 export default class SaleReturnRepository {
   static async saleReturnCreate(
     payload: OnlySaleReturnPayload,
@@ -165,7 +195,6 @@ export default class SaleReturnRepository {
             variant: {
               columns: {
                 id: true,
-                name: true,
                 attributes: true,
               },
             },
@@ -180,7 +209,7 @@ export default class SaleReturnRepository {
   static async getSaleItemsBySaleID(
     saleID: number,
     client: QueryClient = db,
-  ) {
+  ): Promise<SaleItemWithRelations[]> {
     return client.query.saleItemsTable.findMany({
       where: eq(saleItemsTable.saleID, saleID),
       with: {
@@ -210,7 +239,7 @@ export default class SaleReturnRepository {
             variant: {
               columns: {
                 id: true,
-                name: true,
+                attributes: true,
               },
             },
           },
