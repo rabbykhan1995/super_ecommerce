@@ -8,6 +8,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { userStore } from "@/zustand/user.store";
+import { cartStore } from "@/zustand/cart.store";
 import { User, Mail, Phone, Lock, Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
 
 const RegistrationPage = () => {
@@ -24,6 +25,7 @@ const RegistrationPage = () => {
 
   const router = useRouter();
   const { setUser } = userStore();
+  const fetchCart = cartStore((s) => s.fetchCart);
 
   const validate = (fields?: string[]): boolean => {
     const newErrors: Record<string, string> = {};
@@ -83,6 +85,7 @@ const RegistrationPage = () => {
       });
       Helper.setToken(res.data.token);
       setUser(res.data.data);
+      await fetchCart();
       toast.success("Account created successfully!");
       router.push("/");
     } catch (err: any) {

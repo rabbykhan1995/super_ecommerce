@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { userStore } from "@/zustand/user.store";
+import { cartStore } from "@/zustand/cart.store";
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 
 const LoginPage = () => {
@@ -17,6 +18,7 @@ const LoginPage = () => {
 
   const router = useRouter();
   const { setUser } = userStore();
+  const fetchCart = cartStore((s) => s.fetchCart);
 
   const validate = (): boolean => {
     const newErrors: typeof errors = {};
@@ -36,6 +38,7 @@ const LoginPage = () => {
       const res = await api.post("/auth/manual-login", { identifier, password });
       Helper.setToken(res.data.token);
       setUser(res.data.data);
+      await fetchCart();
       router.push("/");
     } catch (err: any) {
       const msg =

@@ -89,6 +89,7 @@ export default function MenuSlider() {
   const handleLogout = async () => {
     await logout();
     setOpenMenuSlider(false);
+    router.replace("/login");
   };
 
   const menuItems = [

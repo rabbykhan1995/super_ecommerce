@@ -7,10 +7,6 @@ import { authMiddleware } from "../../middlewares/auth.middleware";
 
 const router = express.Router();
 
-
-router.get('/say-hello',(req,res)=>{
-  res.json({msg:"hello"})
-})
 // ===========================
 // Customer Auth
 // ===========================

@@ -1,7 +1,7 @@
+import { create } from "zustand";
 import api from "../lib/api";
 import AuthHelper from "../lib/auth";
-import { create } from "zustand";
-import { CartItem, AddToCartPayload, UpdateCartPayload } from "../types/cart.types";
+import { AddToCartPayload, CartItem, UpdateCartPayload } from "../types/cart.types";
 
 type CartStore = {
   cart: CartItem[];
@@ -43,7 +43,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
       }
 
       set({ isFetching: true });
-      const res = await api("/cart/list");
+      const res = await api.get("/cart/list");
 
       if (res.data.success !== true) {
         set({ cart: [], totalCartItems: 0, cartTotal: 0, isFetching: false });

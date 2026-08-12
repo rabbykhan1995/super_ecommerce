@@ -1,6 +1,9 @@
 import api from "../lib/api";
 import AuthHelper from "../lib/auth";
 import { create } from "zustand";
+import { useCartStore } from "./cart.store";
+import useOpenCloseState from "./openclose.store";
+import useLoadingStore from "./loading.store";
 
 export interface IUser {
   id: string;
@@ -55,6 +58,24 @@ export const useUserStore = create<UserState>((set) => ({
       // ignore
     }
     await AuthHelper.clearToken();
-    set({ user: null });
+    set({ user: null, isLoading: false });
+    useCartStore.setState({
+      cart: [],
+      totalCartItems: 0,
+      cartTotal: 0,
+      openCartSlider: false,
+      isFetching: false,
+      isAdding: false,
+      isUpdating: false,
+      isRemoving: false,
+      isClearing: false,
+    });
+    useOpenCloseState.setState({
+      variantModalOpen: false,
+      variantModalProduct: null,
+      openMenuSlider: false,
+      openCartSlider: false,
+    });
+    useLoadingStore.setState({ globalLoader: false });
   },
 }));

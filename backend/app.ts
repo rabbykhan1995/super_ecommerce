@@ -13,7 +13,7 @@ app.use(
       "http://localhost:5173",
       "http://localhost:3000",
       // Expo
-      "exp://192.168.0.103:8081",
+      "exp://192.168.0.101:8081",
       "http://localhost:8081",
       // Android emulator (accessing host machine)
       "http://10.0.2.2:5000",

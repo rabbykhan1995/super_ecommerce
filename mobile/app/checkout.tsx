@@ -1,21 +1,22 @@
-import { useState } from "react";
-import { ScrollView, View, Linking, KeyboardAvoidingView, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { checkoutOrderSchema } from "@/validation/validation";
 import { useRouter } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
+import { useState } from "react";
+import { KeyboardAvoidingView, Linking, Platform, ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import CheckoutForm from "../components/checkout/CheckoutForm";
 import OrderSummary from "../components/checkout/OrderSummary";
 import PaymentMethod from "../components/checkout/PaymentMethod";
 import Button from "../components/ui/Button";
-import { useCartStore } from "../store/cart.store";
 import api from "../lib/api";
-import Toast from "react-native-toast-message";
+import { useCartStore } from "../store/cart.store";
 
 export default function CheckoutScreen() {
   const router = useRouter();
   const { cart, cartTotal, clearCart } = useCartStore();
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [paymentMethod, setPaymentMethod] = useState("stripe");
   const [form, setForm] = useState({ name: "", phone: "", address: "", city: "", area: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -24,29 +25,44 @@ export default function CheckoutScreen() {
     if (!form.name) newErrors.name = "Name is required";
     if (!form.phone) newErrors.phone = "Phone is required";
     if (!form.address) newErrors.address = "Address is required";
-    if (!form.city) newErrors.city = "City is required";
-    if (!form.area) newErrors.area = "Area is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleOrder = async () => {
-    if (!validate()) return;
+    const result = checkoutOrderSchema.safeParse({
+      shipping: form,
+      paymentMethod,
+    });
+
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        // issue.path looks like ["shipping", "name"] — take the last segment as the field key
+        const field = issue.path[issue.path.length - 1] as string;
+        fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      Toast.show({ type: "error", text1: result.error.issues[0].message });
+      return;
+    }
+
+    setErrors({});
     setLoading(true);
     try {
-      const res = await api.post("/checkout/create-order", {
-        shippingAddress: form,
-        paymentMethod,
-        items: cart.map((item) => ({
-          product: item.productID,
-          variant: item.variantID,
-          quantity: item.quantity,
-          price: item.price,
-        })),
+      const res = await api.post("/order/checkout", {
+        shipping: {
+          name: form.name,
+          phone: form.phone,
+          address: form.address,
+          city: form.city || undefined,
+          area: form.area || undefined,
+        },
+        paymentMethod: "stripe",
       });
       await clearCart();
-      if (res.data?.sessionUrl) {
-        Linking.openURL(res.data.sessionUrl);
+      if (res.data?.stripeSessionUrl) {
+        Linking.openURL(res.data.stripeSessionUrl);
       } else {
         Toast.show({ type: "success", text1: "Order placed successfully!" });
         router.replace("/order/success");

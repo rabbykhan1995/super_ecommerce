@@ -1,39 +1,87 @@
-import { useState } from "react";
-import { View, Text, Pressable, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
-import Input from "../components/ui/Input";
-import Button from "../components/ui/Button";
+import { useState } from "react";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import OTPInput from "../components/ui/OTPInput";
 import api from "../lib/api";
-import AuthHelper from "../lib/auth";
-import { useUserStore } from "../store/user.store";
 import { signInWithGoogle } from "../lib/google-auth";
+import { useUserStore } from "../store/user.store";
+import { useCartStore } from "../store/cart.store";
 
 
 export default function RegistrationScreen() {
   const router = useRouter();
   const fetchUser = useUserStore((s) => s.fetchUser);
+  const fetchCart = useCartStore((s) => s.fetchCart);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const handleRegister = async () => {
-    if (!name || !email || !phone || !password) {
-      Toast.show({ type: "error", text1: "Please fill all fields" });
+  const handleSendOTP = async () => {
+    if (!name.trim()) {
+      Toast.show({ type: "error", text1: "Name is required" });
       return;
     }
+    if (!email.trim()) {
+      Toast.show({ type: "error", text1: "Email is required" });
+      return;
+    }
+
     setLoading(true);
     try {
-      await api.post("/auth/register", { name, email, phone, password });
+      await api.post("/auth/send-email-verify-otp", { email });
+      setOtpSent(true);
+      Toast.show({ type: "success", text1: "OTP sent to your email" });
+    } catch (err: any) {
+      const msg = err.response?.data?.msg || "Failed to send OTP";
+      Toast.show({ type: "error", text1: msg });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!otp || otp.length !== 6) {
+      Toast.show({ type: "error", text1: "Please enter the 6-digit OTP" });
+      return;
+    }
+    if (!phone.trim()) {
+      Toast.show({ type: "error", text1: "Phone number is required" });
+      return;
+    }
+    if (!password) {
+      Toast.show({ type: "error", text1: "Password is required" });
+      return;
+    }
+    if (password.length < 8) {
+      Toast.show({ type: "error", text1: "Password must be at least 8 characters" });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post("/auth/register-manually", {
+        name,
+        email,
+        mobile: phone,
+        password,
+        otp,
+      });
+
       Toast.show({ type: "success", text1: "Registration successful", text2: "Please login" });
       router.replace("/login");
     } catch (err: any) {
-      // Error handled by interceptor
+      const msg = err.response?.data?.msg || "Registration failed";
+      Toast.show({ type: "error", text1: msg });
     } finally {
       setLoading(false);
     }
@@ -44,6 +92,7 @@ export default function RegistrationScreen() {
     try {
       await signInWithGoogle();
       await fetchUser();
+      await fetchCart();
       Toast.show({ type: "success", text1: "Account created successfully" });
       router.replace("/");
     } catch (err: any) {
@@ -70,10 +119,28 @@ export default function RegistrationScreen() {
 
           <Input label="Full Name" value={name} onChangeText={setName} placeholder="John Doe" />
           <Input label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
-          <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+880 1XXXXXXXXX" keyboardType="phone-pad" />
-          <Input label="Password" value={password} onChangeText={setPassword} placeholder="••••••••" secureTextEntry />
 
-          <Button title="Register" onPress={handleRegister} loading={loading} className="mt-2" />
+          {!otpSent ? (
+            <Button title="Send Verification OTP" onPress={handleSendOTP} loading={loading} className="mt-2" />
+          ) : (
+            <>
+              <View className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4">
+                <Text className="text-blue-700 text-sm text-center">
+                  A 6-digit code was sent to <Text className="font-semibold">{email}</Text>
+                </Text>
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-sm font-medium text-gray-700 mb-2">Enter OTP</Text>
+                <OTPInput value={otp} onChange={setOtp} validTime={120} />
+              </View>
+
+              <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+880 1XXXXXXXXX" keyboardType="phone-pad" />
+              <Input label="Password" value={password} onChangeText={setPassword} placeholder="••••••••" secureTextEntry />
+
+              <Button title="Register" onPress={handleRegister} loading={loading} className="mt-2" />
+            </>
+          )}
 
           <View className="flex-row items-center my-6">
             <View className="flex-1 h-px bg-gray-300" />

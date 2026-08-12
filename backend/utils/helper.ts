@@ -85,7 +85,7 @@ export default class Helper {
   static async setOTPIntoRedis(identifier: string, otp: string | number, type: "email" | "phone") {
     const key = `otp:${type}:${identifier}`;
 
-    await redis.set(key, otp, "EX", 300); // 5 minutes expiry
+    await redis.set(key, String(otp), "EX", 300); // 5 minutes expiry
 
     return true;
   }

@@ -10,10 +10,12 @@ import api from "../lib/api";
 import AuthHelper from "../lib/auth";
 import { signInWithGoogle } from "../lib/google-auth";
 import { useUserStore } from "../store/user.store";
+import { useCartStore } from "../store/cart.store";
 
 export default function LoginScreen() {
   const router = useRouter();
   const fetchUser = useUserStore((s) => s.fetchUser);
+  const fetchCart = useCartStore((s) => s.fetchCart);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,9 +28,10 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      const res = await api.post("/auth/login", { email, password });
+      const res = await api.post("/auth/manual-login", { identifier:email, password });
       await AuthHelper.setToken(res.data.token);
       await fetchUser();
+      await fetchCart();
       Toast.show({ type: "success", text1: "Login successful" });
       router.replace("/");
     } catch (err: any) {
@@ -45,6 +48,7 @@ const handleGoogleLogin = async () => {
     await signInWithGoogle();
 
     await fetchUser();
+    await fetchCart();
 
     Toast.show({
       type: "success",
@@ -53,10 +57,7 @@ const handleGoogleLogin = async () => {
 
     router.replace("/");
   } catch (err: any) {
-    console.log("GOOGLE LOGIN ERROR:", err);
-    console.log("GOOGLE LOGIN ERROR JSON:", JSON.stringify(err, null, 2));
-    console.log("GOOGLE LOGIN ERROR MESSAGE:", err?.message);
-    console.log("GOOGLE LOGIN ERROR CODE:", err?.code);
+
 
     Toast.show({
       type: "error",

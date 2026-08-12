@@ -70,15 +70,15 @@ export class AuthService {
 
   static async registerManually(payload: CreateUserInput) {
 
-    const otp: string = payload.otp;
+    const otp: string = String(payload.otp).trim();
     const redisOTP = await Helper.getOTPFromRedis(payload.email as string, "email");
 
     if (!redisOTP) {
-      // OTP expired বা send করা হয়নি
+      // OTP expired বা send করা হয়নি
       throw new ApiError(400, "OTP expired or not found");
     }
 
-    if (otp !== redisOTP) {
+    if (otp !== String(redisOTP).trim()) {
       // OTP mismatch
       throw new ApiError(400, "Invalid OTP");
     }
@@ -214,15 +214,15 @@ export class AuthService {
 
   static async resetPassword(payload: PasswordResetInput) {
 
-    const otp: string = payload.otp;
+    const otp: string = String(payload.otp).trim();
     const redisOTP = await Helper.getOTPFromRedis(payload.email as string, "email");
 
     if (!redisOTP) {
-      // OTP expired বা send করা হয়নি
+      // OTP expired বা send করা হয়নি
       throw new ApiError(400, "OTP expired or not found");
     }
 
-    if (otp !== redisOTP) {
+    if (otp !== String(redisOTP).trim()) {
       // OTP mismatch
       throw new ApiError(400, "Invalid OTP");
     }
@@ -249,6 +249,7 @@ export class AuthService {
   }
 
   static async manualLogin(payload: UserLoginInput) {
+
     // check if identifier is email or phone
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.identifier);
 

@@ -66,6 +66,7 @@ export class AuthController {
   }
 
   static async manualLogin(req: Request, res: Response) {
+
     const { user, token } = await AuthService.manualLogin(req.body);
     // Cookie সেট
     res.cookie("token", token, {

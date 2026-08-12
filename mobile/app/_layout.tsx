@@ -10,16 +10,18 @@ import MenuSlider from "../components/sliders/MenuSlider";
 import "../global.css";
 import AuthHelper from "../lib/auth";
 import { useUserStore } from "../store/user.store";
+import { useCartStore } from "../store/cart.store";
 
 export default function RootLayout() {
   const fetchUser = useUserStore((s) => s.fetchUser);
+  const fetchCart = useCartStore((s) => s.fetchCart);
 
   useEffect(() => {
     const initAuth = async () => {
       const token = await AuthHelper.getToken();
       if (token) {
         try {
-          await fetchUser();
+          await Promise.all([fetchUser(), fetchCart()]);
         } catch {
           // Token invalid — handled by interceptor
         }
