@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getPublicOrder } from "@/utils/checkoutApi";
 import type { EcomOrder } from "@/types/order.types";
@@ -8,7 +8,7 @@ import OrderTracker from "./OrderTracker";
 import { Search, Package } from "lucide-react";
 import toast from "react-hot-toast";
 
-const TrackOrderPage = () => {
+const TrackOrderContent = () => {
   const searchParams = useSearchParams();
   const initialOrderId = Number(searchParams.get("orderId")) || 0;
 
@@ -103,5 +103,19 @@ const TrackOrderPage = () => {
     </div>
   );
 };
+
+const TrackOrderPage = () => (
+  <Suspense
+    fallback={
+      <div className="container_custom py-8">
+        <div className="max-w-2xl mx-auto flex justify-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+        </div>
+      </div>
+    }
+  >
+    <TrackOrderContent />
+  </Suspense>
+);
 
 export default TrackOrderPage;

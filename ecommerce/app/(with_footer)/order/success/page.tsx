@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { confirmStripeOrder, confirmCodOrder } from "@/utils/checkoutApi";
@@ -8,7 +8,7 @@ import type { EcomOrder } from "@/types/order.types";
 import { CheckCircle, Package, Truck } from "lucide-react";
 import { cartStore } from "@/zustand/cart.store";
 
-const OrderSuccessPage = () => {
+const OrderSuccessContent = () => {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const orderIdParam = searchParams.get("orderId");
@@ -128,5 +128,17 @@ const OrderSuccessPage = () => {
     </div>
   );
 };
+
+const OrderSuccessPage = () => (
+  <Suspense
+    fallback={
+      <div className="container_custom py-16 flex justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      </div>
+    }
+  >
+    <OrderSuccessContent />
+  </Suspense>
+);
 
 export default OrderSuccessPage;
