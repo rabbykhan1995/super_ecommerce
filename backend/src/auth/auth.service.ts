@@ -12,7 +12,7 @@ import db from "../../drizzle/src";
 import { staffProfiles } from "./auth.table";
 
 export class AuthService {
-    static async sendEmailVerifyOTP(email: string) {
+  static async sendEmailVerifyOTP(email: string) {
 
     const emailExist = await AuthRepository.findByEmail(email);
 
@@ -119,7 +119,7 @@ export class AuthService {
       // _______________________________________-_______
       token = Helper.generateToken(user);
 
-      const contactExist = await ContactService.findOne({mobile:user.mobile!});
+      const contactExist = await ContactService.findOne({ mobile: user.mobile! });
 
       if (contactExist) {
 
@@ -137,7 +137,7 @@ export class AuthService {
           address: user.address!,
           email: user.email!,
           userID: user.id,
-        },tx)
+        }, tx)
 
       }
 
@@ -295,7 +295,7 @@ export class AuthService {
   }
 
   static async userGoogleAuthCallbackAPI(query: any) {
-  
+
     const code = query.code
 
     if (!code) {
@@ -416,7 +416,7 @@ export class AuthService {
       email: user.email,
       mobile: user.mobile,
     });
-   console.log("token", user)
+    console.log("token", user)
     return { token, user };
   }
 
@@ -432,7 +432,7 @@ export class AuthService {
 
     }
 
-    const contact = await ContactService.findOne({mobile});
+    const contact = await ContactService.findOne({ mobile });
 
     if (contact) {
 
@@ -467,7 +467,7 @@ export class AuthService {
     const userWithRoles = isEmail
       ? await AuthRepository.findUserWithRolesByEmail(payload.identifier)
       : await AuthRepository.findUserWithRolesByMobile(payload.identifier);
-   
+
     if (!userWithRoles) {
       throw new ApiError(404, "Wrong credentials");
     }
@@ -512,10 +512,10 @@ export class AuthService {
       isSuperAdmin: userWithRoles.isSuperAdmin,
       staffProfile: staffProfile
         ? {
-            employeeCode: staffProfile.employeeCode,
-            designation: staffProfile.designation,
-            department: staffProfile.department,
-          }
+          employeeCode: staffProfile.employeeCode,
+          designation: staffProfile.designation,
+          department: staffProfile.department,
+        }
         : null,
     };
 
@@ -607,15 +607,25 @@ export class AuthService {
       isSuperAdmin: userWithRoles.isSuperAdmin,
       staffProfile: staffProfile
         ? {
-            employeeCode: staffProfile.employeeCode,
-            designation: staffProfile.designation,
-            department: staffProfile.department,
-          }
+          employeeCode: staffProfile.employeeCode,
+          designation: staffProfile.designation,
+          department: staffProfile.department,
+        }
         : null,
     };
 
     const clientRedirectURL = process.env.ADMIN_CLIENT_URL!;
 
     return { token, user, clientRedirectURL };
+  }
+
+  static async savePushToken(userID: any, token: any) {
+
+    return await AuthRepository.updateUser(userID, { pushNotificationToken: token })
+
+  }
+
+  static async findUserByID(userID:any){
+    return await AuthRepository.findByID(userID);
   }
 }

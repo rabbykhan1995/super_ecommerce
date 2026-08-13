@@ -9,6 +9,8 @@ import ProductService from "../product/product.service";
 import CartService from "../cart/cart.service";
 import { Contact } from "../contact/contact.type";
 import ContactService from "../contact/contact.service";
+import { AuthService } from "../auth/auth.service";
+import { sendPushNotification } from "../../utils/pushNotification";
 
 export class OrderService {
     static async checkoutOrder(userID: string, input: CheckoutOrderInput) {
@@ -38,7 +40,7 @@ export class OrderService {
 
                 if (!variant) throw new ApiError(400, `Variant not found for item: ${item.name}`);
 
-                if ((variant.stock!- (variant.reservedStock??0)) < item.quantity) {
+                if ((variant.stock! - (variant.reservedStock ?? 0)) < item.quantity) {
                     throw new ApiError(400, `Insufficient stock for ${item.name}`);
                 }
 
@@ -105,11 +107,109 @@ export class OrderService {
 
             if (input.paymentMethod === "stripe") {
                 const session = await OrderService.createStripeSession(order.id, orderItemsData, totalAmount);
-                await OrderRepository.updateOrderByID(order.id, { stripeSessionID: session.id, status: "Confirmed", paymentStatus: "paid" }, tx);
+                await OrderRepository.updateOrderByID(order.id, { stripeSessionID: session.id, }, tx);
                 return { orderId: order.id, stripeSessionUrl: session.url };
             }
 
             return { orderId: order.id, message: "Order placed successfully" };
+        });
+    }
+
+    static async checkoutOrderMobile(userID: string, input: CheckoutOrderInput) {
+        return await withTransaction(async (tx: QueryClient) => {
+
+            const contact: Contact = await ContactService.findOne({ userID: userID }, tx);
+            if (!contact) {
+                throw new ApiError(400, "Contact Required");
+            }
+
+            const cartItems = await CartService.getCart(userID, tx);
+            if (!cartItems || cartItems.length === 0) {
+                throw new ApiError(400, "Cart is empty");
+            }
+
+            let subtotal = 0;
+            let totalDiscount = 0;
+            const orderItemsData: any[] = [];
+
+            for (const item of cartItems) {
+                const variant = await ProductService.findVariantByID(item.variantID, tx);
+                if (!variant) throw new ApiError(400, `Variant not found for item: ${item.name}`);
+
+                if ((variant.stock! - (variant.reservedStock ?? 0)) < item.quantity) {
+                    throw new ApiError(400, `Insufficient stock for ${item.name}`);
+                }
+
+                const salePrice = variant.salePrice as number;
+                let effectivePrice = salePrice;
+
+                if (
+                    variant.discountPrice != null &&
+                    (variant.discountPrice as number) > 0 &&
+                    (variant.discountPrice as number) < salePrice
+                ) {
+                    effectivePrice = variant.discountPrice as number;
+                }
+
+                const lineTotal = effectivePrice * item.quantity;
+                const lineDiscount = (salePrice - effectivePrice) * item.quantity;
+
+                subtotal += lineTotal;
+                totalDiscount += lineDiscount;
+
+                orderItemsData.push({
+                    productID: item.productID,
+                    variantID: item.variantID,
+                    salePrice,
+                    quantity: item.quantity,
+                    lineTotal,
+                });
+            }
+
+            const totalAmount = subtotal;
+
+            const order = await OrderRepository.createOrder({
+                contactID: contact.id,
+                status: "Pending",
+                subtotal,
+                shippingCost: 0,
+                discount: totalDiscount,
+                totalAmount,
+                paymentMethod: "stripe",
+                paymentStatus: "unpaid",
+                shippingName: input.shipping.name,
+                shippingPhone: input.shipping.phone,
+                shippingAddress: input.shipping.address,
+                shippingCity: input.shipping.city || null,
+                shippingArea: input.shipping.area || null,
+                note: input.note || null,
+            }, tx);
+
+            for (const itemData of orderItemsData) {
+                await OrderRepository.createOrderItem({ orderID: order.id, ...itemData }, tx);
+            }
+
+            for (const item of cartItems) {
+                await CartService.removeItem(userID, item.id, tx);
+                await ProductService.increaseVariantReservedStock(item.variantID, item.quantity, tx);
+                await ProductService.increaseProductReservedStock(item.productID, item.quantity, tx);
+            }
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: Math.round(totalAmount * 100),
+                currency: "usd",
+                metadata: { orderId: String(order.id) },
+                automatic_payment_methods: { enabled: true },
+            });
+
+            await OrderRepository.updateOrderByID(order.id, {
+                stripePaymentIntent: paymentIntent.id,
+            }, tx);
+
+            return {
+                orderId: order.id,
+                clientSecret: paymentIntent.client_secret,
+            };
         });
     }
 
@@ -128,7 +228,7 @@ export class OrderService {
                     throw new ApiError(400, `variant not found`);
                 }
 
-                if (variant.stock! - (variant.reservedStock??0) < item.quantity) {
+                if (variant.stock! - (variant.reservedStock ?? 0) < item.quantity) {
                     throw new ApiError(400, `Insufficient stock`);
                 }
 
@@ -183,6 +283,9 @@ export class OrderService {
     }
 
     static async createStripeSession(orderId: number, items: any[], totalAmount: number) {
+        const successUrl = `${process.env.ECOM_CLIENT_URL}/order/success?session_id={CHECKOUT_SESSION_ID}`;
+        const cancelUrl = `${process.env.ECOM_CLIENT_URL}/cart`;
+
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             mode: "payment",
@@ -197,59 +300,88 @@ export class OrderService {
                 },
                 quantity: item.quantity,
             })),
-            success_url: `${process.env.ECOM_CLIENT_URL}/order/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.ECOM_CLIENT_URL}/cart`,
+            success_url: successUrl,
+            cancel_url: cancelUrl,
             metadata: { orderId: String(orderId) },
         });
         return session;
     }
 
-    static async handleStripeWebhook(event: Stripe.Event) {
-        // ar jodi completed hoi payment
-        if (event.type === "checkout.session.completed") {
-            const session = event.data.object as Stripe.Checkout.Session;
-            const stripeSessionID = session.id;
-            if (!stripeSessionID) return;
+ static async handleStripeWebhook(event: Stripe.Event) {
+    // 1. Payment Succeeded
+    if (event.type === "payment_intent.succeeded") {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const orderId = paymentIntent.metadata?.orderId;
+        if (!orderId) return;
 
-            const order = await OrderRepository.findOrderByStripeSessionID(stripeSessionID);
-            if (!order || order.saleID) return;
+        const order = await OrderRepository.findOrderByID(Number(orderId));
+        if (!order || order.paymentStatus === "paid") return;
 
-            await OrderRepository.updateOrderByID(order.id, {
-                status: "Confirmed",
-                paymentStatus: "paid",
-                paidAt: new Date(),
-                stripePaymentIntent: session.payment_intent as string || null,
-            });
-        }
-        //    jodi stripe er session expired hoi
-        if (event.type === "checkout.session.expired") {
-            const session = event.data.object as Stripe.Checkout.Session;
-            const stripeSessionID = session.id;
-            if (!stripeSessionID) return;
+        // ✅ ১. আগে ডাটাবেজের মূল কাজ শেষ করুন
+        await OrderRepository.updateOrderByID(order.id, {
+            status: "Confirmed",
+            paymentStatus: "paid",
+            paidAt: new Date(),
+        });
 
-            const order = await OrderRepository.findOrderByStripeSessionID(stripeSessionID);
-            if (!order) return;
+        // ✅ ২. ব্যাকগ্রাউন্ডে নন-ব্লকিং ভাবে নোটিফিকেশন পাঠান (Fire & Forget)
+        (async () => {
+            try {
+                const contact = await ContactService.findByID(order.contactID);
+                const user = await AuthService.findUserByID(contact?.userID);
 
-            await withTransaction(async (tx: QueryClient) => {
-                for (const item of order.items) {
-                    await ProductService.decreaseVariantReservedStock(item.variantID, item.quantity, tx);
-                    await ProductService.decreaseProductReservedStock(item.productID, item.quantity, tx);
+                if (user?.pushNotificationToken) {
+                    await sendPushNotification(
+                        user.pushNotificationToken,
+                        "Order Confirmed! 🎉",
+                        `Your order #${order.id} has been confirmed.`,
+                        { orderId: order.id }
+                    );
                 }
-                await OrderRepository.deleteOrderByID(order.id, tx);
-            });
-        }
-        // jodi refuned hoi
-        if (event.type === "charge.refunded") {
-            const charge = event.data.object as Stripe.Charge;
-            const paymentIntent = charge.payment_intent as string;
-            if (!paymentIntent) return;
-
-            const order = await OrderRepository.findOrderByStripePaymentIntent(paymentIntent);
-            if (!order) return;
-
-            await OrderRepository.updateOrderByID(order.id, { paymentStatus: "refunded" });
-        }
+            } catch (err) {
+                console.error("Failed to send succeeded push notification:", err);
+            }
+        })();
     }
+
+    // 2. Payment Failed
+    if (event.type === "payment_intent.payment_failed") {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const orderId = paymentIntent.metadata?.orderId;
+        if (!orderId) return;
+
+        const order = await OrderRepository.findOrderByID(Number(orderId));
+        if (!order) return;
+
+        // ✅ ১. আগে ক্রিটিক্যাল ডাটাবেজ ট্রানজ্যাকশন এবং স্টক রিলিজ সম্পন্ন করুন
+        await withTransaction(async (tx: QueryClient) => {
+            for (const item of order.items) {
+                await ProductService.decreaseVariantReservedStock(item.variantID, item.quantity, tx);
+                await ProductService.decreaseProductReservedStock(item.productID, item.quantity, tx);
+            }
+            await OrderRepository.updateOrderByID(order.id, { status: "Cancelled", paymentStatus: "failed" }, tx);
+        });
+
+        // ✅ ২. ব্যাকগ্রাউন্ডে নোটিফিকেশন দিন
+        (async () => {
+            try {
+                const contact = await ContactService.findByID(order.contactID);
+                const user = await AuthService.findUserByID(contact?.userID);
+
+                if (user?.pushNotificationToken) {
+                    await sendPushNotification(
+                        user.pushNotificationToken,
+                        "Payment Failed! ❌",
+                        `Payment failed for order #${order.id}. Please try again.`,
+                        { orderId: order.id, status: "failed" }
+                    );
+                }
+            } catch (err) {
+                console.error("Failed to send failed push notification:", err);
+            }
+        })();
+    }
+}
 
     static async confirmOrderSuccess(userID: string, sessionID?: string, orderId?: number) {
         const contact = await ContactService.findOne({ userID });

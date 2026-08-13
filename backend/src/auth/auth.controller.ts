@@ -162,4 +162,12 @@ export class AuthController {
 
     res.redirect(`${clientRedirectURL}?token=${token}`);
   }
+
+
+  static async savePushToken(req: Request, res: Response) {
+  const userID = req.user!.id;
+  const { pushNotificationToken } = req.body;
+  const saved = await AuthService.savePushToken(userID, pushNotificationToken);
+  res.json({ success: true });
+}
 }

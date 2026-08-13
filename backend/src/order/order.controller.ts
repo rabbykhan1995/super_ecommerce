@@ -12,6 +12,13 @@ export class OrderController {
         res.status(201).json({ success: true, data: result });
     }
 
+    static async checkoutMobile(req: Request, res: Response) {
+    const userID = req.user!.id; // apnar auth middleware onujayi adjust korুন
+
+    const result = await OrderService.checkoutOrderMobile(userID, req.body);
+    res.status(200).json({ success: true, data: result });
+}
+
     static async createOrder(req: Request, res: Response) {
         const result = await OrderService.createOrder(req.body);
         

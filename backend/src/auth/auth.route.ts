@@ -1,5 +1,5 @@
 import express from "express";
-import { adminLoginSchema, checkoutMobileSchema, mobileGoogleAuthSchema, passwordResetSchema, userLoginSchema } from "./auth.validator";
+import { adminLoginSchema, checkoutMobileSchema, mobileGoogleAuthSchema, passwordResetSchema, updateUserSchema, userLoginSchema } from "./auth.validator";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { AuthController } from "./auth.controller";
 import { validate } from "../../middlewares/validation.middleware";
@@ -23,7 +23,7 @@ router
   .post("/send-forget-password-otp", asyncHandler(AuthController.sendForgetPasswordOTP))
   .post("/reset-password", validate(passwordResetSchema), asyncHandler(AuthController.resetPassword))
   .post("/checkout-mobile",authMiddleware ,validate(checkoutMobileSchema), asyncHandler(AuthController.checkOutMobile))
-
+  .post("/set-push-notification-token", authMiddleware, validate(updateUserSchema), asyncHandler(AuthController.savePushToken))
 // ===========================
 // Customer Google OAuth
 // ===========================

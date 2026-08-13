@@ -1,8 +1,9 @@
 import { checkoutOrderSchema } from "@/validation/validation";
+import { useStripe } from "@stripe/stripe-react-native";
 import { useRouter } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import { useState } from "react";
-import { KeyboardAvoidingView, Linking, Platform, ScrollView, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import CheckoutForm from "../components/checkout/CheckoutForm";
@@ -15,19 +16,11 @@ import { useCartStore } from "../store/cart.store";
 export default function CheckoutScreen() {
   const router = useRouter();
   const { cart, cartTotal, clearCart } = useCartStore();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("stripe");
   const [form, setForm] = useState({ name: "", phone: "", address: "", city: "", area: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-    if (!form.name) newErrors.name = "Name is required";
-    if (!form.phone) newErrors.phone = "Phone is required";
-    if (!form.address) newErrors.address = "Address is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
   const handleOrder = async () => {
     const result = checkoutOrderSchema.safeParse({
@@ -38,7 +31,6 @@ export default function CheckoutScreen() {
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       for (const issue of result.error.issues) {
-        // issue.path looks like ["shipping", "name"] — take the last segment as the field key
         const field = issue.path[issue.path.length - 1] as string;
         fieldErrors[field] = issue.message;
       }
@@ -50,7 +42,8 @@ export default function CheckoutScreen() {
     setErrors({});
     setLoading(true);
     try {
-      const res = await api.post("/order/checkout", {
+      // Step 1: Backend e order create korুন, PaymentIntent client secret niন
+      const res = await api.post("/order/checkout-mobile", {
         shipping: {
           name: form.name,
           phone: form.phone,
@@ -60,15 +53,40 @@ export default function CheckoutScreen() {
         },
         paymentMethod: "stripe",
       });
-      await clearCart();
-      if (res.data?.stripeSessionUrl) {
-        Linking.openURL(res.data.stripeSessionUrl);
-      } else {
-        Toast.show({ type: "success", text1: "Order placed successfully!" });
-        router.replace("/order/success");
+
+      const { orderId, clientSecret } = res.data.data;
+
+      // Step 2: PaymentSheet initialize korুন
+      const { error: initError } = await initPaymentSheet({
+        merchantDisplayName: "Super Ecommerce", // apnar store er actual name diয়ে replace korুন
+        paymentIntentClientSecret: clientSecret,
+        allowsDelayedPaymentMethods: false,
+      });
+
+      if (initError) {
+        Toast.show({ type: "error", text1: "Payment setup failed", text2: initError.message });
+        setLoading(false);
+        return;
       }
+
+      // Step 3: PaymentSheet show korুন — user card diye pay korবে
+      const { error: presentError } = await presentPaymentSheet();
+
+      if (presentError) {
+        // user cancel korলে ba payment fail hoile eikhane ashবে
+        if (presentError.code !== "Canceled") {
+          Toast.show({ type: "error", text1: "Payment failed", text2: presentError.message });
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Step 4: Payment successful — cart clear korুন, success screen e যান
+      await clearCart();
+      Toast.show({ type: "success", text1: "Payment successful!" });
+      router.replace({ pathname: "/order/success", params: { orderId } });
     } catch (err: any) {
-      // Error handled by interceptor
+      // Error handled by interceptor (backend/network error)
     } finally {
       setLoading(false);
     }

@@ -1,9 +1,9 @@
+import { create } from "zustand";
 import api from "../lib/api";
 import AuthHelper from "../lib/auth";
-import { create } from "zustand";
 import { useCartStore } from "./cart.store";
-import useOpenCloseState from "./openclose.store";
 import useLoadingStore from "./loading.store";
+import useOpenCloseState from "./openclose.store";
 
 export interface IUser {
   id: string;

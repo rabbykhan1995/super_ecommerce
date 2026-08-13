@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getPublicOrder } from "@/utils/checkoutApi";
 import type { EcomOrder } from "@/types/order.types";
@@ -17,6 +17,17 @@ const TrackOrderContent = () => {
   const [order, setOrder] = useState<EcomOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+
+  useEffect(() => {
+    if (initialOrderId) {
+      setLoading(true);
+      setSearched(true);
+      getPublicOrder(initialOrderId)
+        .then((data) => setOrder(data))
+        .catch(() => setOrder(null))
+        .finally(() => setLoading(false));
+    }
+  }, [initialOrderId]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();

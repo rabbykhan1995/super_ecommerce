@@ -8,6 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { contactTable } from "../contact/contact.table";
+import { nullable } from "zod";
 
 /* ===========================
    Users
@@ -31,6 +32,8 @@ export const userTable = pgTable(
     mobile: varchar("mobile", { length: 20 }),
 
     address: varchar("address", { length: 500 }),
+    
+    pushNotificationToken:varchar("push_notification_token", {length:255}),
 
     createdAt: timestamp("created_at", {
       withTimezone: true,

@@ -1,4 +1,6 @@
 import VariantModal from "@/components/Modals/VariantModal";
+import { registerForPushNotificationsAsync } from "@/lib/notifications";
+import { StripeProvider } from "@stripe/stripe-react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -9,8 +11,8 @@ import CartSlider from "../components/sliders/CartSlider";
 import MenuSlider from "../components/sliders/MenuSlider";
 import "../global.css";
 import AuthHelper from "../lib/auth";
-import { useUserStore } from "../store/user.store";
 import { useCartStore } from "../store/cart.store";
+import { useUserStore } from "../store/user.store";
 
 export default function RootLayout() {
   const fetchUser = useUserStore((s) => s.fetchUser);
@@ -22,6 +24,7 @@ export default function RootLayout() {
       if (token) {
         try {
           await Promise.all([fetchUser(), fetchCart()]);
+          await registerForPushNotificationsAsync();
         } catch {
           // Token invalid — handled by interceptor
         }
@@ -33,12 +36,14 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+         <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}>
         <Stack screenOptions={{ headerShown: false }} />
         <MenuSlider />
         <CartSlider />
         <Toast />
         <VariantModal />
         <StatusBar style="auto" />
+            </StripeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -36,6 +36,7 @@ export const updateUserSchema = z.object({
   email: z.string().email("Invalid email address").nullable().optional(),
   addresss: z.string().nullable().optional(),
   mobile: z.string().nullable().optional(),
+  pushNotificationToken:z.string().nullable().optional()
 });
 
 

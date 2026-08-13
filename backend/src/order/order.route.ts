@@ -14,6 +14,7 @@ const router = express.Router();
 
 router
     .post("/checkout", authMiddleware, validate(checkoutOrderSchema), asyncHandler(OrderController.checkout))
+    .post("/checkout-mobile", authMiddleware, validate(checkoutOrderSchema), asyncHandler(OrderController.checkoutMobile))
     .post("/create", authMiddleware, adminMiddleware, validate(createOrderSchema), asyncHandler(OrderController.createOrder))
     .get("/all-orders", authMiddleware, adminMiddleware, asyncHandler(OrderController.allOrders))
     .get("/admin-order/:id", authMiddleware, adminMiddleware, asyncHandler(OrderController.adminOrderDetail))
