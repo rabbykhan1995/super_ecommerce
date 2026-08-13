@@ -12,12 +12,4 @@ const ProductImageGallery = dynamic(
   }
 );
 
-const MdxRenderer = dynamic(
-  () => import("@/components/MDX/MDXRendererClient"),
-  {
-    ssr: false,
-    loading: () => <div className="h-10 bg-gray-100 rounded animate-pulse" />,
-  }
-);
-
-export { ProductImageGallery, MdxRenderer };
+export { ProductImageGallery};
