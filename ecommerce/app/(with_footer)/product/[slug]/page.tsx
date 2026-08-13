@@ -1,11 +1,13 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Helper from "@/helper/helper";
-import MdxRenderer from "@/components/MDX/MDXRenderer";
 import RatingStars from "@/utils/Ui/RatingStars";
 import DescriptionToggle from "@/utils/Ui/DescriptionToggle";
 import AddToCartButton from "@/components/Buttons/AddToCartButton";
-import ProductImageGallery from "@/components/Product/ProductImageGallery";
+import {
+  ProductImageGallery,
+  MdxRenderer,
+} from "@/components/Product/DynamicComponents";
 import { FullProduct } from "@/types/product.types";
 import { Package, Truck, Shield, Tag } from "lucide-react";
 
