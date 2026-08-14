@@ -15,7 +15,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     loadingStore.getState().setGlobalLoader(true);
-    config.headers.token = Helper.getToken();
+
     return config;
   },
   (error) => {
