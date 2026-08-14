@@ -8,8 +8,10 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withTiming, // withSpring এর বদলে withTiming ব্যবহার করা হয়েছে
+  withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { getImageUrl } from "../../lib/utils";
 import { useCartStore } from "../../store/cart.store";
 import useOpenCloseState from "../../store/openclose.store";
@@ -17,8 +19,12 @@ import { CartItem } from "../../types/cart.types";
 
 export default function CartSlider() {
   const router = useRouter();
+
+  const insets = useSafeAreaInsets();
+
   const openCartSlider = useOpenCloseState((s) => s.openCartSlider);
   const setOpenCartSlider = useOpenCloseState((s) => s.setOpenCartSlider);
+
   const cart = useCartStore((s) => s.cart);
   const removeItem = useCartStore((s) => s.removeItem);
   const updateItem = useCartStore((s) => s.updateItem);
@@ -28,7 +34,6 @@ export default function CartSlider() {
 
   const translateX = useSharedValue(400);
 
-  // ১. অ্যানিমেশন এখন সরাসরি useEffect-এ controlled হচ্ছে
   useEffect(() => {
     if (openCartSlider) {
       translateX.value = withTiming(0, {
@@ -43,7 +48,6 @@ export default function CartSlider() {
     }
   }, [openCartSlider]);
 
-  // ২. animatedStyle এখন ক্লিনভাবে শুধুমাত্র শেয়ার্ড ভ্যালু ট্র্যাকিং করছে
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
@@ -73,6 +77,7 @@ export default function CartSlider() {
 
   return (
     <View className="absolute inset-0 z-50">
+      {/* Overlay */}
       <Pressable
         className="absolute inset-0 bg-black/40"
         onPress={() => setOpenCartSlider(false)}
@@ -80,16 +85,28 @@ export default function CartSlider() {
 
       <GestureDetector gesture={panGesture}>
         <Animated.View
-          style={[animatedStyle]}
-          className="absolute right-0 top-0 bottom-0 w-full bg-white"
+          style={[
+            animatedStyle,
+            {
+              top: insets.top,
+              bottom: insets.bottom,
+            },
+          ]}
+          className="absolute right-0 w-full bg-white"
         >
           {/* Header */}
           <View className="flex-row items-center justify-between p-4 border-b border-gray-100">
-            <Text className="text-lg font-bold">Cart ({totalCartItems})</Text>
+            <Text className="text-lg font-bold">
+              Cart ({totalCartItems})
+            </Text>
+
             <View className="flex-row items-center gap-3">
               <Pressable onPress={clearCart}>
-                <Text className="text-red-500 text-sm">Clear All</Text>
+                <Text className="text-red-500 text-sm">
+                  Clear All
+                </Text>
               </Pressable>
+
               <Pressable onPress={() => setOpenCartSlider(false)}>
                 <X size={24} color="#1F2937" />
               </Pressable>
@@ -106,34 +123,49 @@ export default function CartSlider() {
                   source={getImageUrl(item.thumbnail)}
                   className="w-16 h-16 rounded-lg"
                 />
+
                 <View className="flex-1 ml-3">
-                  <Text className="font-medium text-gray-900" numberOfLines={1}>
+                  <Text
+                    className="font-medium text-gray-900"
+                    numberOfLines={1}
+                  >
                     {item.name}
                   </Text>
+
                   <Text className="text-primary font-semibold mt-1">
                     ৳
                     {item.discountPrice && item.discountPrice > 0
                       ? item.discountPrice
                       : item.price}
                   </Text>
+
                   <View className="flex-row items-center mt-2 gap-2">
                     <Pressable
                       onPress={() =>
-                        updateItem(item.id, { quantity: item.quantity - 1 })
+                        updateItem(item.id, {
+                          quantity: item.quantity - 1,
+                        })
                       }
                       className="bg-gray-100 rounded p-1"
                     >
                       <Minus size={14} />
                     </Pressable>
-                    <Text className="font-medium">{item.quantity}</Text>
+
+                    <Text className="font-medium">
+                      {item.quantity}
+                    </Text>
+
                     <Pressable
                       onPress={() =>
-                        updateItem(item.id, { quantity: item.quantity + 1 })
+                        updateItem(item.id, {
+                          quantity: item.quantity + 1,
+                        })
                       }
                       className="bg-gray-100 rounded p-1"
                     >
                       <Plus size={14} />
                     </Pressable>
+
                     <Pressable
                       onPress={() => removeItem(item.id)}
                       className="ml-auto"
@@ -145,8 +177,10 @@ export default function CartSlider() {
               </View>
             )}
             ListEmptyComponent={
-              <View className="flex-1 items-center justify-center py-20">
-                <Text className="text-gray-500">Your cart is empty</Text>
+              <View className="items-center justify-center py-20">
+                <Text className="text-gray-500">
+                  Your cart is empty
+                </Text>
               </View>
             }
           />
@@ -155,13 +189,19 @@ export default function CartSlider() {
           <View className="p-4 border-t border-gray-100">
             <View className="flex-row justify-between mb-3">
               <Text className="font-semibold">Total</Text>
-              <Text className="font-bold text-primary">৳{cartTotal}</Text>
+
+              <Text className="font-bold text-primary">
+                ৳{cartTotal}
+              </Text>
             </View>
+
             <Pressable
               onPress={handleCheckout}
               className="bg-primary py-3 rounded-lg items-center"
             >
-              <Text className="text-white font-semibold">Checkout</Text>
+              <Text className="text-white font-semibold">
+                Checkout
+              </Text>
             </Pressable>
           </View>
         </Animated.View>

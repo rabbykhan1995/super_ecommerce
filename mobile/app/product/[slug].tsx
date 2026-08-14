@@ -1,15 +1,14 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ArrowLeft,
-  Heart,
   Package,
   Share2,
   Shield,
   Star,
-  Truck,
+  Truck
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import Markdown from "react-native-markdown-display";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -30,6 +29,18 @@ export default function ProductSlugScreen() {
   const [loading, setLoading] = useState(true);
   const [showVariantModal, setShowVariantModal] = useState(false);
 
+const handleShare = async () => {
+  const url = `https://super-ecommerce.netlify.app/${product!.slug}`;
+
+  try {
+    await Share.share({
+      message: `Check out this product: ${url}`,
+      url,
+    });
+  } catch (error) {
+    console.log("Share error:", error);
+  }
+};
   useEffect(() => {
     if (!slug) return;
 
@@ -109,7 +120,7 @@ export default function ProductSlugScreen() {
       : `${product.salePrice}`;
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-white" >
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
         <Pressable onPress={() => router.back()}>
@@ -122,11 +133,8 @@ export default function ProductSlugScreen() {
           {product.name}
         </Text>
         <View className="flex-row gap-3">
-          <Pressable>
+          <Pressable onPress={handleShare}>
             <Share2 size={20} color="#4B5563" />
-          </Pressable>
-          <Pressable>
-            <Heart size={20} color="#4B5563" />
           </Pressable>
         </View>
       </View>
@@ -319,17 +327,7 @@ export default function ProductSlugScreen() {
         </View>
       </ScrollView>
 
-      {/* Bottom Cart Bar */}
-      <View className="flex-row items-center gap-3 p-4 border-t border-gray-100 bg-white">
-        <Button
-          title={
-            totalStock > 0
-              ? `Add to Cart - ${priceRange} TK`
-              : "Out of Stock"
-          }
-          onPress={handleAddToCart}
-        />
-      </View>
+  
 
       <VariantModal
         visible={showVariantModal}

@@ -1,12 +1,4 @@
-export type OrderStatus =
-  | "pending"
-  | "hold"
-  | "confirmed"
-  | "processing"
-  | "shipped"
-  | "delivered"
-  | "cancelled"
-  | "failed";
+export type OrderStatus = "Pending" | "Confirmed" | "Packed" | "Shipped" | "Hold" | "Returned" | "Cancelled" | "Delivered"
 
 export type PaymentStatus = "unpaid" | "paid" | "refunded";
 

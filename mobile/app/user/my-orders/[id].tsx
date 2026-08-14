@@ -1,24 +1,24 @@
-import { useEffect, useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { OrderStatus } from "@/types/order.types";
+import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, MapPin } from "lucide-react-native";
-import { Image as ExpoImage } from "expo-image";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import api from "../../../lib/api";
 import { getImageUrl } from "../../../lib/utils";
 
-const STATUS_FLOW = ["pending", "confirmed", "processing", "shipped", "delivered"];
+const STATUS_FLOW: OrderStatus[] = [
+  "Pending",
+  "Confirmed",
+  "Packed",
+  "Shipped",
+  "Delivered",
+  "Returned",
+  "Cancelled",
+  "Hold",
+];
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  hold: "On Hold",
-  confirmed: "Confirmed",
-  processing: "Processing",
-  shipped: "Shipped",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-  failed: "Failed",
-};
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -30,20 +30,38 @@ export default function OrderDetailScreen() {
     api
       .get(`/order/my-orders/${id}`)
       .then((res) => setOrder(res.data?.data))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [id]);
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "delivered":
-        return "text-green-600";
-      case "cancelled":
-        return "text-red-600";
-      case "processing":
+  const getStatusColor = (status: OrderStatus) => {
+    switch (status) {
+      case "Pending":
         return "text-yellow-600";
-      default:
+
+      case "Confirmed":
         return "text-blue-600";
+
+      case "Packed":
+        return "text-indigo-600";
+
+      case "Shipped":
+        return "text-purple-600";
+
+      case "Delivered":
+        return "text-green-600";
+
+      case "Returned":
+        return "text-orange-600";
+
+      case "Cancelled":
+        return "text-red-600";
+
+      case "Hold":
+        return "text-amber-600";
+
+      default:
+        return "text-gray-600";
     }
   };
 
@@ -81,7 +99,7 @@ export default function OrderDetailScreen() {
           <View className="flex-row items-center justify-between mb-2">
             <Text className="text-gray-500">Status</Text>
             <Text className={`font-semibold capitalize ${getStatusColor(order.status)}`}>
-              {STATUS_LABELS[order.status] || order.status}
+              {order.status}
             </Text>
           </View>
           <View className="flex-row items-center justify-between mb-2">
@@ -100,74 +118,106 @@ export default function OrderDetailScreen() {
               {order.paymentMethod === "stripe"
                 ? "Paid (Stripe)"
                 : order.paymentMethod === "cod"
-                ? "Cash on Delivery"
-                : order.paymentMethod || "N/A"}
+                  ? "Cash on Delivery"
+                  : order.paymentMethod || "N/A"}
             </Text>
           </View>
         </View>
 
         {/* Status Timeline */}
-        <View className="bg-white rounded-xl p-4 mb-4">
-          <Text className="font-bold text-gray-900 mb-4">Order Progress</Text>
-          {isTerminal ? (
-            <View
-              className={`flex-row items-center gap-3 p-3 rounded-xl ${
-                order.status === "cancelled" ? "bg-red-50" : "bg-orange-50"
-              }`}
-            >
-              <Text
-                className={`font-semibold capitalize ${
-                  order.status === "cancelled" ? "text-red-700" : "text-orange-700"
+    <View className="bg-white rounded-xl p-4 mb-4">
+  <Text className="font-bold text-gray-900 mb-4">
+    Order Progress
+  </Text>
+
+  {isTerminal ? (
+    <View
+      className={`p-3 rounded-xl ${
+        order.status === "Cancelled"
+          ? "bg-red-50"
+          : order.status === "Returned"
+          ? "bg-orange-50"
+          : "bg-amber-50"
+      }`}
+    >
+      <Text
+        className={`font-semibold ${
+          order.status === "Cancelled"
+            ? "text-red-700"
+            : order.status === "Returned"
+            ? "text-orange-700"
+            : "text-amber-700"
+        }`}
+      >
+        Order {order.status}
+      </Text>
+    </View>
+  ) : (
+    <View className="flex-row items-start">
+      {STATUS_FLOW.slice(0, 5).map((status, idx) => {
+        const isActive = idx <= currentIndex;
+        const isCurrent = idx === currentIndex;
+
+        return (
+          <View key={status} className="flex-1 items-center">
+            <View className="w-full flex-row items-center">
+              {idx > 0 && (
+                <View
+                  className={`flex-1 h-[2px] ${
+                    idx <= currentIndex
+                      ? "bg-green-500"
+                      : "bg-gray-200"
+                  }`}
+                />
+              )}
+
+              <View
+                className={`w-8 h-8 rounded-full items-center justify-center ${
+                  isCurrent
+                    ? "bg-blue-600"
+                    : isActive
+                    ? "bg-green-500"
+                    : "bg-gray-100"
                 }`}
               >
-                Order {STATUS_LABELS[order.status]}
-              </Text>
+                <Text
+                  className={`text-xs font-bold ${
+                    isActive ? "text-white" : "text-gray-400"
+                  }`}
+                >
+                  {isActive && !isCurrent ? "✓" : idx + 1}
+                </Text>
+              </View>
+
+              {idx < 4 && (
+                <View
+                  className={`flex-1 h-[2px] ${
+                    idx < currentIndex
+                      ? "bg-green-500"
+                      : "bg-gray-200"
+                  }`}
+                />
+              )}
             </View>
-          ) : (
-            <View className="flex-row items-start justify-between">
-              {STATUS_FLOW.map((status, idx) => {
-                const isActive = idx <= currentIndex;
-                const isCurrent = idx === currentIndex;
-                return (
-                  <View key={status} className="flex-1 items-center">
-                    <View
-                      className={`w-8 h-8 rounded-full items-center justify-center mb-1 ${
-                        isCurrent
-                          ? "bg-blue-600"
-                          : isActive
-                          ? "bg-green-100"
-                          : "bg-gray-100"
-                      }`}
-                    >
-                      <Text
-                        className={`text-xs font-bold ${
-                          isCurrent
-                            ? "text-white"
-                            : isActive
-                            ? "text-green-600"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {isActive && !isCurrent ? "✓" : idx + 1}
-                      </Text>
-                    </View>
-                    <Text
-                      className={`text-[10px] text-center ${
-                        isCurrent
-                          ? "text-blue-600 font-bold"
-                          : isActive
-                          ? "text-green-600 font-medium"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      {STATUS_LABELS[status]}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </View>
+
+            <Text
+              className={`text-[10px] text-center mt-2 ${
+                isCurrent
+                  ? "text-blue-600 font-bold"
+                  : isActive
+                  ? "text-green-600"
+                  : "text-gray-400"
+              }`}
+              numberOfLines={1}
+            >
+              {status}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
+  )}
+</View>
 
         {/* Items */}
         <View className="bg-white rounded-xl p-4 mb-4">
@@ -175,9 +225,8 @@ export default function OrderDetailScreen() {
           {order.items?.map((item: any, index: number) => (
             <View
               key={index}
-              className={`flex-row items-center gap-3 ${
-                index < order.items.length - 1 ? "pb-3 mb-3 border-b border-gray-50" : ""
-              }`}
+              className={`flex-row items-center gap-3 ${index < order.items.length - 1 ? "pb-3 mb-3 border-b border-gray-50" : ""
+                }`}
             >
               <ExpoImage
                 source={getImageUrl(item.thumbnail)}

@@ -2,6 +2,15 @@ import { Request, Response } from "express";
 
 import { AuthService } from "./auth.service";
 
+const isProduction = process.env.NODE_ENV === "production";
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? ("none" as const) : ("lax" as const),
+  maxAge: 24 * 60 * 60 * 1000,
+  path: "/",
+};
 export class AuthController {
   static async sendEmailVerifyOTP(req: Request, res: Response) {
     const email: string = req.body.email;
@@ -16,9 +25,7 @@ export class AuthController {
   static async registerManually(req: Request, res: Response) {
     const { token, user } = await AuthService.registerManually(req.body);
     // Cookie সেট
-    res.cookie("token", token, {
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-    });
+    res.cookie("token", token, cookieOptions);
     res.status(201).json({
       success: true,
       msg: "Registration successful",
@@ -54,9 +61,7 @@ export class AuthController {
 
     const { token, user } = await AuthService.resetPassword(req.body);
     // Cookie সেট
-    res.cookie("token", token, {
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-    });
+    res.cookie("token", token, cookieOptions);
     res.status(201).json({
       success: true,
       msg: "Password reset successful",
@@ -69,9 +74,7 @@ export class AuthController {
 
     const { user, token } = await AuthService.manualLogin(req.body);
     // Cookie সেট
-    res.cookie("token", token, {
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-    });
+    res.cookie("token", token, cookieOptions);
     res.status(201).json({
       success: true,
       msg: "Login successful",
@@ -89,14 +92,19 @@ export class AuthController {
   static async userGoogleAuthCallbackAPI(req: Request, res: Response) {
     const { token, clientRedirectURL } = await AuthService.userGoogleAuthCallbackAPI(req.query);
 
-    res.cookie("token", token, { httpOnly: true });
+    res.cookie("token",token, cookieOptions);
 
     res.redirect(`${clientRedirectURL}`);
+    res.status(200).json({
+      success: true,
+      msg: "Google login successful",
+      token,
+    });
   }
 
   static async logout(req: Request, res: Response) {
 
-    res.clearCookie("token");
+    res.clearCookie("token", cookieOptions);
 
     return res
       .status(200)
@@ -122,9 +130,7 @@ export class AuthController {
   static async adminLogin(req: Request, res: Response) {
     const { token, user } = await AuthService.adminLogin(req.body);
 
-    res.cookie("token", token, {
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", token, cookieOptions);
 
     res.status(200).json({
       success: true,
@@ -141,11 +147,8 @@ export class AuthController {
 
   static async mobileGoogleAuth(req: Request, res: Response) {
     const { token, user } = await AuthService.mobileGoogleAuth(req.body.idToken);
-   console.log(token);
-   console.log(user)
-    res.cookie("token", token, {
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+
+    res.cookie("token", token, cookieOptions);
 
     res.status(200).json({
       success: true,
@@ -158,16 +161,16 @@ export class AuthController {
   static async adminGoogleCallback(req: Request, res: Response) {
     const { token, user, clientRedirectURL } = await AuthService.adminGoogleCallback(req.query);
 
-    res.cookie("token", token, { httpOnly: true });
+    res.cookie("token", token, cookieOptions);
 
     res.redirect(`${clientRedirectURL}?token=${token}`);
   }
 
 
   static async savePushToken(req: Request, res: Response) {
-  const userID = req.user!.id;
-  const { pushNotificationToken } = req.body;
-  const saved = await AuthService.savePushToken(userID, pushNotificationToken);
-  res.json({ success: true });
-}
+    const userID = req.user!.id;
+    const { pushNotificationToken } = req.body;
+    const saved = await AuthService.savePushToken(userID, pushNotificationToken);
+    res.json({ success: true });
+  }
 }

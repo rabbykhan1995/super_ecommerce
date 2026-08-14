@@ -19,23 +19,29 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withTiming, // withSpring এর জায়গায় withTiming ব্যবহার করা হলো
+  withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import api from "../../lib/api";
 import useOpenCloseState from "../../store/openclose.store";
 import { useUserStore } from "../../store/user.store";
 
 export default function MenuSlider() {
   const router = useRouter();
+
+  const insets = useSafeAreaInsets();
+
   const openMenuSlider = useOpenCloseState((s) => s.openMenuSlider);
   const setOpenMenuSlider = useOpenCloseState((s) => s.setOpenMenuSlider);
+
   const user = useUserStore((s) => s.user);
   const logout = useUserStore((s) => s.logout);
+
   const [categories, setCategories] = useState<any[]>([]);
 
   const translateX = useSharedValue(-320);
 
-  // ১. withTiming দিয়ে স্মুথ প্রবেশ ও প্রস্থান নিয়ন্ত্রণ
   useEffect(() => {
     if (openMenuSlider) {
       translateX.value = withTiming(0, {
@@ -59,12 +65,10 @@ export default function MenuSlider() {
     }
   }, [openMenuSlider]);
 
-  // ২. রি-রেন্ডারের ঝামেলা ছাড়াই শেয়ার্ড ভ্যালু থেকে ক্লিন অ্যানিমেটেড স্টাইল
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
 
-  // ৩. ড্র্যাগিং বা প্যান জেসচার ফিক্সিং
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
       if (e.translationX < 0) {
@@ -105,6 +109,7 @@ export default function MenuSlider() {
 
   return (
     <View className="absolute inset-0 z-50">
+      {/* Overlay */}
       <Pressable
         className="absolute inset-0 bg-black/40"
         onPress={() => setOpenMenuSlider(false)}
@@ -112,24 +117,38 @@ export default function MenuSlider() {
 
       <GestureDetector gesture={panGesture}>
         <Animated.View
-          style={[animatedStyle]}
-          className="absolute left-0 top-0 bottom-0 w-[80vw] bg-white"
+          style={[
+            animatedStyle,
+            {
+              top: insets.top,
+              bottom: insets.bottom,
+            },
+          ]}
+          className="absolute left-0 w-[80vw] bg-white"
         >
           <ScrollView className="flex-1">
             {/* Header */}
             <View className="flex-row items-center justify-between p-4 border-b border-gray-100">
               <Text className="text-lg font-bold">Menu</Text>
+
               <Pressable onPress={() => setOpenMenuSlider(false)}>
                 <X size={24} color="#1F2937" />
               </Pressable>
             </View>
 
-            {/* User Section */}
+            {/* User */}
             {user && (
-              <View className="p-4 border-b border-gray-100 bg-gray-50">
-                <Text className="font-semibold text-gray-900">{user.name}</Text>
-                <Text className="text-sm text-gray-500">{user.email}</Text>
-              </View>
+              <Pressable onPress={() => navigate("/user")}>
+                <View className="p-4 border-b border-gray-100 bg-[#333232]">
+                  <Text className="font-semibold text-white">
+                    {user.name}
+                  </Text>
+
+                  <Text className="text-sm text-white">
+                    {user.email}
+                  </Text>
+                </View>
+              </Pressable>
             )}
 
             {/* Menu Items */}
@@ -141,8 +160,12 @@ export default function MenuSlider() {
               >
                 <View className="flex-row items-center gap-3">
                   <item.icon size={20} color="#4B5563" />
-                  <Text className="text-gray-700">{item.label}</Text>
+
+                  <Text className="text-gray-700">
+                    {item.label}
+                  </Text>
                 </View>
+
                 <ChevronRight size={16} color="#9CA3AF" />
               </Pressable>
             ))}
@@ -153,29 +176,37 @@ export default function MenuSlider() {
                 <Text className="font-semibold text-gray-900 mb-2">
                   Categories
                 </Text>
+
                 {categories.map((cat: any) => (
                   <Pressable
                     key={cat.id || cat._id}
                     onPress={() =>
-                      navigate(`/products?category=${cat.id || cat._id}`)
+                      navigate(
+                        `/products?category=${cat.id || cat._id}`
+                      )
                     }
                     className="py-2"
                   >
-                    <Text className="text-gray-600">{cat.name}</Text>
+                    <Text className="text-gray-600">
+                      {cat.name}
+                    </Text>
                   </Pressable>
                 ))}
               </View>
             )}
 
-            {/* Auth Actions */}
+            {/* Auth */}
             <View className="p-4 border-t border-gray-100">
               {user ? (
                 <Pressable
                   onPress={handleLogout}
-                  className="flex-row items-center gap-2"
+                  className="flex-row items-center gap-2 my-3"
                 >
                   <LogOut size={20} color="#EF4444" />
-                  <Text className="text-red-500">Logout</Text>
+
+                  <Text className="text-red-500">
+                    Logout
+                  </Text>
                 </Pressable>
               ) : (
                 <Pressable
@@ -183,7 +214,10 @@ export default function MenuSlider() {
                   className="flex-row items-center gap-2"
                 >
                   <LogIn size={20} color="#F7311E" />
-                  <Text className="text-primary font-semibold">Login</Text>
+
+                  <Text className="text-primary font-semibold">
+                    Login
+                  </Text>
                 </Pressable>
               )}
             </View>
