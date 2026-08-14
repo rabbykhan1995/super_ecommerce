@@ -20,6 +20,7 @@ router
     .get("/admin-order/:id", authMiddleware, adminMiddleware, asyncHandler(OrderController.adminOrderDetail))
     .get("/my-orders", authMiddleware, asyncHandler(OrderController.myOrders))
     .get("/my-orders/:id", authMiddleware, asyncHandler(OrderController.myOrderDetail))
+    .get("/track-order/:id", asyncHandler(OrderController.trackOrder))
     .post("/cancel/:id", authMiddleware, asyncHandler(OrderController.cancelOrder))
     .get("/order-success", authMiddleware, asyncHandler(OrderController.orderSuccess))
     .get("/order/:id", asyncHandler(OrderController.publicOrderTracking));

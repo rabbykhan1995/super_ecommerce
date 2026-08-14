@@ -30,6 +30,13 @@ export class OrderRepository {
         return result || null;
     }
 
+        static async findOrderForPublic(id: number, client: QueryClient = db) {
+        const result = await client.query.orderTable.findFirst({
+            where: eq(orderTable.id, id),
+        });
+        return result || null;
+    }
+
     static async findOrderByStripeSessionID(stripeSessionID: string, client: QueryClient = db) {
         const result = await client.query.orderTable.findFirst({
             where: eq(orderTable.stripeSessionID, stripeSessionID),

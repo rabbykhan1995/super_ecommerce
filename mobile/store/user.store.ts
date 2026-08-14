@@ -5,11 +5,24 @@ import { useCartStore } from "./cart.store";
 import useLoadingStore from "./loading.store";
 import useOpenCloseState from "./openclose.store";
 
+type Contact = {
+  type: "customer" | "supplier" | "both";
+  name: string;
+  address: string | null;
+  id: number;
+  createdAt: Date;
+  updatedAt: Date;
+  email: string | null;
+  mobile: string;
+  userID: string | null;
+  balance: number;
+};
+
 export interface IUser {
   id: string;
   name: string;
   email: string;
-  mobile?: string;
+  contact: Contact | null;
   image?: string | null;
   address?: string;
   openID?: string | null;
@@ -29,6 +42,7 @@ export const useUserStore = create<UserState>((set) => ({
 
   setUser: (user) => set({ user }),
 
+
   fetchUser: async () => {
     try {
       set({ isLoading: true });
@@ -45,7 +59,8 @@ export const useUserStore = create<UserState>((set) => ({
         return;
       }
 
-      set({ user: res.data.data, isLoading: false });
+      const user = res.data.data;
+      set({ user, isLoading: false });
     } catch {
       set({ user: null, isLoading: false });
     }

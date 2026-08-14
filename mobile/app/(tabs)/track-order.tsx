@@ -2,6 +2,7 @@ import api from "@/lib/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TrackOrderScreen() {
   const params = useLocalSearchParams<{ orderId?: string }>();
@@ -22,9 +23,10 @@ export default function TrackOrderScreen() {
     }
     setLoading(true);
     try {
-      const res = await api.get(`/order/order/${numericId}`);
+      const res = await api.get(`/order/track-order/${numericId}`);
+
       if (res.data?.success) {
-        router.push(`/user/my-orders/${numericId}`);
+        router.push(`/user/public-order/${numericId}`);
       }
     } catch {
       Alert.alert("Not Found", "No order found with this ID");
@@ -41,6 +43,7 @@ export default function TrackOrderScreen() {
   }, [params.orderId]);
 
   return (
+    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
     <View className="flex-1 bg-white p-6">
       <Text className="text-2xl font-bold text-gray-900 mb-2">
         Track Your Order
@@ -65,5 +68,6 @@ export default function TrackOrderScreen() {
         </Text>
       </TouchableOpacity>
     </View>
+    </SafeAreaView>
   );
 }

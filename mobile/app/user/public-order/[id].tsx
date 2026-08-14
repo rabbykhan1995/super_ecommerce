@@ -1,12 +1,10 @@
 import { OrderStatus } from "@/types/order.types";
-import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, MapPin } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import api from "../../../lib/api";
-import { getImageUrl } from "../../../lib/utils";
 
 const STATUS_FLOW: OrderStatus[] = [
   "Pending",
@@ -28,7 +26,7 @@ export default function OrderDetailScreen() {
 
   useEffect(() => {
     api
-      .get(`/order/my-orders/${id}`)
+      .get(`/order/track-order/${id}`)
       .then((res) => setOrder(res.data?.data))
       .catch(() => { })
       .finally(() => setLoading(false));
@@ -212,72 +210,6 @@ export default function OrderDetailScreen() {
           )}
         </View>
 
-        {/* Items */}
-        <View className="bg-white rounded-xl p-4 mb-4">
-          <Text className="font-bold text-gray-900 mb-3">Items</Text>
-          {order.items?.map((item: any, index: number) => (
-            <View
-              key={index}
-              className={`flex-row items-center gap-3 ${index < order.items.length - 1 ? "pb-3 mb-3 border-b border-gray-50" : ""
-                }`}
-            >
-              <ExpoImage
-                source={getImageUrl(item.thumbnail)}
-                className="w-14 h-14 rounded-lg"
-                contentFit="contain"
-              />
-              <View className="flex-1">
-                <Text className="font-medium text-gray-900" numberOfLines={1}>
-                  {item.productName}
-                </Text>
-                <Text className="text-xs text-gray-500">Qty: {item.quantity}</Text>
-              </View>
-              <Text className="font-semibold text-gray-900">৳{item.lineTotal}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Order Summary */}
-        <View className="bg-white rounded-xl p-4 mb-4">
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-500">Subtotal</Text>
-            <Text className="text-gray-900">৳{order.subtotal}</Text>
-          </View>
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-500">Shipping</Text>
-            <Text className="text-green-600 font-medium">Free</Text>
-          </View>
-          {order.discount > 0 && (
-            <View className="flex-row justify-between mb-2">
-              <Text className="text-gray-500">Discount</Text>
-              <Text className="text-green-600">-৳{order.discount}</Text>
-            </View>
-          )}
-          <View className="flex-row justify-between border-t border-gray-100 pt-2 mt-2">
-            <Text className="font-bold text-lg">Total</Text>
-            <Text className="font-bold text-lg text-primary">৳{order.totalAmount}</Text>
-          </View>
-        </View>
-
-        {/* Shipping Info */}
-        <View className="bg-white rounded-xl p-4 mb-8">
-          <Text className="font-bold text-gray-900 mb-3">Shipping To</Text>
-          <View className="flex-row items-start gap-3">
-            <MapPin size={18} color="#9CA3AF" className="mt-0.5" />
-            <View>
-              <Text className="text-sm font-semibold text-gray-900">
-                {order.shippingName}
-              </Text>
-              <Text className="text-sm text-gray-600">{order.shippingPhone}</Text>
-              <Text className="text-sm text-gray-600">{order.shippingAddress}</Text>
-              {(order.shippingCity || order.shippingArea) && (
-                <Text className="text-sm text-gray-600">
-                  {[order.shippingArea, order.shippingCity].filter(Boolean).join(", ")}
-                </Text>
-              )}
-            </View>
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

@@ -10,6 +10,7 @@ import api from "../../lib/api";
 
 export default function HomeScreen() {
   const [banners, setBanners] = useState<any[]>([]);
+  const [acitveFlashSale, setActiveFlashSale] = useState<any[]>([]);
   const [flashProducts, setFlashProducts] = useState<any[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,12 +19,14 @@ export default function HomeScreen() {
   const fetchHomeData = async () => {
     try {
 
-      const [bannerRes, flashRes, featuredRes] = await Promise.all([
+      const [activeFlashSale,bannerRes, flashRes, featuredRes] = await Promise.all([
+                api.get("/ecom/flash-sale/active"),
         api.get("/ecom/banner/active"),
         api.get("/ecom/flash-products"),
         api.get("/ecom/featured-product/active"),
       ]);
 
+      setActiveFlashSale(activeFlashSale?.data?.data);
       // Null check + Safe Array Assignment
       setBanners(Array.isArray(bannerRes?.data?.data) ? bannerRes.data.data : []);
       setFlashProducts(Array.isArray(flashRes?.data?.data) ? flashRes.data.data : []);
@@ -66,7 +69,7 @@ export default function HomeScreen() {
 
             {/* Flash Products Section (Jodi data null ba khali thake tahole render hobe na) */}
             {flashProducts.length > 0 && (
-              <FlashProductsSlider products={flashProducts} />
+              <FlashProductsSlider products={flashProducts}   endDate={acitveFlashSale?.endDate} />
             )}
 
             {/* Featured Products Section */}

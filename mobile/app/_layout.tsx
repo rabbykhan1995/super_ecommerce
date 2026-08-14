@@ -1,3 +1,4 @@
+import CompleteProfileModal from "@/components/Modals/CompleteProfileModal";
 import VariantModal from "@/components/Modals/VariantModal";
 import { registerForPushNotificationsAsync } from "@/lib/notifications";
 import { StripeProvider } from "@stripe/stripe-react-native";
@@ -18,6 +19,7 @@ export default function RootLayout() {
   const fetchUser = useUserStore((s) => s.fetchUser);
   const fetchCart = useCartStore((s) => s.fetchCart);
 
+
   useEffect(() => {
     const initAuth = async () => {
       const token = await AuthHelper.getToken();
@@ -31,19 +33,22 @@ export default function RootLayout() {
       }
     };
     initAuth();
-  }, []);
+  }, [fetchUser, fetchCart]);
+
+
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-         <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}>
-        <Stack screenOptions={{ headerShown: false }} />
-        <MenuSlider />
-        <CartSlider />
-        <Toast />
-        <VariantModal />
-        <StatusBar style="auto" />
-            </StripeProvider>
+        <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}>
+          <Stack screenOptions={{ headerShown: false }} />
+          <MenuSlider />
+          <CartSlider />
+          <Toast />
+          <VariantModal />
+          <CompleteProfileModal />
+          <StatusBar style="auto" />
+        </StripeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

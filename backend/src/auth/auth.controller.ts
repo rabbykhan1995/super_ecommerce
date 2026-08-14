@@ -115,7 +115,7 @@ export class AuthController {
     const userID = req.user!.id;
     const mobile = req.body.mobile;
     const address = req.body.address;
-
+   console.log(mobile)
     await AuthService.checkOutMobile(userID, mobile, address);
 
     return res

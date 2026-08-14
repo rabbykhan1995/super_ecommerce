@@ -6,6 +6,7 @@ import Stripe from "stripe";
 
 export class OrderController {
     static async checkout(req: Request, res: Response) {
+
         const userID = (req as any).user!.id;
 
         const result = await OrderService.checkoutOrder(userID, req.body);
@@ -13,21 +14,25 @@ export class OrderController {
     }
 
     static async checkoutMobile(req: Request, res: Response) {
-    const userID = req.user!.id; // apnar auth middleware onujayi adjust korুন
+        const userID = req.user!.id; // apnar auth middleware onujayi adjust korুন
 
-    const result = await OrderService.checkoutOrderMobile(userID, req.body);
-    res.status(200).json({ success: true, data: result });
-}
+        const result = await OrderService.checkoutOrderMobile(userID, req.body);
+        res.status(200).json({ success: true, data: result });
+    }
 
     static async createOrder(req: Request, res: Response) {
         const result = await OrderService.createOrder(req.body);
-        
+
         res.status(201).json({ success: true, data: result });
     }
 
     static async myOrders(req: Request, res: Response) {
+
         const userID = (req as any).user!.id;
+        console.log("user id : ", userID)
         const { page, limit } = req.query;
+
+        console.log("page and limit :", page, limit)
         const data = await OrderService.getMyOrders(userID, Number(page) || 1, Number(limit) || 10);
 
         return res.status(200).json({ success: true, data });
@@ -43,6 +48,12 @@ export class OrderController {
         const userID = (req as any).user!.id;
         const orderId = Number(req.params.id);
         const data = await OrderService.getMyOrderDetail(userID, orderId);
+        return res.status(200).json({ success: true, data });
+    }
+
+     static async trackOrder(req: Request, res: Response) {
+        const orderId = Number(req.params.id);
+        const data = await OrderService.trackOrder(orderId);
         return res.status(200).json({ success: true, data });
     }
 

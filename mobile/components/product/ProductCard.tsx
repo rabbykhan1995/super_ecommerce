@@ -35,7 +35,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const discountPercent = hasDiscount
     ? Math.round(((price - discountPrice) / price) * 100)
     : 0;
-  
+  console.log(product)
   return (
     <Pressable
       onPress={() =>

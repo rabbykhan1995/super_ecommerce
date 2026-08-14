@@ -106,6 +106,7 @@ export class OrderService {
             }
 
             if (input.paymentMethod === "stripe") {
+
                 const session = await OrderService.createStripeSession(order.id, orderItemsData, totalAmount);
                 await OrderRepository.updateOrderByID(order.id, { stripeSessionID: session.id, }, tx);
                 return { orderId: order.id, stripeSessionUrl: session.url };
@@ -282,106 +283,121 @@ export class OrderService {
         });
     }
 
-    static async createStripeSession(orderId: number, items: any[], totalAmount: number) {
-        const successUrl = `${process.env.ECOM_CLIENT_URL}/order/success?session_id={CHECKOUT_SESSION_ID}`;
-        const cancelUrl = `${process.env.ECOM_CLIENT_URL}/cart`;
+    static async createStripeSession(
+        orderId: number,
+        items: any[],
+        totalAmount: number
+    ) {
+
+
+        const lineItems = items.map((item: any) => {
+
+            return {
+                price_data: {
+                    currency: "usd",
+                    product_data: {
+                        name: item.productName || `Product ${item.productID}`,
+                        images: item.thumbnail ? [item.thumbnail] : [],
+                    },
+                    unit_amount: Math.round(
+                        (item.discountPrice ?? item.salePrice) * 100
+                    ),
+                },
+                quantity: item.quantity,
+            };
+        });
+
+
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             mode: "payment",
-            line_items: items.map((item: any) => ({
-                price_data: {
-                    currency: "usd",
-                    product_data: {
-                        name: item.productName,
-                        images: item.thumbnail ? [item.thumbnail] : [],
-                    },
-                    unit_amount: Math.round((item.discountPrice ?? item.salePrice) * 100),
-                },
-                quantity: item.quantity,
-            })),
-            success_url: successUrl,
-            cancel_url: cancelUrl,
-            metadata: { orderId: String(orderId) },
+            line_items: lineItems,
+            success_url: `${process.env.ECOM_CLIENT_URL}/order/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.ECOM_CLIENT_URL}/cart`,
+            metadata: {
+                orderId: String(orderId),
+            },
         });
+
         return session;
     }
 
- static async handleStripeWebhook(event: Stripe.Event) {
-    // 1. Payment Succeeded
-    if (event.type === "payment_intent.succeeded") {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        const orderId = paymentIntent.metadata?.orderId;
-        if (!orderId) return;
+    static async handleStripeWebhook(event: Stripe.Event) {
+        // 1. Payment Succeeded
+        if (event.type === "payment_intent.succeeded") {
+            const paymentIntent = event.data.object as Stripe.PaymentIntent;
+            const orderId = paymentIntent.metadata?.orderId;
+            if (!orderId) return;
 
-        const order = await OrderRepository.findOrderByID(Number(orderId));
-        if (!order || order.paymentStatus === "paid") return;
+            const order = await OrderRepository.findOrderByID(Number(orderId));
+            if (!order || order.paymentStatus === "paid") return;
 
-        // ✅ ১. আগে ডাটাবেজের মূল কাজ শেষ করুন
-        await OrderRepository.updateOrderByID(order.id, {
-            status: "Confirmed",
-            paymentStatus: "paid",
-            paidAt: new Date(),
-        });
+            // ✅ ১. আগে ডাটাবেজের মূল কাজ শেষ করুন
+            await OrderRepository.updateOrderByID(order.id, {
+                status: "Confirmed",
+                paymentStatus: "paid",
+                paidAt: new Date(),
+            });
 
-        // ✅ ২. ব্যাকগ্রাউন্ডে নন-ব্লকিং ভাবে নোটিফিকেশন পাঠান (Fire & Forget)
-        (async () => {
-            try {
-                const contact = await ContactService.findByID(order.contactID);
-                const user = await AuthService.findUserByID(contact?.userID);
+            // ✅ ২. ব্যাকগ্রাউন্ডে নন-ব্লকিং ভাবে নোটিফিকেশন পাঠান (Fire & Forget)
+            (async () => {
+                try {
+                    const contact = await ContactService.findByID(order.contactID);
+                    const user = await AuthService.findUserByID(contact?.userID);
 
-                if (user?.pushNotificationToken) {
-                    await sendPushNotification(
-                        user.pushNotificationToken,
-                        "Order Confirmed! 🎉",
-                        `Your order #${order.id} has been confirmed.`,
-                        { orderId: order.id }
-                    );
+                    if (user?.pushNotificationToken) {
+                        await sendPushNotification(
+                            user.pushNotificationToken,
+                            "Order Confirmed! 🎉",
+                            `Your order #${order.id} has been confirmed.`,
+                            { orderId: order.id }
+                        );
+                    }
+                } catch (err) {
+                    console.error("Failed to send succeeded push notification:", err);
                 }
-            } catch (err) {
-                console.error("Failed to send succeeded push notification:", err);
-            }
-        })();
-    }
+            })();
+        }
 
-    // 2. Payment Failed
-    if (event.type === "payment_intent.payment_failed") {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        const orderId = paymentIntent.metadata?.orderId;
-        if (!orderId) return;
+        // 2. Payment Failed
+        if (event.type === "payment_intent.payment_failed") {
+            const paymentIntent = event.data.object as Stripe.PaymentIntent;
+            const orderId = paymentIntent.metadata?.orderId;
+            if (!orderId) return;
 
-        const order = await OrderRepository.findOrderByID(Number(orderId));
-        if (!order) return;
+            const order = await OrderRepository.findOrderByID(Number(orderId));
+            if (!order) return;
 
-        // ✅ ১. আগে ক্রিটিক্যাল ডাটাবেজ ট্রানজ্যাকশন এবং স্টক রিলিজ সম্পন্ন করুন
-        await withTransaction(async (tx: QueryClient) => {
-            for (const item of order.items) {
-                await ProductService.decreaseVariantReservedStock(item.variantID, item.quantity, tx);
-                await ProductService.decreaseProductReservedStock(item.productID, item.quantity, tx);
-            }
-            await OrderRepository.updateOrderByID(order.id, { status: "Cancelled", paymentStatus: "failed" }, tx);
-        });
-
-        // ✅ ২. ব্যাকগ্রাউন্ডে নোটিফিকেশন দিন
-        (async () => {
-            try {
-                const contact = await ContactService.findByID(order.contactID);
-                const user = await AuthService.findUserByID(contact?.userID);
-
-                if (user?.pushNotificationToken) {
-                    await sendPushNotification(
-                        user.pushNotificationToken,
-                        "Payment Failed! ❌",
-                        `Payment failed for order #${order.id}. Please try again.`,
-                        { orderId: order.id, status: "failed" }
-                    );
+            // ✅ ১. আগে ক্রিটিক্যাল ডাটাবেজ ট্রানজ্যাকশন এবং স্টক রিলিজ সম্পন্ন করুন
+            await withTransaction(async (tx: QueryClient) => {
+                for (const item of order.items) {
+                    await ProductService.decreaseVariantReservedStock(item.variantID, item.quantity, tx);
+                    await ProductService.decreaseProductReservedStock(item.productID, item.quantity, tx);
                 }
-            } catch (err) {
-                console.error("Failed to send failed push notification:", err);
-            }
-        })();
+                await OrderRepository.updateOrderByID(order.id, { status: "Cancelled", paymentStatus: "failed" }, tx);
+            });
+
+            // ✅ ২. ব্যাকগ্রাউন্ডে নোটিফিকেশন দিন
+            (async () => {
+                try {
+                    const contact = await ContactService.findByID(order.contactID);
+                    const user = await AuthService.findUserByID(contact?.userID);
+
+                    if (user?.pushNotificationToken) {
+                        await sendPushNotification(
+                            user.pushNotificationToken,
+                            "Payment Failed! ❌",
+                            `Payment failed for order #${order.id}. Please try again.`,
+                            { orderId: order.id, status: "failed" }
+                        );
+                    }
+                } catch (err) {
+                    console.error("Failed to send failed push notification:", err);
+                }
+            })();
+        }
     }
-}
 
     static async confirmOrderSuccess(userID: string, sessionID?: string, orderId?: number) {
         const contact = await ContactService.findOne({ userID });
@@ -408,6 +424,8 @@ export class OrderService {
 
         const contact = await ContactService.findOne({ userID });
 
+        if (!contact) throw new ApiError(404, "Contact not found");
+
         return await OrderRepository.listOrdersByUser(contact.id, page, limit);
     }
 
@@ -424,6 +442,15 @@ export class OrderService {
         if (order.contactID !== contact.id) throw new ApiError(403, "Forbidden");
         return order;
     }
+
+    static async trackOrder(orderId: number) {
+        const order = await OrderRepository.findOrderForPublic(orderId);
+    
+        if (!order) throw new ApiError(404, "Order not found");
+
+        return order;
+    }
+
 
     static async getAdminOrderDetail(orderId: number) {
         const order = await OrderRepository.findOrderByID(orderId);
