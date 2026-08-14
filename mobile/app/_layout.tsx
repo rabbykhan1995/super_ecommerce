@@ -15,6 +15,7 @@ import AuthHelper from "../lib/auth";
 import { useCartStore } from "../store/cart.store";
 import { useUserStore } from "../store/user.store";
 
+
 export default function RootLayout() {
   const fetchUser = useUserStore((s) => s.fetchUser);
   const fetchCart = useCartStore((s) => s.fetchCart);
@@ -47,7 +48,11 @@ export default function RootLayout() {
           <Toast />
           <VariantModal />
           <CompleteProfileModal />
-          <StatusBar style="auto" />
+          <StatusBar
+            style="dark"
+            backgroundColor="#ffffff"
+            translucent={false}
+          />
         </StripeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

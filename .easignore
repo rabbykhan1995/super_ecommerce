@@ -1,7 +1,24 @@
+# Only include mobile app
+/*
+!/mobile
+!/mobile/**
+
+# Dependencies and caches
 node_modules/
 .git/
 .expo/
 dist/
 build/
+coverage/
+*.log
+*.zip
+*.tsbuildinfo
+
+# Mobile native build artifacts
+mobile/android/app/build/
+mobile/android/app/.cxx/
+mobile/android/.gradle/
+
+# Credentials
 credentials/
 credentials.json

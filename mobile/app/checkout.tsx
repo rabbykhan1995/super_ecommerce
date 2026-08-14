@@ -93,7 +93,7 @@ export default function CheckoutScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-white" edges={["top", "bottom"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-gray-100">
         <ArrowLeft size={24} color="#1F2937" onPress={() => router.back()} />
       </View>

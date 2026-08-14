@@ -43,7 +43,7 @@ export default function TrackOrderScreen() {
   }, [params.orderId]);
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-white" edges={["top","bottom"]}>
     <View className="flex-1 bg-white p-6">
       <Text className="text-2xl font-bold text-gray-900 mb-2">
         Track Your Order

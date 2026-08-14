@@ -3,5 +3,13 @@ node_modules/
 .expo/
 dist/
 build/
+coverage/
+*.log
+
 credentials/
 credentials.json
+
+android/app/build/
+android/app/.cxx/
+
+*.zip

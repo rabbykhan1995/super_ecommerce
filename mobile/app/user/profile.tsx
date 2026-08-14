@@ -1,7 +1,7 @@
-import { View, Text, Pressable } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Mail, Phone, MapPin } from "lucide-react-native";
+import { ArrowLeft, Mail, MapPin, Phone } from "lucide-react-native";
+import { Pressable, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useUserStore } from "../../store/user.store";
 
 export default function ProfileScreen() {

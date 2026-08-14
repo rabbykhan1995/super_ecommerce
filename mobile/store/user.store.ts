@@ -18,14 +18,19 @@ type Contact = {
   balance: number;
 };
 
-export interface IUser {
-  id: string;
-  name: string;
-  email: string;
-  contact: Contact | null;
-  image?: string | null;
-  address?: string;
-  openID?: string | null;
+export type IUser = {
+ id: string;
+ name: string;
+ openID: string | null;
+ image: string | null;
+ password: string | null;
+ email: string | null;
+ mobile: string | null;
+ address: string | null;
+ pushNotificationToken: string | null;
+ createdAt: Date;
+ updatedAt: Date;
+ contact:Contact | null;
 }
 
 interface UserState {

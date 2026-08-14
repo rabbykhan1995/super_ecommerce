@@ -10,16 +10,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 const CompleteProfileModal = () => {
-  const { user,  fetchUser } = useUserStore();
+  const { user, fetchUser } = useUserStore();
 
   const [mobile, setMobile] = useState("");
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Existing user address load
   useEffect(() => {
     if (user?.address) {
       setAddress(user.address);
@@ -32,7 +32,6 @@ const CompleteProfileModal = () => {
       address: address.trim(),
     };
 
-    // Zod validation
     const validation = checkoutMobileSchema.safeParse(payload);
 
     if (!validation.success) {
@@ -55,13 +54,13 @@ const CompleteProfileModal = () => {
     setLoading(true);
 
     try {
-      const res = await api.post(
+      await api.post(
         "/auth/checkout-mobile",
         validation.data
       );
-     console.log(res)
-      // Update user
-    await fetchUser()
+
+      // Backend থেকে latest user/contact নিয়ে আসবে
+      await fetchUser();
 
       Toast.show({
         type: "success",
@@ -89,12 +88,10 @@ const CompleteProfileModal = () => {
     }
   };
 
-  // User loading / not logged in
   if (!user) {
     return null;
   }
 
-  // Contact already exists
   if (user.contact !== null) {
     return null;
   }
@@ -104,93 +101,102 @@ const CompleteProfileModal = () => {
       visible={user.contact === null}
       transparent
       animationType="fade"
+      statusBarTranslucent={false}
     >
-      <View style={styles.container}>
-        {/* Toast must be inside Modal */}
-        <Toast />
-
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerText}>
-            Complete Your Profile
-          </Text>
-
-          <Text style={styles.subText}>
-            Please add your mobile number to complete your profile.
-          </Text>
-        </View>
-
-        {/* Mobile Number */}
-        <View style={styles.inputWrapper}>
-          <Text style={styles.label}>
-            Mobile Number
-          </Text>
-
-          <TextInput
-            placeholder="+880 1XXXXXXXXX"
-            keyboardType="phone-pad"
-            value={mobile}
-            onChangeText={setMobile}
-            style={styles.input}
-            editable={!loading}
-          />
-        </View>
-
-        {/* Address */}
-        <View style={styles.inputWrapper}>
-          <View style={styles.addressHeader}>
-            <Text style={styles.label}>
-              Address
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerText}>
+              Complete Your Profile
             </Text>
 
-            <Text style={styles.optionalText}>
-              Optional
+            <Text style={styles.subText}>
+              Please add your mobile number to complete your profile.
             </Text>
           </View>
 
-          <TextInput
-            placeholder="Enter your address"
-            value={address}
-            onChangeText={setAddress}
-            style={[
-              styles.input,
-              styles.addressInput,
-            ]}
-            multiline
-            textAlignVertical="top"
-            editable={!loading}
-          />
-        </View>
-
-        {/* Submit */}
-        <View style={styles.buttonWrapper}>
-          <TouchableOpacity
-            onPress={handleSubmit}
-            style={[
-              styles.submitButton,
-              loading && styles.disabledButton,
-            ]}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? "Sending..." : "Submit"}
+          {/* Mobile */}
+          <View style={styles.inputWrapper}>
+            <Text style={styles.label}>
+              Mobile Number
             </Text>
-          </TouchableOpacity>
+
+            <TextInput
+              placeholder="+880 1XXXXXXXXX"
+              keyboardType="phone-pad"
+              value={mobile}
+              onChangeText={setMobile}
+              style={styles.input}
+              editable={!loading}
+              placeholderTextColor="#9ca3af"
+            />
+          </View>
+
+          {/* Address */}
+          <View style={styles.inputWrapper}>
+            <View style={styles.addressHeader}>
+              <Text style={styles.label}>
+                Address
+              </Text>
+
+              <Text style={styles.optionalText}>
+                Optional
+              </Text>
+            </View>
+
+            <TextInput
+              placeholder="Enter your address"
+              value={address}
+              onChangeText={setAddress}
+              style={[
+                styles.input,
+                styles.addressInput,
+              ]}
+              multiline
+              textAlignVertical="top"
+              editable={!loading}
+              placeholderTextColor="#9ca3af"
+            />
+          </View>
+
+          {/* Submit */}
+          <View style={styles.buttonWrapper}>
+            <TouchableOpacity
+              onPress={handleSubmit}
+              style={[
+                styles.submitButton,
+                loading && styles.disabledButton,
+              ]}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? "Sending..." : "Submit"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 20,
   },
 
   header: {
-    marginTop: 60,
     marginBottom: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,

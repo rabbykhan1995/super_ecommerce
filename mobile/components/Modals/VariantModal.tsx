@@ -32,17 +32,18 @@ import { useRouter } from "expo-router";
 import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag, Star, Trash2, X, ZoomIn } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Image,
-    Modal,
-    PanResponder,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  Image,
+  Modal,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const AUTO_SLIDE_INTERVAL = 4000;
 
@@ -239,13 +240,16 @@ const VariantModal = () => {
     );
 
   return (
-    <>
+
+     <SafeAreaView style={styles.safeArea}>
       <Modal
         visible={variantModalOpen}
         transparent
         animationType="fade"
         onRequestClose={handleClose}
       >
+  
+
         <View style={styles.overlay}>
           <View style={styles.card}>
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
@@ -566,9 +570,11 @@ const VariantModal = () => {
             </ScrollView>
           </View>
         </View>
+
       </Modal>
 
       {/* ===== FULLSCREEN ZOOM OVERLAY ===== */}
+
       <Modal
         visible={zoomOpen}
         transparent
@@ -627,11 +633,17 @@ const VariantModal = () => {
           )}
         </View>
       </Modal>
-    </>
+</SafeAreaView>
+ 
   );
 };
 
 const styles = StyleSheet.create({
+    safeArea: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.42)",
