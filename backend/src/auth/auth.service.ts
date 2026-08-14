@@ -371,7 +371,7 @@ export class AuthService {
   }
 
   static async mobileGoogleAuth(idToken: string) {
-    console.log("ok")
+
     const mobileClientId = process.env.GOOGLE_MOBILE_WEB_CLIENT_ID;
 
     if (!mobileClientId) {
@@ -416,7 +416,7 @@ export class AuthService {
       email: user.email,
       mobile: user.mobile,
     });
-    console.log("token", user)
+
     return { token, user };
   }
 

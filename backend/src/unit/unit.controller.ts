@@ -17,7 +17,7 @@ export class UnitController {
 
   static async delete(req: Request, res: Response) {
     const { id } = req.params;
-    console.log(id)
+
     await UnitService.delete(Number(id));
 
     res.status(201).json({ success: true, message: " deleted successfully" });

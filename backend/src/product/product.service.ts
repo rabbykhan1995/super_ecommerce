@@ -120,7 +120,7 @@ export default class ProductService {
           await Promise.all(
             newVariants.map(async (v) => {
               if (v.barcode) {
-                console.log(v.barcode)
+   
                 const exist = await ProductRepository.findVariantByBarcode(
                   v.barcode,
                 );
@@ -248,7 +248,7 @@ export default class ProductService {
 
   static async findBatchBySerial(serial: string) {
     const batch = await ProductRepository.findBatchBySerial(serial);
-    console.log(batch);
+
     return batch;
   }
 

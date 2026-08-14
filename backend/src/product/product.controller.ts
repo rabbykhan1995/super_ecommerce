@@ -191,7 +191,7 @@ export class ProductController {
     const variantID = req.params.variantID
     const productID= req.params.productID;
     const product = await ProductService.getSaleProduct(Number(productID),Number(variantID)); // ✅ lean() দিয়ে plain object
-    console.log(product)
+
     // ✅ No stock management - return plain product
     return res.status(200).json({
       success: true,
