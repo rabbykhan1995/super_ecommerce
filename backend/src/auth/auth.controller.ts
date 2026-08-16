@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 
 import { AuthService } from "./auth.service";
+import NotificationService from "../notification/notification.service";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -92,7 +93,7 @@ export class AuthController {
   static async userGoogleAuthCallbackAPI(req: Request, res: Response) {
     const { token, clientRedirectURL } = await AuthService.userGoogleAuthCallbackAPI(req.query);
 
-    res.cookie("token",token, cookieOptions);
+    res.cookie("token", token, cookieOptions);
 
     res.redirect(`${clientRedirectURL}`);
     res.status(200).json({
@@ -102,7 +103,28 @@ export class AuthController {
     });
   }
 
-  static async logout(req: Request, res: Response) {
+  static async webLogout(req: Request, res: Response) {
+
+    res.clearCookie("token", cookieOptions);
+
+    return res
+      .status(200)
+      .json({ msg: "user logged out successfully", success: true });
+  }
+
+  static async deviceLogout(req: Request, res: Response) {
+    // Mobile app theke pathano hobe (local storage e already save kora deviceID)
+    // Web/browser theke logout korle deviceID undefined thakbe - eta normal, শুধু skip hobe
+    const { deviceID } = req.body as { deviceID?: string };
+
+    if (deviceID) {
+      try {
+        await NotificationService.update(deviceID, { userID: null });
+      } catch (err) {
+        // Notification unlink fail korleo logout block hobe na - eta secondary operation
+        console.error("Failed to unlink device on logout:", err);
+      }
+    }
 
     res.clearCookie("token", cookieOptions);
 
@@ -166,11 +188,4 @@ export class AuthController {
     res.redirect(`${clientRedirectURL}?token=${token}`);
   }
 
-
-  static async savePushToken(req: Request, res: Response) {
-    const userID = req.user!.id;
-    const { pushNotificationToken } = req.body;
-    const saved = await AuthService.savePushToken(userID, pushNotificationToken);
-    res.json({ success: true });
-  }
 }

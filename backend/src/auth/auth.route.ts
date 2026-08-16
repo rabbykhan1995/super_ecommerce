@@ -16,14 +16,14 @@ router
     authMiddleware,
     asyncHandler(AuthController.getProfileData),
   )
-  .get("/logout", authMiddleware, asyncHandler(AuthController.logout))
+  .get("/web-logout", authMiddleware, asyncHandler(AuthController.webLogout))
+    .get("/device-logout", authMiddleware, asyncHandler(AuthController.deviceLogout))
   .post("/send-email-verify-otp", asyncHandler(AuthController.sendEmailVerifyOTP))
   .post("/register-manually", asyncHandler(AuthController.registerManually))
   .post("/manual-login", validate(userLoginSchema), asyncHandler(AuthController.manualLogin))
   .post("/send-forget-password-otp", asyncHandler(AuthController.sendForgetPasswordOTP))
   .post("/reset-password", validate(passwordResetSchema), asyncHandler(AuthController.resetPassword))
   .post("/checkout-mobile",authMiddleware ,validate(checkoutMobileSchema), asyncHandler(AuthController.checkOutMobile))
-  .post("/set-push-notification-token", authMiddleware, validate(updateUserSchema), asyncHandler(AuthController.savePushToken))
 // ===========================
 // Customer Google OAuth
 // ===========================

@@ -11,6 +11,7 @@ import { Contact } from "../contact/contact.type";
 import ContactService from "../contact/contact.service";
 import { AuthService } from "../auth/auth.service";
 import { sendPushNotification } from "../../utils/pushNotification";
+import NotificationService from "../notification/notification.service";
 
 export class OrderService {
     static async checkoutOrder(userID: string, input: CheckoutOrderInput) {
@@ -339,25 +340,13 @@ export class OrderService {
                 paymentStatus: "paid",
                 paidAt: new Date(),
             });
-
             // ✅ ২. ব্যাকগ্রাউন্ডে নন-ব্লকিং ভাবে নোটিফিকেশন পাঠান (Fire & Forget)
-            (async () => {
-                try {
-                    const contact = await ContactService.findByID(order.contactID);
-                    const user = await AuthService.findUserByID(contact?.userID);
-
-                    if (user?.pushNotificationToken) {
-                        await sendPushNotification(
-                            user.pushNotificationToken,
-                            "Order Confirmed! 🎉",
-                            `Your order #${order.id} has been confirmed.`,
-                            { orderId: order.id }
-                        );
-                    }
-                } catch (err) {
-                    console.error("Failed to send succeeded push notification:", err);
-                }
-            })();
+            NotificationService.sendNotification({
+                contactID: order.contactID,
+                title: "Order Confirmed! 🎉",
+                body: `Your order #${order.id} has been confirmed.`,
+                data: { orderId: order.id },
+            });
         }
 
         // 2. Payment Failed
@@ -379,23 +368,12 @@ export class OrderService {
             });
 
             // ✅ ২. ব্যাকগ্রাউন্ডে নোটিফিকেশন দিন
-            (async () => {
-                try {
-                    const contact = await ContactService.findByID(order.contactID);
-                    const user = await AuthService.findUserByID(contact?.userID);
-
-                    if (user?.pushNotificationToken) {
-                        await sendPushNotification(
-                            user.pushNotificationToken,
-                            "Payment Failed! ❌",
-                            `Payment failed for order #${order.id}. Please try again.`,
-                            { orderId: order.id, status: "failed" }
-                        );
-                    }
-                } catch (err) {
-                    console.error("Failed to send failed push notification:", err);
-                }
-            })();
+            NotificationService.sendNotification({
+                contactID: order.contactID,
+                title: "Payment Failed ❌",
+                body: `Payment for your order #${order.id} could not be processed.`,
+                data: { orderId: order.id },
+            })
         }
     }
 
@@ -445,7 +423,7 @@ export class OrderService {
 
     static async trackOrder(orderId: number) {
         const order = await OrderRepository.findOrderForPublic(orderId);
-    
+
         if (!order) throw new ApiError(404, "Order not found");
 
         return order;

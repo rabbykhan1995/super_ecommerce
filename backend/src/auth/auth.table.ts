@@ -9,6 +9,7 @@ import {
 import { relations } from "drizzle-orm";
 import { contactTable } from "../contact/contact.table";
 import { nullable } from "zod";
+import { notificationTable } from "../notification/notification.table";
 
 /* ===========================
    Users
@@ -32,8 +33,6 @@ export const userTable = pgTable(
     mobile: varchar("mobile", { length: 20 }),
 
     address: varchar("address", { length: 500 }),
-    
-    pushNotificationToken:varchar("push_notification_token", {length:255}),
 
     createdAt: timestamp("created_at", {
       withTimezone: true,
@@ -154,6 +153,7 @@ export const userRelations = relations(userTable, ({ one, many }) => ({
     references: [contactTable.userID],
   }),
   userRoles: many(userRoles),
+  notifications:many(notificationTable)
 }));
 
 export const staffProfileRelations = relations(

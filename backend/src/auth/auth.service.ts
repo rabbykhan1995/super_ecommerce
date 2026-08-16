@@ -619,11 +619,7 @@ export class AuthService {
     return { token, user, clientRedirectURL };
   }
 
-  static async savePushToken(userID: any, token: any) {
 
-    return await AuthRepository.updateUser(userID, { pushNotificationToken: token })
-
-  }
 
   static async findUserByID(userID:any){
     return await AuthRepository.findByID(userID);

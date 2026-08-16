@@ -24,6 +24,7 @@ import parcelRoute from "../src/parcel/parcel.route"
 import ecomRoute from "../src/ecom/ecom.route"
 import orderRoute from "../src/order/order.route"
 import paymentRoute from "../src/payment/payment.route"
+import notificationRoute from "../src/notification/notification.route"
 
 const router = Router();
 router.use("/product", productRoute);
@@ -50,5 +51,6 @@ router.use("/image", imageRoute)
 router.use("/ecom", ecomRoute)
 router.use("/order", orderRoute)
 router.use("/payment", paymentRoute)
+router.use("/notification",notificationRoute )
 
 export default router;
