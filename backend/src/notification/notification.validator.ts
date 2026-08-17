@@ -28,8 +28,7 @@ export const createNotificationSchema = z.object({
     .optional(),
  
   userID: z
-    .string()
-    .uuid("userID must be a valid uuid")
+    .string("userID must be a valid uuid")
     .nullable()
     .optional(),
 });

@@ -1,3 +1,4 @@
+import * as Application from "expo-application";
 import { Asset } from "expo-asset";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -110,4 +111,8 @@ export function formatLongNumber(n: number): string {
     return `${formattedInteger}.${decimalPart}`;
   }
   return formattedInteger;
+}
+export function getDeviceID() {
+  const deviceID =  Application.getAndroidId();
+  return deviceID; // string, always same for this device+app combo
 }

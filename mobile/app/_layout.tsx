@@ -21,13 +21,21 @@ export default function RootLayout() {
   const fetchCart = useCartStore((s) => s.fetchCart);
 
 
+  // ── Push notification registration ──
+  // Auth token er upor depend kore na - app open hoile e chaibe (guest/logged-in dutai case e).
+  // Backend deviceID diye upsert kore, tai bar bar call korleo problem nai (idempotent).
+  useEffect(() => {
+    registerForPushNotificationsAsync();
+  }, []);
+ 
+  // ── Auth-dependent data fetch ──
+  // Shudhu logged-in thakle e user/cart data lagbe.
   useEffect(() => {
     const initAuth = async () => {
       const token = await AuthHelper.getToken();
       if (token) {
         try {
           await Promise.all([fetchUser(), fetchCart()]);
-          await registerForPushNotificationsAsync();
         } catch {
           // Token invalid — handled by interceptor
         }
