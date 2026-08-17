@@ -48,14 +48,14 @@ export async function registerForPushNotificationsAsync() {
   }
 
   // deviceID paoa - Android ID, device thaka porjonto persistent
-  const deviceID = getDeviceID();
+  // ⚠️ await lagbe, na hoile Promise object pathaia debe backend e
+  const deviceID = await getDeviceID();
 
-  // Token + deviceID + platform - backend schema onujayi shob field pathano hocche
   try {
     await api.post("/notification/create-push-notification", {
       deviceID,
       pushToken: token,
-      platform: Platform.OS, // "android" - schema er enum er sathe match kore
+      platform: Platform.OS,
       appVersion: Constants.expoConfig?.version ?? null,
     });
   } catch (err) {
@@ -63,4 +63,19 @@ export async function registerForPushNotificationsAsync() {
   }
 
   return token;
+}
+
+/**
+ * Login/app-init success howar por call hobe - notification permission/token
+ * re-fetch korার dorkar nai, shudhu existing device row take current user
+ * er sathe link kore dey.
+ */
+export async function linkDeviceToUser(userID: string) {
+  try {
+    const deviceID = await getDeviceID();
+    await api.post(`/notification/link-device/${deviceID}`, { userID, isActive:true });
+  } catch (err) {
+    // Best-effort - fail hoile o user flow block hobe na
+    console.log("Failed to link device to user", err);
+  }
 }

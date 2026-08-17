@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import api from "../lib/api";
 import AuthHelper from "../lib/auth";
+import { linkDeviceToUser } from "../lib/notifications";
 import { useCartStore } from "./cart.store";
 import useLoadingStore from "./loading.store";
 import useOpenCloseState from "./openclose.store";
@@ -19,19 +20,19 @@ type Contact = {
 };
 
 export type IUser = {
- id: string;
- name: string;
- openID: string | null;
- image: string | null;
- password: string | null;
- email: string | null;
- mobile: string | null;
- address: string | null;
- pushNotificationToken: string | null;
- createdAt: Date;
- updatedAt: Date;
- contact:Contact | null;
-}
+  id: string;
+  name: string;
+  openID: string | null;
+  image: string | null;
+  password: string | null;
+  email: string | null;
+  mobile: string | null;
+  address: string | null;
+  pushNotificationToken: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  contact: Contact | null;
+};
 
 interface UserState {
   user: IUser | null;
@@ -46,7 +47,6 @@ export const useUserStore = create<UserState>((set) => ({
   isLoading: false,
 
   setUser: (user) => set({ user }),
-
 
   fetchUser: async () => {
     try {
@@ -66,6 +66,10 @@ export const useUserStore = create<UserState>((set) => ({
 
       const user = res.data.data;
       set({ user, isLoading: false });
+
+      // User confirm hoyar por deviceID take user er sathe link kora hocche.
+      // Await na kore fire-and-forget - user data load hote block hobe na.
+      linkDeviceToUser(user.id);
     } catch {
       set({ user: null, isLoading: false });
     }

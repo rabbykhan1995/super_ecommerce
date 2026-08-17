@@ -8,5 +8,15 @@ export default class NotificationController {
         return res.status(201).json({success:true});
     }
 
+        static async linkDevice(req:Request, res:Response) {
+        
+        const deviceID = req.params.deviceID.toString();
+
+        const notification = await NotificationService.update(deviceID,req.body);
+
+        return res.status(201).json({success:true});
+    }
+
+
 
 }
