@@ -5,25 +5,36 @@ import { ApiError } from "./utils/ApiError";
 import cookieParser from "cookie-parser";
 const app = express();
 
-// Middlewares
-app.use(
-  cors({
-    origin: [
-      // Web frontends
-      "http://localhost:5173",
-      "http://localhost:3000",
-      // Expo
-      "exp://192.168.0.101:8081",
-      "http://localhost:8081",
-      // Android emulator (accessing host machine)
-      "http://10.0.2.2:5000",
-      // Real device on same network (replace with your PC's local IP)
-      // "http://192.168.0.103:5000",
-    ],
-    credentials: true,
-  }),
-);
-
+if (process.env.NODE_ENV === "development") {
+  app.use(
+    cors({
+      origin: [
+        // Web frontends
+        "http://localhost:5173",
+        "http://localhost:3000",
+        // Expo
+        "exp://192.168.0.101:8081",
+        "http://localhost:8081",
+        // Android emulator (accessing host machine)
+        "http://10.0.2.2:5000",
+        // Real device on same network (replace with your PC's local IP)
+        // "http://192.168.0.103:5000",
+      ],
+      credentials: true,
+    }),
+  );
+} else if (process.env.NODE_ENV === "production") {
+  app.use(
+    cors({
+      origin: [
+        "https://super-panel.netlify.app",
+        "https://super-ecommerce.netlify.app"
+      ],
+      credentials: true,
+    }),
+  );
+}
+console.log(process.env.NODE_ENV)
 app.use("/api/order/stripe/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(cookieParser());
@@ -32,7 +43,12 @@ app.use("/api", router);
 
 // Centralized error handler
 app.use((err: any, req: any, res: any, next: any) => {
-  console.log(err);
+  if (process.env.NODE_ENV === "production") {
+    return
+  } else {
+    console.log(err);
+  }
+
   if (err instanceof ApiError) {
     return res.status(err.statusCode).json({
       success: false,

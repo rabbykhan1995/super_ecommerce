@@ -57,7 +57,7 @@ export default function NewSale() {
         });
         if (res.data.success)
             setProducts(
-                res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name} stock-${!u.product.manageStock ? " ∞" : u.stock}`, ...u }))
+                res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name} (${u.attributes[0].name}-${u.attributes[0].value}) stock-${!u.product.manageStock ? " ∞" : u.stock}`, ...u }))
             );
     };
 
