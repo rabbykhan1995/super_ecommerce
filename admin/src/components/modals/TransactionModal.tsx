@@ -58,7 +58,10 @@ export default function TransactionModal({ contact, open, onClose, type }: Trans
     };
 
     useEffect(() => {
-         setSelectedContact({...contact, value:contact!.id, label: `${contact!.name} balance(${contact!.balance})`})
+         setSelectedContact({...contact,
+            // @ts-ignore
+             value:contact!.id,
+              label: `${contact!.name} balance(${contact!.balance})`})
         fetchAccount();
     }, []);
     const prevBal = selectedContact?.balance || 0;
@@ -107,6 +110,7 @@ export default function TransactionModal({ contact, open, onClose, type }: Trans
         const res = await api.post('/payment/create', payload);
         if (res.status === 201) {
             toast.success("Payment created successfully");
+            navigate(`/account/payment-details/${res.data.data.id}`)
             return onClose();
         }
     };
