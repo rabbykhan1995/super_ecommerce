@@ -15,7 +15,7 @@ import { CreateSaleQuotationInput, QuotationStatus, SaleQuotation, SaleQuotation
 export default class QuotationService {
 
     static async createSaleQuotation(payload: CreateSaleQuotationInput) {
-
+      
         const { products, ...onlyQuote } = payload;
 
 

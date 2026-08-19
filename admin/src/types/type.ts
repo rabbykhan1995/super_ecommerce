@@ -218,7 +218,6 @@ export type DamageProduct = {
   manageStock: boolean;
   createdAt: string;
   purchasePrice: number;
-  salePrice: number;
   soldQty: number;
   warranty: number;
   manageWarranty: boolean;
@@ -490,7 +489,7 @@ export type QuotationListItem = {
   totalAmount: number;
   balanceAfter: number;
   paid: number;
-  SaleDate: Date;
+  saleDate: Date;
   createdAt: Date;
   status: QuotationStatus;
   default: boolean;
@@ -500,6 +499,9 @@ export type QuotationListItem = {
   deletable?: boolean;
   discount: number;
   balanceBefore: number;
+  customer:{
+    name:string
+  }
 };
 
 export type Variant = {
@@ -732,7 +734,7 @@ lastStatus:OrderStatus;
   createdAt: Date;
   updatedAt: Date;
 
-  user: {
+  contact: {
     id: string;
     name: string;
     email: string;

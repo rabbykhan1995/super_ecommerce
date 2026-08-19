@@ -1,7 +1,7 @@
 import { OnlyPurchasePayload, Purchase } from "./purchase.type";
 import { paginateQuery } from "../../utils/queryBuilder";
 import { purchaseTable } from "./purchase.table";
-import { and, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import db, { QueryClient } from "../../drizzle/src";
 
 export default class PurchaseRepository {
@@ -75,6 +75,7 @@ export default class PurchaseRepository {
             page: query.page,
             limit: query.limit,
             search: query.search,
+            orderBy:desc(purchaseTable.createdAt),
             with: {
                 supplier: {
                     columns: {

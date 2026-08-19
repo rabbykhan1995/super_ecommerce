@@ -41,7 +41,7 @@ export default function SaleQuotationList() {
   }, [search]);
 
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
 
     toast("Are you sure?", {
       action: {
@@ -66,13 +66,13 @@ export default function SaleQuotationList() {
       //   setTimeout(() => setApproveModal(true), 50);
       //   break;
       case "Delete":
-        handleDelete(row._id); // আপনার তৈরি করা handleDelete ফাংশন
+        handleDelete(row.id); // আপনার তৈরি করা handleDelete ফাংশন
         break;
       case "Details":
-        navigate(`/quotation/sale-quotation-invoice/${row._id}`)
+        navigate(`/quotation/sale-quotation-invoice/${row.id}`)
         break;
       case "Cancel":
-        console.log("Cancelling ID:", row._id); // আপনার তৈরি করা handleDelete ফাংশন
+        console.log("Cancelling ID:", row.id); // আপনার তৈরি করা handleDelete ফাংশন
         break;
       default:
         break;
@@ -109,7 +109,7 @@ export default function SaleQuotationList() {
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           {
             header: "Status", accessor: (row) => {
@@ -122,7 +122,10 @@ export default function SaleQuotationList() {
               );
             }, className: "text-start", headerClassName: "text-start",
           },
-          { header: "Customer", accessor: "customerName", headerClassName: "text-start" },
+          { header: "Customer", accessor: (row) => (
+              <span> {row.customer.name}</span>
+
+            ), headerClassName: "text-start" },
           {
             header: "Other Cost", accessor: (row) => (
               <span> {Helper.formatLongNumber(row.otherCost || 0)}</span>
@@ -178,7 +181,7 @@ export default function SaleQuotationList() {
             headerClassName: "text-center min-w-20",
             accessor: (row) => (
 
-              <TimeAgo date={row.SaleDate} />
+              <TimeAgo date={row.saleDate} />
 
             )
 

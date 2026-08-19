@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/axios";
-import type { Batch, DamageProduct, SaleProduct, SelectOption, VariantListItem } from "../../types/type";
+import type { Batch, DamageProduct, SelectOption, VariantListItem } from "../../types/type";
 import Select from "react-select";
 import { getReactSelectStyles, smallReactStyle, smallReactStyleMulti } from "../../utils/reactSelectStyles";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
-import type { Product, SearchParams } from "../../types/type";
+import type { SearchParams } from "../../types/type";
 import { Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import { createPortal } from "react-dom";
@@ -13,7 +13,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import Table from "../../components/tables/Table";
 import { useSignal } from "@preact/signals-react";
 import { useSignals } from "@preact/signals-react/runtime";
-import Helper from "../../utils/helper";
+// import Helper from "../../utils/helper";
 import { Dropdown } from "../../components/Ui/Dropdown";
 import { createDamageSchema } from "../../validators/damage.validator";
 
@@ -38,13 +38,13 @@ export default function CreateDamage() {
     const [note, setNote] = useState<string | null>("");
     const reasonOptions: string[] = ["expired", "manual"
     ];
-    const fetchProducts = async () => {
+      const fetchProducts = async () => {
         const res = await api("/product/variant-list", {
             params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
         });
         if (res.data.success)
             setProducts(
-                res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name} stock-${!u.product.manageStock ? " ∞" : u.stock}`, ...u }))
+                res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name} (${u.attributes[0].name}-${u.attributes[0].value}) stock-${!u.product.manageStock ? " ∞" : u.stock}`, ...u }))
             );
     };
 
@@ -160,7 +160,6 @@ export default function CreateDamage() {
                     selectedBatch: availableBatches[0],
                     purchaseID: availableBatches[0].purchaseID,
                     purchasePrice: availableBatches[0].purchasePrice,
-                    salePrice: availableBatches[0].salePrice,
                     soldQty: 1,
                     batches: availableBatches, // ✅ শুধু available batches
                     selectedSerials: [],
@@ -217,7 +216,6 @@ export default function CreateDamage() {
                 selectedSerials,
                 soldQty: selectedSerials.length,
                 purchasePrice: latest.purchasePrice,
-                salePrice: latest.salePrice,
                 warranty: latest.warranty || 0,
             };
             selectedProducts.value = updated;
@@ -255,14 +253,13 @@ export default function CreateDamage() {
             selectedSerials: [latest],
             soldQty: 1,
             purchasePrice: latest.purchasePrice,
-            salePrice: latest.salePrice,
             warranty: latest.warranty || 0,
         };
 
         selectedProducts.value = [...updated, newProduct];
     };
 
-    const selectBatch = (selectedBatch: SelectOption<Batch> | null, productId: string, currentIndex: number) => {
+    const selectBatch = (selectedBatch: SelectOption<Batch> | null, productID: number, currentIndex: number) => {
         if (!selectedBatch) {
             selectedProducts.value = selectedProducts.value.map((product, idx) =>
                 idx === currentIndex
@@ -280,7 +277,7 @@ export default function CreateDamage() {
 
             // ✅ Collect all already selected batch IDs from all rows of this product
             const alreadySelectedBatchIds = selectedProducts.value
-                .filter(p => p.id === productId)
+                .filter(p => p.id === productID)
                 .map(p => p.selectedBatch?.id)
                 .filter(Boolean) as number[];
 
@@ -299,7 +296,6 @@ export default function CreateDamage() {
                 selectedBatch,
                 purchaseID: selectedBatch.purchaseID,
                 purchasePrice: selectedBatch.purchasePrice,
-                salePrice: selectedBatch.salePrice,
                 batches: availableBatches, // ✅ শুধু available batches
             };
 
@@ -331,7 +327,6 @@ export default function CreateDamage() {
                     selectedBatch,
                     purchaseID: selectedBatch.purchaseID,
                     purchasePrice: selectedBatch.purchasePrice,
-                    salePrice: selectedBatch.salePrice,
                 }
                 : product
         );
@@ -369,7 +364,7 @@ export default function CreateDamage() {
     };
 
     const totalProductPrice = selectedProducts.value.reduce(
-        (acc, p) => acc + (p.salePrice || 0) * (p.soldQty || 0), 0
+        (acc, p) => acc + (p.purchasePrice || 0) * (p.soldQty || 0), 0
     );
 
 
@@ -391,10 +386,10 @@ export default function CreateDamage() {
 
                 return p.selectedSerials.map(serial => ({
                     productID: p.id,
-                    variantID: (serial as any).variantID || null,
+                    variantID: (serial as Batch).variantID || null,
                     batchID: Number(serial.value), // serial batch id
                     damagedQty: 1,
-                    purchasePrice: p.salePrice,
+                    purchasePrice: p.purchasePrice,
                     reason: p.reason,
                 }));
             }
@@ -690,7 +685,7 @@ export default function CreateDamage() {
                         className: "text-center",
                         headerClassName: "text-center",
                         accessor: (row) => (
-                            <span>{(row.salePrice * row.soldQty).toFixed(2)}</span>
+                            <span>{(row.purchasePrice * row.soldQty).toFixed(2)}</span>
                         ),
                     },
                     // Action

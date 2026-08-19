@@ -34,7 +34,7 @@ if (process.env.NODE_ENV === "development") {
     }),
   );
 }
-console.log(process.env.NODE_ENV)
+
 app.use("/api/order/stripe/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(cookieParser());

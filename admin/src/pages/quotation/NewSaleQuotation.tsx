@@ -45,15 +45,16 @@ export default function NewSaleQuotation() {
     const [note, setNote] = useState<string | null>("");
 
 
-  const fetchProducts = async () => {
+    const fetchProducts = async () => {
         const res = await api("/product/variant-list", {
             params: { search: productParams.search, limit: productParams.limit, page: productParams.page },
         });
         if (res.data.success)
             setProducts(
-                res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name} stock-${!u.product.manageStock ? " ∞" : u.stock}`, ...u }))
+                res.data.data.items.map((u: VariantListItem) => ({ value: u.id, label: `${u.product.name} (${u.attributes[0].name}-${u.attributes[0].value}) stock-${!u.product.manageStock ? " ∞" : u.stock}`, ...u }))
             );
     };
+
 
     const fetchSaleProduct = async (productID:number,variantID: number) => {
         const res = await api(`/product/getSaleProduct/${productID}/${variantID}`);

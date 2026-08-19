@@ -60,6 +60,7 @@ export default class QuotationRepository {
             where: eq(saleQuotationTable.id, quoteID),
             with: {
                 items: true,
+                customer:true
             },
         });
 

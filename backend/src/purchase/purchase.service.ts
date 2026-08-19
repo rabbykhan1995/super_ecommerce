@@ -28,7 +28,7 @@ export default class PurchaseService {
     purchase.balanceBefore = supplier.balance ?? 0;
     purchase.balanceAfter = purchase.totalAmount + purchase.balanceBefore - purchase.paid;
 
-    await withTransaction(async (tx) => {
+    const purchaseCreated = await withTransaction(async (tx) => {
 
       const purchaseCreated: Purchase = await PurchaseRepository.purchaseCreate(purchase, tx)
 
@@ -38,6 +38,7 @@ export default class PurchaseService {
           purchasedQty: p.purchasedQty,
           purchaseID: purchaseCreated.id,
           productID: p.productID,
+          warranty:p.warranty || 0,
           variantID: p.variantID,
           cost: p.purchasePrice,
           expireDate: p.expireDate ?? null,
@@ -136,6 +137,8 @@ export default class PurchaseService {
       return purchaseCreated;
 
     })
+
+    return purchaseCreated;
   }
 
   static async delete(purchaseID: number) {

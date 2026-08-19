@@ -59,7 +59,7 @@ const PurchaseInvoice = () => {
 
             accessor: (row) => (
               <div>
-                <h1 className='w-full text-[16px]'>{row.product.name}{row.product.brand ? `(${row.product.brand.name})` : ""}</h1>
+                <h1 className='w-full text-[16px]'>{row.product.name}{row.product.brand ? `(${row.product.brand.name})` : ""} {row?.variant?.attributes.map((a:any)=> `(${a.name}-${a.value})`)}</h1>
                 {row.serial && <span>SN:</span>}
                 {row.serial && <span className='dark:bg-[#494949] px-2 text-xs'>{row.serial}</span>}
               </div>
@@ -75,7 +75,7 @@ const PurchaseInvoice = () => {
               <>  {row.purchasedQty} {row.product.unit.name}</>
 
             ),
-            className: "w-10 text-center",
+            className: "text-center",
             headerClassName: "text-center"
           },
           {
@@ -84,7 +84,7 @@ const PurchaseInvoice = () => {
               <>  {Helper.formatLongNumber(row.cost)}</>
 
             ),
-            className: "w-10 text-center",
+            className: "text-center",
             headerClassName: "text-center"
           },
           {
@@ -93,7 +93,7 @@ const PurchaseInvoice = () => {
               <>  {Helper.formatLongNumber(row.purchasedQty * row.cost)} </>
 
             ),
-            className: "w-10 text-end",
+            className: "text-end",
             headerClassName: "text-right"
           },
 

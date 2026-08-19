@@ -35,7 +35,7 @@ const SaleQuotationInvoice = () => {
         {/* top left side business name and address */}
         <div className=''>
           <h1>{data?.invoiceNo}</h1>
-          <Barcode value={data?.invoiceNo} height={25}
+          <Barcode value={data?.id} height={25}
             width={2}
             fontSize={0}
             displayValue={false} margin={3} />
@@ -47,7 +47,7 @@ const SaleQuotationInvoice = () => {
       </div>
 
       <Table
-        data={data?.products || []}
+        data={data?.items || []}
         keyExtractor={(row: any) => row._id}
         columns={[
           {
@@ -61,7 +61,7 @@ const SaleQuotationInvoice = () => {
 
             accessor: (row) => (
               <div>
-                <h1 className='w-full text-[16px]'>{row.product.name}{row.product.brand ? `(${row.product.brand.name})` : ""}</h1>
+                <h1 className='w-full text-[16px]'>{row.product.name}{row.product.brand ? `(${row.product.brand.name})` : ""}{row.batch.variant.attributes.map((a:any)=> `(${a.name}-${a.value})`)}</h1>
                 {row.serial && <span>SN:</span>}
                 {row.serial && <span className='dark:bg-[#494949] px-2 text-xs'>{row.serial}</span>}
               </div>
@@ -139,28 +139,13 @@ const SaleQuotationInvoice = () => {
         <h1>Discount : </h1>
         <h1>{Helper.formatLongNumber(data?.discount)}</h1>
       </div>}
-      {!!data?.balanceBefore && (data?.balanceBefore < 0) ? <div className='flex justify-between'>
-        <h1>Prev. Due : </h1>
-        <h1>{Helper.formatLongNumber(Math.abs(data?.balanceBefore))}</h1>
-      </div> : <div className='flex justify-between'>
-        <h1>Paid By Balance : </h1>
-        <h1>{Helper.formatLongNumber(Math.abs(data?.balanceBefore))}</h1>
-      </div>}
+
       {!!data?.totalAmount && <div className='flex justify-between'>
         <h1>Total Payable : </h1>
         <h1>{Helper.formatLongNumber(data?.totalAmount - (data?.balanceBefore || 0))}</h1>
       </div>}
-      {!!data?.paid && <div className='flex justify-between'>
-        <h1>Total Paid : </h1>
-        <h1>{Helper?.formatLongNumber(data?.paid)}</h1>
-      </div>}
-      {!!data?.balanceAfter && (data?.balanceAfter < 0) ? <div className='flex justify-between'>
-        <h1>Current Due : </h1>
-        <h1>{Helper.formatLongNumber(Math.abs(data?.balanceAfter))}</h1>
-      </div> : <div className='flex justify-between'>
-        <h1>Advanced : </h1>
-        <h1>{Helper.formatLongNumber(Math.abs(data?.balanceAfter))}</h1>
-      </div>}
+
+
 
       {/* Note */}
       {!!data?.note && <h1>Note : {data?.note}</h1>}

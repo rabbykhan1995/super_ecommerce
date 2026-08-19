@@ -109,13 +109,13 @@ export default function OrderList() {
             className: "text-center",
           },
           {
-            header: "Ecom User",
+            header: "Contact",
             accessor: (row) => (
               <span className="text-sm">
-                {row.user?.name || "N/A"}
-                {row.user?.mobile && (
+                {row.contact?.name || "N/A"}
+                {row.contact?.mobile && (
                   <span className="text-gray-500 block text-xs">
-                    {row.user.mobile}
+                    {row.contact.mobile}
                   </span>
                 )}
               </span>

@@ -52,5 +52,6 @@ router.use("/ecom", ecomRoute)
 router.use("/order", orderRoute)
 router.use("/payment", paymentRoute)
 router.use("/notification",notificationRoute )
+router.use("/quotation",quotationRoute )
 
 export default router;

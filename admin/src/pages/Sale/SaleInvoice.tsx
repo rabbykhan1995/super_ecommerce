@@ -91,7 +91,7 @@ const SaleInvoice = () => {
               <>  {row.soldQty} {row.product.unit.name}</>
 
             ),
-            className: "w-10 text-center",
+            className: "text-center",
             headerClassName: "text-center"
           },
           {
@@ -100,7 +100,7 @@ const SaleInvoice = () => {
               <>  {Helper.formatLongNumber(row.salePrice)}</>
 
             ),
-            className: "w-10 text-center",
+            className: "text-center",
             headerClassName: "text-center"
           },
           {
@@ -109,7 +109,7 @@ const SaleInvoice = () => {
               <>  {Helper.formatLongNumber(row.soldQty * row.salePrice)} </>
 
             ),
-            className: "w-10 text-end",
+            className: "text-end",
             headerClassName: "text-right"
           },
 
