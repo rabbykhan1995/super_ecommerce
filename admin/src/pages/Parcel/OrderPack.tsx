@@ -323,7 +323,7 @@ export default function OrderPack() {
         </div>
         <div>
           <span className="text-xs text-gray-500">Customer</span>
-          <p className="font-medium">{order.user?.name || "N/A"}</p>
+          <p className="font-medium">{order.contact?.name || "N/A"}</p>
         </div>
         <div>
           <span className="text-xs text-gray-500">Shipping Address</span>

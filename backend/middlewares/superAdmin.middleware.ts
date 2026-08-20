@@ -21,7 +21,7 @@ export const superAdminMiddleware = async (
     const [row] = await db
       .select({ isSuperAdmin: roles.isSuperAdmin })
       .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleId, roles.id))
+      .innerJoin(roles, eq(userRoles.roleID, roles.id))
       .where(eq(userRoles.userID, req.user.id)); // <-- userID na, userID (schema te camelCase 'userID')
 
     if (!row?.isSuperAdmin) {

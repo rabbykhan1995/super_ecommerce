@@ -1,19 +1,28 @@
-export interface CreateRoleInput {
-  name: string;
-  description?: string;
-  permissionIds?: string[];
-}
+import z from "zod";
+import { assignPermissionToRoleSchema, createRoleSchema, removePermissionFromRoleSchema, updateRoleSchema } from "./admin.validator";
+
+
+
+
+export type  CreateRoleInput = z.infer<typeof createRoleSchema>;
+
+export type  UpdateRoleInput = z.infer<typeof updateRoleSchema>;
+
+export type AssignPermissionToRoleInput = z.infer<typeof assignPermissionToRoleSchema>
+
+export type RemovePermissionFromRoleInput = z.infer<typeof removePermissionFromRoleSchema>
+
 
 export interface UpdateRolePermissionsInput {
-  permissionIds: string[];
+  permissionIDs: string[];
 }
 
 export interface AssignUserRoleInput {
-  userId: string;
-  roleId: string;
+  userID: string;
+  roleID: string;
 }
 
 export interface RemoveUserRoleInput {
-  userId: string;
-  roleId: string;
+  userID: string;
+  roleID: string;
 }

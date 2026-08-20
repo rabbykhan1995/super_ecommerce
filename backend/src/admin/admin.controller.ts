@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { AdminService } from "./admin.service";
+import { AuthService } from "../auth/auth.service";
 
 export class AdminController {
   static async listPermissions(req: Request, res: Response) {
@@ -15,6 +16,24 @@ export class AdminController {
       msg: "Role created successfully",
     });
   }
+  static async updateRole(req: Request, res: Response) {
+    const { roleID } = req.params;
+    const role = await AdminService.updateRole(roleID.toString(), req.body);
+    res.status(201).json({
+      success: true,
+      data: role,
+      msg: "Role updated successfully",
+    });
+  }
+
+  static async assignRolePermission(req: Request, res: Response) {
+    await AdminService.assignPermissionToRole(req.body);
+    res.status(201).json({
+      success: true,
+      msg: "Assigned Role Permission successfully",
+    });
+  }
+
 
   static async listRoles(req: Request, res: Response) {
     const allRoles = await AdminService.listRoles();
@@ -22,19 +41,11 @@ export class AdminController {
   }
 
   static async getRoleById(req: Request, res: Response) {
-    const { id } = req.params;
-    const role = await AdminService.getRoleById(id as string);
+    const { roleID } = req.params;
+    const role = await AdminService.getRoleById(roleID as string);
     res.status(200).json({ success: true, data: role });
   }
 
-  static async updateRolePermissions(req: Request, res: Response) {
-    const { id } = req.params;
-    await AdminService.updateRolePermissions(id as string, req.body);
-    res.status(200).json({
-      success: true,
-      msg: "Role permissions updated successfully",
-    });
-  }
 
   static async deleteRole(req: Request, res: Response) {
     const { id } = req.params;
@@ -62,8 +73,25 @@ export class AdminController {
   }
 
   static async getUserRoles(req: Request, res: Response) {
-    const { userId } = req.params;
-    const userRolesData = await AdminService.getUserRoles(userId as string);
+    const { userID } = req.params;
+    const userRolesData = await AdminService.getUserRoles(userID as string);
     res.status(200).json({ success: true, data: userRolesData });
+  }
+  static async getAllStaff(req: Request, res: Response) {
+
+    const data = await AdminService.getAllStaff();
+    res.status(200).json({ success: true, data: data });
+  }
+
+  static async createStaff(req: Request, res: Response) {
+
+    const data = await AuthService.createStaff(req.body);
+    res.status(201).json({ success: true, data: data, msg: "Staff created successfully" });
+  }
+
+  static async updateStaff(req: Request, res: Response) {
+    const { staffID } = req.params;
+    const data = await AuthService.updateStaff(staffID.toString(), req.body);
+    res.status(201).json({ success: true, data: data, msg: "Staff updated successfully" });
   }
 }

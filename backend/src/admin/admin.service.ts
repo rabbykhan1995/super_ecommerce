@@ -1,9 +1,13 @@
 import { ApiError } from "../../utils/ApiError";
+import { AuthService } from "../auth/auth.service";
 import { AdminRepository } from "./admin.repository";
 import {
+  AssignPermissionToRoleInput,
   AssignUserRoleInput,
   CreateRoleInput,
+  RemovePermissionFromRoleInput,
   RemoveUserRoleInput,
+  UpdateRoleInput,
   UpdateRolePermissionsInput,
 } from "./admin.type";
 
@@ -13,7 +17,7 @@ export class AdminService {
   }
 
   static async createRole(input: CreateRoleInput) {
-    const { name, description, permissionIds } = input;
+    const { name, description } = input;
 
     const existingRole = await AdminRepository.findRoleByName(name);
     if (existingRole.length > 0) {
@@ -26,16 +30,64 @@ export class AdminService {
       isSuperAdmin: false,
     });
 
-    if (permissionIds && permissionIds.length > 0) {
-      const rolePermissionValues = permissionIds.map((permissionId) => ({
-        roleId: role.id,
-        permissionId,
-      }));
-      await AdminRepository.createRolePermissions(rolePermissionValues);
-    }
 
     return role;
   }
+  static async updateRole(
+    roleID: string,
+    input: UpdateRoleInput
+  ) {
+    if (!!input.name) {
+      const existingRole = await AdminRepository.findRoleByName(input.name);
+
+      if (
+        existingRole.length > 0 &&
+        existingRole[0].id !== roleID
+      ) {
+        throw new ApiError(
+          400,
+          "Role with this name already exists"
+        );
+      }
+    }
+
+    const role = await AdminRepository.updateRole(roleID, {
+      ...(!!input.name && {
+        name: input.name,
+      }),
+
+      ...(input.description && {
+        description: input.description,
+      }),
+    });
+
+    return role;
+  }
+
+  static async assignPermissionToRole(input: AssignPermissionToRoleInput) {
+
+    const { roleID, permissionIDs } = input;
+
+    const role = await AdminRepository.findRoleBasicById(roleID);
+    if (!role) {
+      throw new ApiError(404, "Role not found");
+    }
+
+    if (role.isSuperAdmin) {
+      throw new ApiError(400, "Cannot modify super admin role");
+    }
+
+    await AdminRepository.deleteRolePermissionsByRoleId(roleID);
+
+    if (permissionIDs && permissionIDs.length > 0) {
+      const rolePermissionValues = permissionIDs.map((permissionID) => ({
+        roleID: roleID,
+        permissionID,
+      }));
+      await AdminRepository.assignRolePermissions(rolePermissionValues);
+    }
+  }
+
 
   static async listRoles() {
     return AdminRepository.findAllRoles();
@@ -49,31 +101,7 @@ export class AdminService {
     return role;
   }
 
-  static async updateRolePermissions(
-    id: string,
-    input: UpdateRolePermissionsInput
-  ) {
-    const { permissionIds } = input;
 
-    const role = await AdminRepository.findRoleBasicById(id);
-    if (!role) {
-      throw new ApiError(404, "Role not found");
-    }
-
-    if (role.isSuperAdmin) {
-      throw new ApiError(400, "Cannot modify super admin role");
-    }
-
-    await AdminRepository.deleteRolePermissionsByRoleId(id);
-
-    if (permissionIds && permissionIds.length > 0) {
-      const rolePermissionValues = permissionIds.map((permissionId) => ({
-        roleId: id,
-        permissionId,
-      }));
-      await AdminRepository.createRolePermissions(rolePermissionValues);
-    }
-  }
 
   static async deleteRole(id: string) {
     const role = await AdminRepository.findRoleBasicById(id);
@@ -97,41 +125,45 @@ export class AdminService {
   }
 
   static async assignUserRole(input: AssignUserRoleInput) {
-    const { userId, roleId } = input;
+    const { userID, roleID } = input;
 
-    const user = await AdminRepository.findUserById(userId);
+    const user = await AdminRepository.findUserById(userID);
     if (!user) {
       throw new ApiError(404, "User not found");
     }
 
-    const role = await AdminRepository.findRoleBasicById(roleId);
+    const role = await AdminRepository.findRoleBasicById(roleID);
     if (!role) {
       throw new ApiError(404, "Role not found");
     }
 
     await AdminRepository.assignUserRole({
-      userID: userId,
-      roleId: roleId,
+      userID: userID,
+      roleID: roleID,
     });
   }
 
   static async removeUserRole(input: RemoveUserRoleInput) {
-    const { userId, roleId } = input;
+    const { userID, roleID } = input;
 
-    const userRole = await AdminRepository.findUserRole(userId, roleId);
+    const userRole = await AdminRepository.findUserRole(userID, roleID);
     if (userRole.length === 0) {
       throw new ApiError(404, "User-role assignment not found");
     }
 
-    await AdminRepository.removeUserRole(userId, roleId);
+    await AdminRepository.removeUserRole(userID, roleID);
   }
 
-  static async getUserRoles(userId: string) {
-    const user = await AdminRepository.findUserById(userId);
+  static async getUserRoles(userID: string) {
+    const user = await AdminRepository.findUserById(userID);
     if (!user) {
       throw new ApiError(404, "User not found");
     }
 
-    return AdminRepository.findUserRolesByUserId(userId);
+    return AdminRepository.findUserRolesByUserId(userID);
+  }
+
+  static async getAllStaff(){
+    return await AuthService.getAllStaff();
   }
 }

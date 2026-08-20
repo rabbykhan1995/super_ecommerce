@@ -35,11 +35,11 @@ export const authorize = (requiredPermission: string) => {
 
       const userRoleRows = await db
         .select({
-          roleId: roles.id,
+          roleID: roles.id,
           isSuperAdmin: roles.isSuperAdmin,
         })
         .from(userRoles)
-        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .innerJoin(roles, eq(userRoles.roleID, roles.id))
         .where(eq(userRoles.userID, userID));
 
       if (userRoleRows.length === 0) {
@@ -57,13 +57,13 @@ export const authorize = (requiredPermission: string) => {
         return next();
       }
 
-      const roleIds = userRoleRows.map((r) => r.roleId);
+      const roleIDs = userRoleRows.map((r) => r.roleID);
 
       const permissionRows = await db
         .select({ name: permissions.name })
         .from(rolePermissions)
-        .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-        .where(inArray(rolePermissions.roleId, roleIds));
+        .innerJoin(permissions, eq(rolePermissions.permissionID, permissions.id))
+        .where(inArray(rolePermissions.roleID, roleIDs));
 
       const hasPermission = permissionRows.some(
         (p) => p.name === requiredPermission,

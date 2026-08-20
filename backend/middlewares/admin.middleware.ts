@@ -20,7 +20,7 @@ export const adminMiddleware = async (
     const [row] = await db
       .select({ roleId: roles.id })
       .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleId, roles.id))
+      .innerJoin(roles, eq(userRoles.roleID, roles.id))
       .where(eq(userRoles.userID, req.user.id));
 
     if (!row) {

@@ -213,6 +213,11 @@ export const AdminRoutes: NavItem[] = [
                 name: "Flash Products",
                 link: "/ecom/flash-products/",
                 icon: <Scroll size={16} />,
+            },
+            {
+                name: "All Users",
+                link: "/ecom/all-users-list/",
+                icon: <Scroll size={16} />,
             }
 
         ],
@@ -334,6 +339,24 @@ export const AdminRoutes: NavItem[] = [
 
         ],
 
+    },
+
+        {
+        name: "HRM",
+        icon: <PackageX size={18} />,
+        subItems: [
+            {
+                name: "Stuffs",
+                link: "/hrm/stuffs/",
+                icon: <SquarePlus size={16} />,
+            },
+                {
+                name: "Roles",
+                link: "/hrm/roles/",
+                icon: <SquarePlus size={16} />,
+            }
+
+        ],
     },
 
 ];

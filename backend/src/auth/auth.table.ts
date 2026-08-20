@@ -1,15 +1,16 @@
 import {
   boolean,
+  pgSequence,
   pgTable,
   timestamp,
   uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { contactTable } from "../contact/contact.table";
-import { nullable } from "zod";
 import { notificationTable } from "../notification/notification.table";
+import { integer } from "drizzle-orm/pg-core";
 
 /* ===========================
    Users
@@ -56,7 +57,10 @@ export const userTable = pgTable(
 /* ===========================
    Staff Profiles
 =========================== */
-
+export const employeCodeSeq = pgSequence("employe_code_seq", {
+  startWith: 100001,
+  increment: 1,
+});
 export const staffProfiles = pgTable("staff_profiles", {
   id: uuid("id").defaultRandom().primaryKey(),
 
@@ -67,9 +71,10 @@ export const staffProfiles = pgTable("staff_profiles", {
       onDelete: "cascade",
     }),
 
-  employeeCode: varchar("employee_code", { length: 50 })
-    .notNull()
-    .unique(),
+  employeeCode: integer("employee_code")
+        .default(sql`nextval('employe_code_seq')`)
+        .notNull()
+        .unique(),
 
   designation: varchar("designation", { length: 100 }),
 
@@ -119,7 +124,7 @@ export const userRoles = pgTable(
         onDelete: "cascade",
       }),
 
-    roleId: uuid("role_id")
+    roleID: uuid("role_id")
       .notNull()
       .references(() => roles.id, {
         onDelete: "cascade",
@@ -134,7 +139,7 @@ export const userRoles = pgTable(
   (table) => [
     uniqueIndex("unique_user_role").on(
       table.userID,
-      table.roleId,
+      table.roleID,
     ),
   ]
 );
@@ -185,11 +190,11 @@ export const rolePermissions = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
 
-    roleId: uuid("role_id")
+    roleID: uuid("role_id")
       .notNull()
       .references(() => roles.id, { onDelete: "cascade" }),
 
-    permissionId: uuid("permission_id")
+    permissionID: uuid("permission_id")
       .notNull()
       .references(() => permissions.id, { onDelete: "cascade" }),
 
@@ -199,8 +204,8 @@ export const rolePermissions = pgTable(
   },
   (table) => [
     uniqueIndex("unique_role_permission").on(
-      table.roleId,
-      table.permissionId,
+      table.roleID,
+      table.permissionID,
     ),
   ],
 );
@@ -212,7 +217,7 @@ export const userRoleRelations = relations(userRoles, ({ one }) => ({
   }),
 
   role: one(roles, {
-    fields: [userRoles.roleId],
+    fields: [userRoles.roleID],
     references: [roles.id],
   }),
 }));
@@ -231,11 +236,11 @@ export const rolePermissionRelations = relations(
   rolePermissions,
   ({ one }) => ({
     role: one(roles, {
-      fields: [rolePermissions.roleId],
+      fields: [rolePermissions.roleID],
       references: [roles.id],
     }),
     permission: one(permissions, {
-      fields: [rolePermissions.permissionId],
+      fields: [rolePermissions.permissionID],
       references: [permissions.id],
     }),
   }),

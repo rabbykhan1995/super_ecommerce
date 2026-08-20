@@ -3,13 +3,16 @@ import { validate } from "../../middlewares/validation.middleware";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 import { authorize } from "../../middlewares/rbac.middleware";
-import { AdminController } from "./role.controller";
+import { AdminController } from "./admin.controller";
 import {
   createRoleSchema,
-  updateRolePermissionsSchema,
   assignUserRoleSchema,
   removeUserRoleSchema,
+  assignPermissionToRoleSchema,
+  removePermissionFromRoleSchema,
+  updateRoleSchema,
 } from "./admin.validator";
+import { createStaffProfileSchema, updateStaffProfileSchema } from "../auth/auth.validator";
 
 const router = Router();
 
@@ -23,37 +26,47 @@ router.get(
 
 // Roles CRUD
 router.post(
-  "/create",
+  "/create-role",
   authMiddleware,
   authorize("role:create"),
   validate(createRoleSchema),
   asyncHandler(AdminController.createRole)
 );
 
+// Roles CRUD
+router.post(
+  "/update-role/:roleID",
+  authMiddleware,
+  authorize("role:update"),
+  validate(updateRoleSchema),
+  asyncHandler(AdminController.updateRole)
+);
+
+router.post(
+  "/assign-role-permissions",
+  authMiddleware,
+  authorize("role:update"),
+  validate(assignPermissionToRoleSchema),
+  asyncHandler(AdminController.assignRolePermission)
+);
+
 router.get(
-  "/list",
+  "/role-list",
   authMiddleware,
   authorize("role:read"),
   asyncHandler(AdminController.listRoles)
 );
 
 router.get(
-  "/:id",
+  "/role-permissions/:roleID",
   authMiddleware,
   authorize("role:read"),
   asyncHandler(AdminController.getRoleById)
 );
 
-router.put(
-  "/:id/permissions",
-  authMiddleware,
-  authorize("role:update"),
-  validate(updateRolePermissionsSchema),
-  asyncHandler(AdminController.updateRolePermissions)
-);
 
 router.delete(
-  "/:id",
+  "/role-delete/:id",
   authMiddleware,
   authorize("role:delete"),
   asyncHandler(AdminController.deleteRole)
@@ -61,7 +74,7 @@ router.delete(
 
 // User-Role Assignment
 router.post(
-  "/assign-user",
+  "/role/assign-user",
   authMiddleware,
   authorize("role:assign"),
   validate(assignUserRoleSchema),
@@ -69,7 +82,7 @@ router.post(
 );
 
 router.post(
-  "/remove-user",
+  "/role/remove-user",
   authMiddleware,
   authorize("role:assign"),
   validate(removeUserRoleSchema),
@@ -77,10 +90,33 @@ router.post(
 );
 
 router.get(
-  "/user/:userId/roles",
+  "/user/:userID/roles",
   authMiddleware,
   authorize("role:read"),
   asyncHandler(AdminController.getUserRoles)
+);
+
+router.get(
+  "/get-all-staff",
+  authMiddleware,
+  authorize(""),
+  asyncHandler(AdminController.getAllStaff)
+);
+
+router.post(
+  "/create-staff",
+  authMiddleware,
+  authorize(""),
+  validate(createStaffProfileSchema),
+  asyncHandler(AdminController.createStaff)
+);
+
+router.post(
+  "/update-staff/:staffID",
+  authMiddleware,
+  authorize(""),
+  validate(updateStaffProfileSchema),
+  asyncHandler(AdminController.updateStaff)
 );
 
 export default router;

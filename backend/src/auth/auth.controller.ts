@@ -112,6 +112,15 @@ export class AuthController {
       .json({ msg: "user logged out successfully", success: true });
   }
 
+    static async allUsersList(req: Request, res: Response) {
+
+    const result = await AuthService.allUsersList(req.query);
+
+    return res
+      .status(200)
+      .json({ success: true, data:result });
+  }
+
   static async deviceLogout(req: Request, res: Response) {
     // Mobile app theke pathano hobe (local storage e already save kora deviceID)
     // Web/browser theke logout korle deviceID undefined thakbe - eta normal, শুধু skip hobe

@@ -78,11 +78,11 @@ async function seed() {
     // 4. Assign role to user
     const existingUserRole = await db.query.userRoles.findFirst({
       where: (ur, { and, eq }) =>
-        and(eq(ur.userID, userId), eq(ur.roleId, roleId)),
+        and(eq(ur.userID, userId), eq(ur.roleID, roleId)),
     });
 
     if (!existingUserRole) {
-      await db.insert(userRoles).values({ userID: userId, roleId });
+      await db.insert(userRoles).values({ userID: userId, roleID: roleId });
       console.log("Super Admin role assigned to user.");
     } else {
       console.log("Super Admin role already assigned to user.");

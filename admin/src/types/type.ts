@@ -741,3 +741,42 @@ lastStatus:OrderStatus;
     mobile: string | null;
   };
 };
+
+
+export type User = {
+ id: string;
+ name: string;
+ createdAt: Date;
+ updatedAt: Date;
+ openID: string | null;
+ image: string | null;
+ email: string | null;
+ mobile: string | null;
+ address: string | null;
+ contact?:Contact
+}
+
+export type Role = {
+ name: string;
+ id: string ;
+ isSuperAdmin?: boolean | undefined;
+ description?: string;
+}
+
+export type Permissions = {
+ id: string;
+ name: string;
+ description: string;
+ createdAt: Date;
+}
+
+export type StaffProfile = {
+ id: string;
+ createdAt: Date;
+ updatedAt: Date;
+ userID: string;
+ employeeCode: number;
+ designation: string | null;
+ department: string | null;
+ user?: User;
+}

@@ -5,7 +5,7 @@ import { ApiError } from "../../utils/ApiError";
 import { generateEmailTemplate } from "../../utils/emailTemplate";
 import Helper from "../../utils/helper";
 import { AuthRepository } from "./auth.repository";
-import { AdminLoginInput, AdminUserWithRoles, CreateUserInput, PasswordResetInput, User, UserLoginInput } from "./auth.type";
+import { AdminLoginInput, AdminUserWithRoles, CreateStaffInput, CreateUserInput, PasswordResetInput, UpdateStaffInput, User, UserLoginInput } from "./auth.type";
 import ContactService from "../contact/contact.service";
 import { withTransaction } from "../../utils/withTransaction";
 import db from "../../drizzle/src";
@@ -457,6 +457,16 @@ export class AuthService {
 
   }
 
+
+  static async allUsersList(query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) {
+    const result = await AuthRepository.allUserslist(query);
+
+    return result;
+  }
   // ===========================
   // Admin / Staff Auth
   // ===========================
@@ -621,7 +631,43 @@ export class AuthService {
 
 
 
-  static async findUserByID(userID:any){
+  static async findUserByID(userID: any) {
     return await AuthRepository.findByID(userID);
   }
+
+    static async getAllStaff() {
+    return await AuthRepository.allStuff();
+  }
+
+
+  static async createStaff(input: CreateStaffInput) {
+  const staff = await AuthRepository.createStaff({
+    userID: input.userID,
+    designation: input.designation ?? null,
+    department: input.department ?? null,
+  });
+
+  return staff;
+}
+
+static async updateStaff(
+  staffID: string,
+  input: UpdateStaffInput
+) {
+  const staff = await AuthRepository.updateStaff(staffID, {
+    ...(input.userID !== undefined && {
+      userID: input.userID,
+    }),
+
+    ...(input.designation !== undefined && {
+      designation: input.designation,
+    }),
+
+    ...(input.department !== undefined && {
+      department: input.department,
+    }),
+  });
+
+  return staff;
+}
 }

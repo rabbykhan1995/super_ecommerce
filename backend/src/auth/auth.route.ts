@@ -4,6 +4,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { AuthController } from "./auth.controller";
 import { validate } from "../../middlewares/validation.middleware";
 import { authMiddleware } from "../../middlewares/auth.middleware";
+import { adminMiddleware } from "../../middlewares/admin.middleware";
 
 const router = express.Router();
 
@@ -24,6 +25,11 @@ router
   .post("/send-forget-password-otp", asyncHandler(AuthController.sendForgetPasswordOTP))
   .post("/reset-password", validate(passwordResetSchema), asyncHandler(AuthController.resetPassword))
   .post("/checkout-mobile",authMiddleware ,validate(checkoutMobileSchema), asyncHandler(AuthController.checkOutMobile))
+  .get("/all-users-list", authMiddleware,adminMiddleware, asyncHandler(AuthController.allUsersList))
+    
+   
+
+
 // ===========================
 // Customer Google OAuth
 // ===========================

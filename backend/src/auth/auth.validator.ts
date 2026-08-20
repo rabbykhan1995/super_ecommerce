@@ -119,3 +119,42 @@ export const passwordResetSchema = z.object({
     .max(6, "OTP must be 6 digits")
     .regex(/^\d+$/, "OTP must contain only numbers"),
 });
+
+
+export const createStaffProfileSchema = z.object({
+  userID: z.string().uuid("Invalid user ID"),
+
+  designation: z
+    .string()
+    .max(100, "Designation must be at most 100 characters")
+    .nullable()
+    .optional(),
+
+  department: z
+    .string()
+    .max(100, "Department must be at most 100 characters")
+    .nullable()
+    .optional(),
+});
+
+
+export const updateStaffProfileSchema = z.object({
+  userID: z
+    .string()
+    .uuid("Invalid user ID")
+    .optional(),
+
+
+
+  designation: z
+    .string()
+    .max(100, "Designation must be at most 100 characters")
+    .nullable()
+    .optional(),
+
+  department: z
+    .string()
+    .max(100, "Department must be at most 100 characters")
+    .nullable()
+    .optional(),
+});

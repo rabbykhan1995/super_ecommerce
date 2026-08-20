@@ -54,6 +54,10 @@ import OrderListInEcommerce from "../pages/Ecommerce/OrderList";
 import OrderListInOrders  from "../pages/Orders/OrderList";
 import PendingParcels from "../pages/Parcel/PendingParcel";
 import CreateOrder from "../pages/Orders/CreateOrder";
+import EcomUserList from "../pages/Ecommerce/EcomUserList";
+import Stuffs from "../pages/HRM/Stuffs";
+import Roles from "../pages/HRM/Roles";
+
 
 export const router = createBrowserRouter([
 
@@ -356,8 +360,26 @@ export const router = createBrowserRouter([
           },{
             path: "flash-products",
             Component: FlashProduct,
+          },{
+            path: "all-users-list",
+            Component: EcomUserList,
           },
 
+        ],
+      },
+
+                 // Ecommerce
+      {
+        path: "hrm",
+        children: [
+          {
+            path: "stuffs",
+            Component: Stuffs,
+          },
+    {
+            path: "roles",
+            Component: Roles,
+          },
         ],
       },
 

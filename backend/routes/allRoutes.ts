@@ -19,7 +19,7 @@ import reportRoute from "../src/report/report.route"
 import expenseRoute from "../src/expense/expense.route"
 import quotationRoute from "../src/quotation/quotation.route"
 import cartRoute from "../src/cart/cart.route"
-import adminRoute from "../src/admin/role.route"
+import adminRoute from "../src/admin/admin.route"
 import parcelRoute from "../src/parcel/parcel.route"
 import ecomRoute from "../src/ecom/ecom.route"
 import orderRoute from "../src/order/order.route"
@@ -45,7 +45,7 @@ router.use("/warranty", warrantyRoute)
 router.use("/report", reportRoute)
 router.use("/expense", expenseRoute)
 router.use("/cart", cartRoute)
-router.use("/admin/role", adminRoute)
+router.use("/admin", adminRoute)
 router.use("/parcel", parcelRoute)
 router.use("/image", imageRoute)
 router.use("/ecom", ecomRoute)

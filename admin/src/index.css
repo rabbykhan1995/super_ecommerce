@@ -100,7 +100,7 @@ input[type="number"] {
 }
 
 .global_th {
-  @apply px-3 py-2 lg:py-3 bg-[#343A3F]  text-xs font-[600] text-[#ccc] uppercase tracking-wider border border-gray-300 dark:border-gray-700;
+  @apply px-1 py-2 lg:py-3 bg-[#343A3F]  text-xs font-[600] text-[#ccc] uppercase tracking-wider border border-gray-300 dark:border-gray-700;
 }
 
 .global_thead {
