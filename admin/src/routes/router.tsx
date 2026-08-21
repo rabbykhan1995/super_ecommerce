@@ -1,78 +1,54 @@
 import { createBrowserRouter } from "react-router";
-import RootLayout from "../layouts/RootLayout";
-import Dashboard from "../pages/Dashboard/Dashboard";
-import NewProduct from "../pages/Product/NewProduct";
-import ProductList from "../pages/Product/ProductList";
-import Brand from "../pages/Product/Brand";
-import Unit from "../pages/Product/Unit";
-import Category from "../pages/Product/Category";
-import EditProduct from "../pages/Product/EditProduct";
+import type { ComponentType } from "react";
 import PrivateRoute from "./PrivateRoute";
-import Login from "../pages/Auth/Login";
-import Registration from "../pages/Auth/Register";
-import GoogleCallback from "../pages/Auth/GoogleCallback";
-import NewPurchase from "../pages/Purchase/NewPurchase";
-import PurchaseList from "../pages/Purchase/PurchaseList";
-import EditPurchase from "../pages/Purchase/EditPurchase";
-import PurchaseReturn from "../pages/Purchase/PurchaseReturn";
-import PurchaseReturnList from "../pages/Purchase/PurchaseReturnList";
-import Customer from "../pages/Contact/Customer";
-import Supplier from "../pages/Contact/Supplier";
-import SupplierLedger from "../pages/Contact/SupplierLedger";
-import CustomerLedger from "../pages/Contact/CustomerLedger";
-import Account from "../pages/Account/Account";
-import PurchaseInvoice from "../pages/Purchase/PurchaseInvoice";
-import NewSale from "../pages/Sale/NewSale";
-import SaleList from "../pages/Sale/SaleList";
-import SaleInvoice from "../pages/Sale/SaleInvoice";
-import Transactions from "../pages/Account/Transactions";
-import PaymentDetails from "../pages/PaymentDetails/PaymentDetails";
-import SaleReturn from "../pages/Sale/SaleReturn";
-import SaleReturnList from "../pages/Sale/SaleReturnList";
-import CreateDamage from "../pages/Damage/CreateDamage";
-import DamageList from "../pages/Damage/DamageList";
-import PosProducts from "../pages/Product/PosProducts";
-import WarrantyList from "../pages/Warranty/WarrantyList";
-import FifoSale from "../pages/Sale/FifoSale";
-import ExpenseTypes from "../pages/Expense/ExpenseTypes";
-import NewExpense from "../pages/Expense/NewExpense";
-import ExpenseList from "../pages/Expense/ExpenseList";
-import NewSaleQuotation from "../pages/quotation/NewSaleQuotation";
-import SaleQuotationList from "../pages/quotation/SaleQuotationList";
-import GenerateBarcode from "../pages/Barcode/GenerateBarcode";
-import SaleQuotationInvoice from "../pages/quotation/SaleQuotationInvoice";
-import CreateParcel from "../pages/Parcel/CreateParcel";
-import OrderPack from "../pages/Parcel/OrderPack";
-import ParcelList from "../pages/Parcel/ParcelList";
-import EcomProductList from "../pages/Ecommerce/EcomProductList";
-import EditEcomProduct from "../pages/Ecommerce/EditEcomProduct";
-import Banner from "../pages/Ecommerce/Banner";
-import FeatureProduct from "../pages/Ecommerce/FeatureProduct";
-import FlashSale from "../pages/Ecommerce/FlashSale";
-import FlashProduct from "../pages/Ecommerce/FlashProduct";
-import OrderListInEcommerce from "../pages/Ecommerce/OrderList";
-import OrderListInOrders from "../pages/Orders/OrderList";
-import PendingParcels from "../pages/Parcel/PendingParcel";
-import CreateOrder from "../pages/Orders/CreateOrder";
-import EcomUserList from "../pages/Ecommerce/EcomUserList";
-import Stuffs from "../pages/HRM/Stuffs";
-import Roles from "../pages/HRM/Roles";
 import PermissionRoute from "./PermissionRoute";
 
+type PageLoader = () => Promise<{ default: ComponentType }>;
 
-export const router = createBrowserRouter([
+const lazyPage =
+  (load: PageLoader) =>
+  async () => {
+    const { default: Component } = await load();
+    return { Component };
+  };
 
-  {
-    path: "/",
-    element: (
+const lazyProtectedPage =
+  (permission: string, load: PageLoader) =>
+  async () => {
+    const { default: Page } = await load();
+    return {
+      Component: () => (
+        <PermissionRoute permission={permission}>
+          <Page />
+        </PermissionRoute>
+      ),
+    };
+  };
+
+const lazyRootLayout = async () => {
+  const { default: RootLayout } = await import("../layouts/RootLayout");
+  return {
+    HydrateFallback: () => (
+      <div className="flex min-h-screen items-center justify-center bg-white dark:bg-gray-900">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-indigo-600" />
+      </div>
+    ),
+    Component: () => (
       <PrivateRoute>
-        <RootLayout></RootLayout>
+        <RootLayout />
       </PrivateRoute>
     ),
+  };
+};
+
+export const router = createBrowserRouter([
+  {
+    path: "/",
+    lazy: lazyRootLayout,
     children: [
       {
         index: true,
-        Component: Dashboard,
+        lazy: lazyPage(() => import("../pages/Dashboard/Dashboard")),
       },
       // Contact
       {
@@ -80,38 +56,33 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "customer",
-            element: (
-              <PermissionRoute permission="contact:read">
-                <Customer />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "contact:read",
+              () => import("../pages/Contact/Customer")
             ),
           },
           {
             path: "supplier",
-            element: (
-              <PermissionRoute permission="contact:read">
-                <Supplier />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "contact:read",
+              () => import("../pages/Contact/Supplier")
             ),
           },
 
           {
             path: "supplier-ledger/:id",
-            element: (
-              <PermissionRoute permission="ledger:read">
-                <SupplierLedger />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "ledger:read",
+              () => import("../pages/Contact/SupplierLedger")
             ),
           },
           {
             path: "customer-ledger/:id",
-            element: (
-              <PermissionRoute permission="ledger:read">
-                <CustomerLedger />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "ledger:read",
+              () => import("../pages/Contact/CustomerLedger")
             ),
           },
-
         ],
       },
       // product
@@ -120,82 +91,72 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "new",
-            element: (
-              <PermissionRoute permission="product:create">
-                <NewProduct />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "product:create",
+              () => import("../pages/Product/NewProduct")
             ),
           },
           {
             path: "list",
-            element: (
-              <PermissionRoute permission="product:read">
-                <ProductList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "product:read",
+              () => import("../pages/Product/ProductList")
             ),
           },
           {
             path: "edit/:id",
-            element: (
-              <PermissionRoute permission="product:update">
-                <EditProduct />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "product:update",
+              () => import("../pages/Product/EditProduct")
             ),
           },
           {
             path: "brand",
-            element: (
-              <PermissionRoute permission="brand:read">
-                <Brand />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "brand:read",
+              () => import("../pages/Product/Brand")
             ),
           },
           {
             path: "unit",
-            element: (
-              <PermissionRoute permission="unit:read">
-                <Unit />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "unit:read",
+              () => import("../pages/Product/Unit")
             ),
           },
           {
             path: "category",
-            element: (
-              <PermissionRoute permission="category:read">
-                <Category />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "category:read",
+              () => import("../pages/Product/Category")
             ),
           },
           {
             path: "featured-products",
-            element: (
-              <PermissionRoute permission="featured-product:read">
-                <FeatureProduct />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "featured-product:read",
+              () => import("../pages/Ecommerce/FeatureProduct")
             ),
           },
           {
             path: "flash-sale",
-            element: (
-              <PermissionRoute permission="flash-sale:read">
-                <FlashSale />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "flash-sale:read",
+              () => import("../pages/Ecommerce/FlashSale")
             ),
           },
           {
             path: "flash-products",
-            element: (
-              <PermissionRoute permission="flash-sale:read">
-                <FlashProduct />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "flash-sale:read",
+              () => import("../pages/Ecommerce/FlashProduct")
             ),
           },
           {
             path: "pos-products",
-            element: (
-              <PermissionRoute permission="product:read">
-                <PosProducts />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "product:read",
+              () => import("../pages/Product/PosProducts")
             ),
           },
         ],
@@ -206,51 +167,46 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "new",
-            element: <PermissionRoute permission="purchase:create">
-              <NewPurchase />
-            </PermissionRoute>,
+            lazy: lazyProtectedPage(
+              "purchase:create",
+              () => import("../pages/Purchase/NewPurchase")
+            ),
           },
           {
             path: "list",
-            element: (
-              <PermissionRoute permission="purchase:read">
-                <PurchaseList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "purchase:read",
+              () => import("../pages/Purchase/PurchaseList")
             ),
           },
           {
             path: "edit/:id",
-            element: (
-              <PermissionRoute permission="purchase:update">
-                <EditPurchase />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "purchase:update",
+              () => import("../pages/Purchase/EditPurchase")
             ),
           },
           {
             path: "return/:id",
-            element: (
-              <PermissionRoute permission="purchase-return:create">
-                <PurchaseReturn />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "purchase-return:create",
+              () => import("../pages/Purchase/PurchaseReturn")
             ),
           },
           {
             path: "return-list",
-            element: (
-              <PermissionRoute permission="purchase-return:read">
-                <PurchaseReturnList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "purchase-return:read",
+              () => import("../pages/Purchase/PurchaseReturnList")
             ),
           },
           {
-            path: 'invoice/:id',
-            element: (
-              <PermissionRoute permission="purchase:read">
-                <PurchaseInvoice />
-              </PermissionRoute>
+            path: "invoice/:id",
+            lazy: lazyProtectedPage(
+              "purchase:read",
+              () => import("../pages/Purchase/PurchaseInvoice")
             ),
-          }
-
+          },
         ],
       },
 
@@ -260,53 +216,46 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "new",
-            element: (
-              <PermissionRoute permission="sale:create">
-                <NewSale />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "sale:create",
+              () => import("../pages/Sale/NewSale")
             ),
           },
           {
             path: "list",
-            element: (
-              <PermissionRoute permission="sale:read">
-                <SaleList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "sale:read",
+              () => import("../pages/Sale/SaleList")
             ),
           },
           {
             path: "return/:id",
-            element: (
-              <PermissionRoute permission="sale-return:create">
-                <SaleReturn />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "sale-return:create",
+              () => import("../pages/Sale/SaleReturn")
             ),
           },
           {
             path: "return-list",
-            element: (
-              <PermissionRoute permission="sale-return:read">
-                <SaleReturnList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "sale-return:read",
+              () => import("../pages/Sale/SaleReturnList")
             ),
           },
           {
-            path: 'invoice/:id',
-            element: (
-              <PermissionRoute permission="sale:read">
-                <SaleInvoice />
-              </PermissionRoute>
+            path: "invoice/:id",
+            lazy: lazyProtectedPage(
+              "sale:read",
+              () => import("../pages/Sale/SaleInvoice")
             ),
           },
           {
-            path: 'fifo-sale',
-            element: (
-              <PermissionRoute permission="sale:create">
-                <FifoSale />
-              </PermissionRoute>
+            path: "fifo-sale",
+            lazy: lazyProtectedPage(
+              "sale:create",
+              () => import("../pages/Sale/FifoSale")
             ),
-          }
-
+          },
         ],
       },
       // Account
@@ -315,29 +264,25 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "",
-            element: (
-              <PermissionRoute permission="account:read">
-                <Account />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "account:read",
+              () => import("../pages/Account/Account")
             ),
           },
           {
             path: "transaction/:id",
-            element: (
-              <PermissionRoute permission="transaction:read">
-                <Transactions />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "transaction:read",
+              () => import("../pages/Account/Transactions")
             ),
           },
           {
             path: "payment-details/:id",
-            element: (
-              <PermissionRoute permission="payment:read">
-                <PaymentDetails />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "payment:read",
+              () => import("../pages/PaymentDetails/PaymentDetails")
             ),
           },
-
         ],
       },
       // Damage
@@ -346,21 +291,18 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "create",
-            element: (
-              <PermissionRoute permission="damage:create">
-                <CreateDamage />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "damage:create",
+              () => import("../pages/Damage/CreateDamage")
             ),
           },
           {
             path: "list",
-            element: (
-              <PermissionRoute permission="damage:read">
-                <DamageList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "damage:read",
+              () => import("../pages/Damage/DamageList")
             ),
           },
-
         ],
       },
 
@@ -370,13 +312,11 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "list",
-            element: (
-              <PermissionRoute permission="warranty:read">
-                <WarrantyList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "warranty:read",
+              () => import("../pages/Warranty/WarrantyList")
             ),
-          }
-
+          },
         ],
       },
       // Expense
@@ -385,28 +325,25 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "create",
-            element: (
-              <PermissionRoute permission="expense:create">
-                <NewExpense />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "expense:create",
+              () => import("../pages/Expense/NewExpense")
             ),
           },
           {
             path: "list",
-            element: (
-              <PermissionRoute permission="expense:read">
-                <ExpenseList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "expense:read",
+              () => import("../pages/Expense/ExpenseList")
             ),
           },
           {
             path: "types",
-            element: (
-              <PermissionRoute permission="expense:read">
-                <ExpenseTypes />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "expense:read",
+              () => import("../pages/Expense/ExpenseTypes")
             ),
-          }
+          },
         ],
       },
       // Quotation
@@ -415,28 +352,25 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "create-sale-quotation",
-            element: (
-              <PermissionRoute permission="quotation:create">
-                <NewSaleQuotation />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "quotation:create",
+              () => import("../pages/quotation/NewSaleQuotation")
             ),
           },
           {
             path: "list/sale",
-            element: (
-              <PermissionRoute permission="quotation:read">
-                <SaleQuotationList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "quotation:read",
+              () => import("../pages/quotation/SaleQuotationList")
             ),
           },
           {
             path: "sale-quotation-invoice/:id",
-            element: (
-              <PermissionRoute permission="quotation:read">
-                <SaleQuotationInvoice />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "quotation:read",
+              () => import("../pages/quotation/SaleQuotationInvoice")
             ),
-          }
+          },
         ],
       },
       // Barcode
@@ -445,10 +379,9 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "barcode",
-            element: (
-              <PermissionRoute permission="product:read">
-                <GenerateBarcode />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "product:read",
+              () => import("../pages/Barcode/GenerateBarcode")
             ),
           },
         ],
@@ -459,18 +392,16 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "create",
-            element: (
-              <PermissionRoute permission="order:create">
-                <CreateOrder />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "order:create",
+              () => import("../pages/Orders/CreateOrder")
             ),
           },
           {
             path: "list",
-            element: (
-              <PermissionRoute permission="order:read">
-                <OrderListInOrders />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "order:read",
+              () => import("../pages/Orders/OrderList")
             ),
           },
         ],
@@ -481,33 +412,30 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "create",
-            element: (
-              <PermissionRoute permission="parcel:create">
-                <CreateParcel />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "parcel:create",
+              () => import("../pages/Parcel/CreateParcel")
             ),
           },
           {
             path: "order-pack/:id",
-            element: (
-              <PermissionRoute permission="parcel:pack">
-                <OrderPack />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "parcel:pack",
+              () => import("../pages/Parcel/OrderPack")
             ),
           },
           {
             path: "list",
-            element: (
-              <PermissionRoute permission="parcel:read">
-                <ParcelList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "parcel:read",
+              () => import("../pages/Parcel/ParcelList")
             ),
-          }, {
+          },
+          {
             path: "pending",
-            element: (
-              <PermissionRoute permission="parcel:read">
-                <PendingParcels />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "parcel:read",
+              () => import("../pages/Parcel/PendingParcel")
             ),
           },
         ],
@@ -518,65 +446,60 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "product-list",
-            element: (
-              <PermissionRoute permission="product:read">
-                <EcomProductList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "product:read",
+              () => import("../pages/Ecommerce/EcomProductList")
             ),
           },
           {
             path: "orders",
-            element: (
-              <PermissionRoute permission="order:read">
-                <OrderListInEcommerce />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "order:read",
+              () => import("../pages/Ecommerce/OrderList")
             ),
           },
           {
             path: "edit-product/:id",
-            element: (
-              <PermissionRoute permission="product:update">
-                <EditEcomProduct />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "product:update",
+              () => import("../pages/Ecommerce/EditEcomProduct")
             ),
           },
           {
             path: "banners",
-            element: (
-              <PermissionRoute permission="banner:read">
-                <Banner />
-              </PermissionRoute>
-            ),
-          }, {
-            path: "featured-products",
-            element: (
-              <PermissionRoute permission="featured-product:read">
-                <FeatureProduct />
-              </PermissionRoute>
-            ),
-          }, {
-            path: "flash-sale",
-            element: (
-              <PermissionRoute permission="flash-sale:read">
-                <FlashSale />
-              </PermissionRoute>
-            ),
-          }, {
-            path: "flash-products",
-            element: (
-              <PermissionRoute permission="flash-sale:read">
-                <FlashProduct />
-              </PermissionRoute>
-            ),
-          }, {
-            path: "all-users-list",
-            element: (
-              <PermissionRoute permission="user:read">
-                <EcomUserList />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "banner:read",
+              () => import("../pages/Ecommerce/Banner")
             ),
           },
-
+          {
+            path: "featured-products",
+            lazy: lazyProtectedPage(
+              "featured-product:read",
+              () => import("../pages/Ecommerce/FeatureProduct")
+            ),
+          },
+          {
+            path: "flash-sale",
+            lazy: lazyProtectedPage(
+              "flash-sale:read",
+              () => import("../pages/Ecommerce/FlashSale")
+            ),
+          },
+          {
+            path: "flash-products",
+            lazy: lazyProtectedPage(
+              "flash-sale:read",
+              () => import("../pages/Ecommerce/FlashProduct")
+            ),
+          },
+          {
+            path: "all-users-list",
+            lazy: lazyProtectedPage(
+              "user:read",
+              () => import("../pages/Ecommerce/EcomUserList")
+            ),
+          },
         ],
       },
 
@@ -586,36 +509,33 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "stuffs",
-            element: (
-              <PermissionRoute permission="user:read">
-                <Stuffs />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "user:read",
+              () => import("../pages/HRM/Stuffs")
             ),
           },
           {
             path: "roles",
-            element: (
-              <PermissionRoute permission="role:read">
-                <Roles />
-              </PermissionRoute>
+            lazy: lazyProtectedPage(
+              "role:read",
+              () => import("../pages/HRM/Roles")
             ),
           },
         ],
       },
-
     ],
   },
 
   {
     path: "/registration",
-    Component: Registration,
+    lazy: lazyPage(() => import("../pages/Auth/Register")),
   },
   {
     path: "/login",
-    Component: Login,
+    lazy: lazyPage(() => import("../pages/Auth/Login")),
   },
   {
     path: "/auth/callback",
-    Component: GoogleCallback,
+    lazy: lazyPage(() => import("../pages/Auth/GoogleCallback")),
   },
 ]);
