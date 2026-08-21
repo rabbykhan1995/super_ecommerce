@@ -1,26 +1,24 @@
 import type { StylesConfig } from "react-select";
 import type { SelectOption } from "../types/type";
 
-const isDark = () => document.documentElement.classList.contains("dark");
-
+// Colors are driven by CSS variables defined in index.css (:root / html.dark),
+// so selects restyle instantly on theme toggle without any re-render.
 export const getReactSelectStyles = <T extends { value: string; label: string } = SelectOption>(): StylesConfig<T> => {
-  const dark = isDark();
-
   return {
     menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-    input: (base) => ({ ...base, color: dark ? "#ffffff" : "#111827" }),
-    singleValue: (base) => ({ ...base, color: dark ? "#ffffff" : "#111827" }),
-    placeholder: (base) => ({ ...base, color: dark ? "#9ca3af" : "#6b7280" }),
+    input: (base) => ({ ...base, color: "var(--rs-text)" }),
+    singleValue: (base) => ({ ...base, color: "var(--rs-text)" }),
+    placeholder: (base) => ({ ...base, color: "var(--rs-placeholder)" }),
     control: (base) => ({
       ...base,
-      backgroundColor: dark ? "#343a3f" : "#ffffff",
-      borderColor: dark ? "#374151" : "#d1d5db",
+      backgroundColor: "var(--rs-control-bg)",
+      borderColor: "var(--rs-border)",
     }),
-    menu: (base) => ({ ...base, backgroundColor: dark ? "#343a3f" : "#ffffff" }),
+    menu: (base) => ({ ...base, backgroundColor: "var(--rs-menu-bg)" }),
     option: (base, state) => ({
       ...base,
-      backgroundColor: state.isFocused ? (dark ? "#374151" : "#e5e7eb") : "transparent",
-      color: dark ? "#ffffff" : "#111827",
+      backgroundColor: state.isFocused ? "var(--rs-option-focused-bg)" : "transparent",
+      color: "var(--rs-text)",
     }),
     indicatorSeparator: (base) => ({
       ...base,
@@ -33,22 +31,14 @@ export const getReactSelectStyles = <T extends { value: string; label: string } 
 export const smallReactStyle = <T,>(): StylesConfig<T, false> => ({
   control: (base) => ({
     ...base,
-    backgroundColor: document.documentElement.classList.contains("dark")
-      ? "#111827"
-      : "#ffffff",
-    borderColor: document.documentElement.classList.contains("dark")
-      ? "#374151"
-      : "#d1d5db",
-    color: document.documentElement.classList.contains("dark")
-      ? "#ffffff"
-      : "#111827",
+    backgroundColor: "var(--rs-sm-control-bg)",
+    borderColor: "var(--rs-border)",
+    color: "var(--rs-text)",
     minHeight: '30px', // optional: compact height
   }),
   menu: (base) => ({
     ...base,
-    backgroundColor: document.documentElement.classList.contains("dark")
-      ? "#374151"
-      : "#ffffff",
+    backgroundColor: "var(--rs-sm-menu-bg)",
     zIndex: 9999,
     fontSize: '11px'
   }),
@@ -56,35 +46,23 @@ export const smallReactStyle = <T,>(): StylesConfig<T, false> => ({
     ...base,
 
     backgroundColor: state.isFocused
-      ? document.documentElement.classList.contains("dark")
-        ? "#4b5563"
-        : "#f3f4f6"
-      : document.documentElement.classList.contains("dark")
-        ? "#374151"
-        : "#ffffff",
-    color: document.documentElement.classList.contains("dark")
-      ? "#ffffff"
-      : "#111827",
+      ? "var(--rs-sm-option-focused-bg)"
+      : "var(--rs-sm-option-bg)",
+    color: "var(--rs-text)",
     fontSize: '11px',
     padding: '2px 4px',
   }),
   input: (base) => ({
     ...base,
-    color: document.documentElement.classList.contains("dark")
-      ? "#ffffff"
-      : "#111827",
+    color: "var(--rs-text)",
   }),
   singleValue: (base) => ({
     ...base,
-    color: document.documentElement.classList.contains("dark")
-      ? "#ffffff"
-      : "#111827",
+    color: "var(--rs-text)",
   }),
   placeholder: (base) => ({
     ...base,
-    color: document.documentElement.classList.contains("dark")
-      ? "#9ca3af"
-      : "#6b7280",
+    color: "var(--rs-placeholder)",
   }),
   // ✅ Hide dropdown arrow
   dropdownIndicator: (base) => ({
@@ -111,77 +89,51 @@ export const smallReactStyle = <T,>(): StylesConfig<T, false> => ({
 export const smallReactStyleMulti = <T,>(): StylesConfig<T, true> => ({
   control: (base) => ({
     ...base,
-    backgroundColor: document.documentElement.classList.contains("dark")
-      ? "#111827"
-      : "#ffffff",
-    borderColor: document.documentElement.classList.contains("dark")
-      ? "#374151"
-      : "#d1d5db",
-    color: document.documentElement.classList.contains("dark")
-      ? "#ffffff"
-      : "#111827",
+    backgroundColor: "var(--rs-sm-control-bg)",
+    borderColor: "var(--rs-border)",
+    color: "var(--rs-text)",
     minHeight: '30px',
     fontSize: '11px',
   }),
   menu: (base) => ({
     ...base,
-    backgroundColor: document.documentElement.classList.contains("dark")
-      ? "#374151"
-      : "#ffffff",
+    backgroundColor: "var(--rs-sm-menu-bg)",
     zIndex: 9999,
   }),
   option: (base, state) => ({
     ...base,
     backgroundColor: state.isFocused
-      ? document.documentElement.classList.contains("dark")
-        ? "#4b5563"
-        : "#f3f4f6"
-      : document.documentElement.classList.contains("dark")
-        ? "#374151"
-        : "#ffffff",
-    color: document.documentElement.classList.contains("dark")
-      ? "#ffffff"
-      : "#111827",
+      ? "var(--rs-sm-option-focused-bg)"
+      : "var(--rs-sm-option-bg)",
+    color: "var(--rs-text)",
     fontSize: '11px',
     padding: '2px 4px',
   }),
   input: (base) => ({
     ...base,
-    color: document.documentElement.classList.contains("dark")
-      ? "#ffffff"
-      : "#111827",
+    color: "var(--rs-text)",
     fontSize: '11px',
   }),
   placeholder: (base) => ({
     ...base,
-    color: document.documentElement.classList.contains("dark")
-      ? "#9ca3af"
-      : "#6b7280",
+    color: "var(--rs-placeholder)",
     fontSize: '11px',
   }),
   multiValue: (base) => ({
     ...base,
-    backgroundColor: document.documentElement.classList.contains("dark")
-      ? "#4b5563"
-      : "#e5e7eb",
+    backgroundColor: "var(--rs-sm-multivalue-bg)",
     fontSize: '11px',
   }),
   multiValueLabel: (base) => ({
     ...base,
-    color: document.documentElement.classList.contains("dark")
-      ? "#ffffff"
-      : "#111827",
+    color: "var(--rs-text)",
     fontSize: '11px',
   }),
   multiValueRemove: (base) => ({
     ...base,
-    color: document.documentElement.classList.contains("dark")
-      ? "#9ca3af"
-      : "#6b7280",
+    color: "var(--rs-placeholder)",
     ':hover': {
-      backgroundColor: document.documentElement.classList.contains("dark")
-        ? "#ef4444"
-        : "#fca5a5",
+      backgroundColor: "var(--rs-sm-mvremove-hover-bg)",
       color: '#ffffff',
     },
   }),

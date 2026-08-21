@@ -113,8 +113,8 @@ export const roles = pgTable("roles", {
    User Roles
 =========================== */
 
-export const userRoles = pgTable(
-  "user_roles",
+export const userRole = pgTable(
+  "user_role",
   {
     id: uuid("id").defaultRandom().primaryKey(),
 
@@ -137,10 +137,7 @@ export const userRoles = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("unique_user_role").on(
-      table.userID,
-      table.roleID,
-    ),
+    uniqueIndex("unique_user_role").on(table.userID),
   ]
 );
 
@@ -157,7 +154,7 @@ export const userRelations = relations(userTable, ({ one, many }) => ({
     fields: [userTable.id],
     references: [contactTable.userID],
   }),
-  userRoles: many(userRoles),
+  userRole: one(userRole),
   notifications:many(notificationTable)
 }));
 
@@ -210,21 +207,21 @@ export const rolePermissions = pgTable(
   ],
 );
 
-export const userRoleRelations = relations(userRoles, ({ one }) => ({
+export const userRoleRelations = relations(userRole, ({ one }) => ({
   user: one(userTable, {
-    fields: [userRoles.userID],
+    fields: [userRole.userID],
     references: [userTable.id],
   }),
 
   role: one(roles, {
-    fields: [userRoles.roleID],
+    fields: [userRole.roleID],
     references: [roles.id],
   }),
 }));
 
 
 export const roleRelations = relations(roles, ({ many }) => ({
-  userRoles: many(userRoles),
+  userRole: many(userRole),
   rolePermissions: many(rolePermissions),
 }));
 

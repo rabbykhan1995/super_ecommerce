@@ -1,8 +1,9 @@
 import { create } from "zustand";
-import api, {base_url} from "../lib/axios";
+import api, { base_url } from "../lib/axios";
+import { permissionStore } from "./permission.store";
 
 export interface IStaffProfile {
-  employeeCode: string;
+  employeeCode: number;
   designation: string | null;
   department: string | null;
 }
@@ -28,6 +29,8 @@ export interface IUser {
 interface UserState {
   user: IUser | null;
   isLoading: boolean;
+  isInitialized: boolean;
+
   setUser: (user: IUser | null) => void;
   fetchUser: () => Promise<void>;
   logout: () => void;
@@ -37,45 +40,57 @@ interface UserState {
 export const userStore = create<UserState>((set, get) => ({
   user: null,
   isLoading: false,
+  isInitialized: false,
 
   setUser: (user) => set({ user }),
 
   fetchUser: async () => {
     try {
-      set({ isLoading: true });
+      set({
+        isLoading: true,
+        isInitialized: false,
+      });
 
-      const res = await api(`/auth/get-profile`);
+      const res = await api.get("/auth/admin-profile");
 
-      if (!res.data.success === true) {
-        set({ user: null, isLoading: false });
+      if (!res.data.success) {
+        set({
+          user: null,
+          isLoading: false,
+          isInitialized: true,
+        });
         return;
       }
 
-      const data = await res.data;
-
       set({
-        user: data.data,
+        user: res.data.data,
         isLoading: false,
+        isInitialized: true,
       });
     } catch (error) {
-      set({ user: null, isLoading: false });
+      set({
+        user: null,
+        isLoading: false,
+        isInitialized: true,
+      });
     }
   },
 
   logout: async () => {
-    await fetch(`${base_url}/auth/logout`, {
-      method: "GET",
-      credentials: "include",
+    // ...
+    set({
+      user: null,
+      isInitialized: true,
     });
-
-    set({ user: null });
-    window.location.replace("/login");
   },
 
   hasPermission: (permission: string) => {
     const user = get().user;
+
     if (!user) return false;
+
     if (user.isSuperAdmin) return true;
+
     return user.permissions.includes(permission);
   },
 }));

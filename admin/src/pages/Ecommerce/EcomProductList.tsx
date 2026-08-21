@@ -66,7 +66,7 @@ export default function EcomProductList() {
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row.id}
+        keyExtractor={(row:EcomProductListItem) => row.id}
         columns={[
           { header: "#", accessor: (_, i) => (i ?? 0) + 1, className: "w-10 text-center", headerClassName: "text-center", },
           {
@@ -104,29 +104,35 @@ export default function EcomProductList() {
 
               <span>{row.category?.name}</span>, className: "text-center"
           },
-          {
-            header: "Ecom",
-            className: "text-center",
-            headerClassName: "text-center",
-            accessor: (row) => (
-              <ToggleSwitch
-                label=""
-                value={row.isPublished}
-                onChange={(val) => handleProductPublishChange(row.id, val)}
-              />
-            ),
-          },
+          ...(Helper.isPermitter("product:update")
+            ? [
+              {
+                header: "Ecom",
+                className: "text-center",
+                headerClassName: "text-center",
+                accessor: (row:EcomProductListItem) => (
+                  <ToggleSwitch
+                    label=""
+                    value={row.isPublished}
+                    onChange={(val) =>
+                      handleProductPublishChange(row.id, val)
+                    }
+                  />
+                ),
+              },
+            ]
+            : []),
           {
             header: "Action",
             headerClassName: "text-right",
             className: "text-right",
             accessor: (row) => (
               <div className="flex gap-2 justify-end">
-                <Link to={`/ecom/edit-product/${row.id}`}
+                {Helper.isPermitter('product:update') && <Link to={`/ecom/edit-product/${row.id}`}
                   className="global_button"
                 >
                   <Edit size={18} />
-                </Link>
+                </Link>}
               </div>
             ),
           },

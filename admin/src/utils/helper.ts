@@ -1,3 +1,5 @@
+import { userStore } from "../stores/user.store";
+
 class Helper {
   constructor() { }
   private static localKey = "token";
@@ -123,6 +125,21 @@ static formatLongNumber(n: number): string {
     
     return formattedInteger;
 }
+
+  static isPermitter(permission: string): boolean {
+    const user = userStore.getState().user;
+
+    if (!user) {
+      return false;
+    }
+
+    // Super admin হলে সব permission allowed
+    if (user.isSuperAdmin) {
+      return true;
+    }
+
+    return user.permissions.includes(permission);
+  }
 }
 
 export default Helper;

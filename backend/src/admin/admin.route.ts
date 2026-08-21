@@ -20,7 +20,6 @@ const router = Router();
 router.get(
   "/permissions",
   authMiddleware,
-  authorize("role:read"),
   asyncHandler(AdminController.listPermissions)
 );
 
@@ -90,10 +89,10 @@ router.post(
 );
 
 router.get(
-  "/user/:userID/roles",
+  "/user/:userID/role",
   authMiddleware,
   authorize("role:read"),
-  asyncHandler(AdminController.getUserRoles)
+  asyncHandler(AdminController.getUserRole)
 );
 
 router.get(

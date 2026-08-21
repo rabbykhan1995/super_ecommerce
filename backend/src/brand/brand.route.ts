@@ -8,25 +8,26 @@ import {
 } from "./brand.validator";
 import { BrandController } from "./brand.controller";
 import { authMiddleware } from "../../middlewares/auth.middleware";
+import { authorize } from "../../middlewares/rbac.middleware";
 
 const router = express.Router();
 
 router
   .post(
     "/create",
-    authMiddleware,
+    authMiddleware,authorize('brand:create'),
     validate(createBrandSchema),
     asyncHandler(BrandController.create),
   )
   .put(
     "/update/:id",
-    authMiddleware,
+    authMiddleware,authorize('brand:update'),
     validate(updateBrandSchema),
     asyncHandler(BrandController.update),
   )
   .delete(
     "/delete/:id",
-    authMiddleware,
+    authMiddleware,authorize('brand:delete'),
     asyncHandler(BrandController.delete),
   )
   .get("/list", asyncHandler(BrandController.list))

@@ -26,6 +26,39 @@ html.dark {
   --info: 59 130 246;
 }
 
+/* React Select theme variables (used by src/utils/reactSelectStyles.ts) */
+:root {
+  --rs-text: #111827;
+  --rs-placeholder: #6b7280;
+  --rs-control-bg: #ffffff;
+  --rs-border: #d1d5db;
+  --rs-menu-bg: #ffffff;
+  --rs-option-focused-bg: #e5e7eb;
+
+  --rs-sm-control-bg: #ffffff;
+  --rs-sm-menu-bg: #ffffff;
+  --rs-sm-option-bg: #ffffff;
+  --rs-sm-option-focused-bg: #f3f4f6;
+  --rs-sm-multivalue-bg: #e5e7eb;
+  --rs-sm-mvremove-hover-bg: #fca5a5;
+}
+
+html.dark {
+  --rs-text: #ffffff;
+  --rs-placeholder: #9ca3af;
+  --rs-control-bg: #343a3f;
+  --rs-border: #374151;
+  --rs-menu-bg: #343a3f;
+  --rs-option-focused-bg: #374151;
+
+  --rs-sm-control-bg: #111827;
+  --rs-sm-menu-bg: #374151;
+  --rs-sm-option-bg: #374151;
+  --rs-sm-option-focused-bg: #4b5563;
+  --rs-sm-multivalue-bg: #4b5563;
+  --rs-sm-mvremove-hover-bg: #ef4444;
+}
+
 /* Chrome, Safari, Edge */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {

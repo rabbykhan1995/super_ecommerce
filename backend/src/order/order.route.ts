@@ -9,15 +9,16 @@ import {
     updateOrderStatusSchema,
 } from "./order.validator";
 import { OrderController } from "./order.controller";
+import { authorize } from "../../middlewares/rbac.middleware";
 
 const router = express.Router();
 
 router
     .post("/checkout", authMiddleware, validate(checkoutOrderSchema), asyncHandler(OrderController.checkout))
     .post("/checkout-mobile", authMiddleware, validate(checkoutOrderSchema), asyncHandler(OrderController.checkoutMobile))
-    .post("/create", authMiddleware, adminMiddleware, validate(createOrderSchema), asyncHandler(OrderController.createOrder))
-    .get("/all-orders", authMiddleware, adminMiddleware, asyncHandler(OrderController.allOrders))
-    .get("/admin-order/:id", authMiddleware, adminMiddleware, asyncHandler(OrderController.adminOrderDetail))
+    .post("/create", authMiddleware, authorize('order:create'), validate(createOrderSchema), asyncHandler(OrderController.createOrder))
+    .get("/all-orders", authMiddleware, authorize("order-read"), asyncHandler(OrderController.allOrders))
+    .get("/admin-order/:id", authMiddleware, authorize('order-read'), asyncHandler(OrderController.adminOrderDetail))
     .get("/my-orders", authMiddleware, asyncHandler(OrderController.myOrders))
     .get("/my-orders/:id", authMiddleware, asyncHandler(OrderController.myOrderDetail))
     .get("/track-order/:id", asyncHandler(OrderController.trackOrder))
@@ -28,7 +29,7 @@ router
 router.post("/stripe/webhook", asyncHandler(OrderController.stripeWebhook));
 
 router
-    .post("/update-status/:id", authMiddleware, adminMiddleware, validate(updateOrderStatusSchema), asyncHandler(OrderController.adminUpdateOrderStatus))
+    .post("/update-status/:id", authMiddleware, authorize('order-update'), validate(updateOrderStatusSchema), asyncHandler(OrderController.adminUpdateOrderStatus))
 
 
 export default router;

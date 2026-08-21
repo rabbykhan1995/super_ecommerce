@@ -1,4 +1,5 @@
 import { ApiError } from "../../utils/ApiError";
+import { withTransaction } from "../../utils/withTransaction";
 import { AuthService } from "../auth/auth.service";
 import { AdminRepository } from "./admin.repository";
 import {
@@ -127,7 +128,7 @@ export class AdminService {
   static async assignUserRole(input: AssignUserRoleInput) {
     const { userID, roleID } = input;
 
-    const user = await AdminRepository.findUserById(userID);
+    const user = await AuthService.findUserByID(userID);
     if (!user) {
       throw new ApiError(404, "User not found");
     }
@@ -135,6 +136,23 @@ export class AdminService {
     const role = await AdminRepository.findRoleBasicById(roleID);
     if (!role) {
       throw new ApiError(404, "Role not found");
+    }
+
+    // One user can have only ONE role.
+    // If the user already has a role, it is replaced with the new one (update behavior).
+    const existingUserRole = await AdminRepository.findUserRoleByUserId(userID);
+
+    if (existingUserRole) {
+      if (existingUserRole.roleID === roleID) {
+        throw new ApiError(400, "User already has this role assigned");
+      }
+
+      await withTransaction(async (tx) => {
+        await AdminRepository.removeAllUserRoles(userID, tx);
+        await AdminRepository.assignUserRole({ userID, roleID }, tx);
+      });
+
+      return;
     }
 
     await AdminRepository.assignUserRole({
@@ -154,13 +172,13 @@ export class AdminService {
     await AdminRepository.removeUserRole(userID, roleID);
   }
 
-  static async getUserRoles(userID: string) {
-    const user = await AdminRepository.findUserById(userID);
+  static async getUserRole(userID: string) {
+    const user = await AuthService.findUserByID(userID);
     if (!user) {
       throw new ApiError(404, "User not found");
     }
 
-    return AdminRepository.findUserRolesByUserId(userID);
+    return AdminRepository.findUserRoleByUserId(userID);
   }
 
   static async getAllStaff(){

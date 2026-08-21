@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { eq } from "drizzle-orm";
 import { ApiError } from "../utils/ApiError";
 import db from "../drizzle/src";
-import { roles, userRoles } from "../src/auth/auth.table";
+import { roles, userRole } from "../src/auth/auth.table";
 import { UserInToken } from "../src/auth/auth.type";
 
 
@@ -20,9 +20,9 @@ export const superAdminMiddleware = async (
 
     const [row] = await db
       .select({ isSuperAdmin: roles.isSuperAdmin })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleID, roles.id))
-      .where(eq(userRoles.userID, req.user.id)); // <-- userID na, userID (schema te camelCase 'userID')
+      .from(userRole)
+      .innerJoin(roles, eq(userRole.roleID, roles.id))
+      .where(eq(userRole.userID, req.user.id)); // <-- userID na, userID (schema te camelCase 'userID')
 
     if (!row?.isSuperAdmin) {
       throw new ApiError(403, "Super admin access required");

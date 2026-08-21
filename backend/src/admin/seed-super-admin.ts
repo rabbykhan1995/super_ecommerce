@@ -3,7 +3,7 @@ import db from "../../drizzle/src";
 import {
   permissions,
   roles,
-  userRoles,
+  userRole,
   userTable,
 } from "../auth/auth.table";
 import Helper from "../../utils/helper";
@@ -76,13 +76,13 @@ async function seed() {
     }
 
     // 4. Assign role to user
-    const existingUserRole = await db.query.userRoles.findFirst({
+    const existingUserRole = await db.query.userRole.findFirst({
       where: (ur, { and, eq }) =>
         and(eq(ur.userID, userId), eq(ur.roleID, roleId)),
     });
 
     if (!existingUserRole) {
-      await db.insert(userRoles).values({ userID: userId, roleID: roleId });
+      await db.insert(userRole).values({ userID: userId, roleID: roleId });
       console.log("Super Admin role assigned to user.");
     } else {
       console.log("Super Admin role already assigned to user.");

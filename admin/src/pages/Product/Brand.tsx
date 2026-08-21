@@ -6,6 +6,7 @@ import Pagination from "../../components/filters/Pagination";
 import { Edit } from "lucide-react";
 import type { PaginatedResult, Brand } from "../../types/type";
 import { toast } from "sonner";
+import Helper from "../../utils/helper";
 
 export default function BrandList() {
   const [data, setData] = useState<PaginatedResult<Brand>>({
@@ -19,7 +20,7 @@ export default function BrandList() {
   const [page, setPage] = useState(1);
   
   // Create/Edit states
-  const [editID, setEditID] = useState<string | null>(null);
+  const [editID, setEditID] = useState<number | null>(null);
   const [name, setName] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -52,11 +53,11 @@ export default function BrandList() {
   };
 
   const handleEdit = (brand: Brand) => {
-    setEditID(brand._id);
+    setEditID(brand.id);
     setName(brand.name);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     toast("Are you sure?", {
       action: {
         label: "Delete",
@@ -104,7 +105,7 @@ export default function BrandList() {
     <div className="space-y-4">
 
            {/* Create/Edit Form */}
-      <div className="flex items-center gap-3 p-4  rounded-lg">
+{(Helper.isPermitter('brand:create') ||Helper.isPermitter('brand:update')) &&     <div className="flex items-center gap-3 p-4  rounded-lg">
         <input
           type="text"
           value={name}
@@ -121,7 +122,7 @@ export default function BrandList() {
             Cancel
           </button>
         )}
-      </div>
+      </div>}
       <TableFilterBar
         title="Brands"
         subtitle={`Total: ${data.total}`}
@@ -143,7 +144,7 @@ export default function BrandList() {
 
       <Table
         data={data.items}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           {
             header: "#",
@@ -162,18 +163,21 @@ export default function BrandList() {
             className: "text-right",
             accessor: (row) => (
               <div className="flex gap-2 justify-end">
-                <button
+                {Helper.isPermitter('brand:update') &&           <button
                   onClick={() => handleEdit(row)}
                   className="global_edit"
                 >
                   <Edit size={18} />
-                </button>
-                <button
-                  onClick={() => handleDelete(row._id)}
+                </button>}
+     {Helper.isPermitter('brand:delete') &&   <button
+                  onClick={() => handleDelete(row.id)}
                   className="global_button_red"
                 >
                   Delete
                 </button>
+      
+     }
+              
               </div>
             ),
           },

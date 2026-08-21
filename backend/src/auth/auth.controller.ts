@@ -176,6 +176,18 @@ export class AuthController {
     res.redirect(redirectURL);
   }
 
+  static async getAdminProfile(req: Request, res: Response) {
+    const userID: string = req.user!.id;
+
+    const user = await AuthService.getAdminProfile(userID);
+
+    return res.status(200).json({
+      success: true,
+      msg: "Admin profile fetched successfully",
+      data: user,
+    });
+  }
+
   static async mobileGoogleAuth(req: Request, res: Response) {
     const { token, user } = await AuthService.mobileGoogleAuth(req.body.idToken);
 

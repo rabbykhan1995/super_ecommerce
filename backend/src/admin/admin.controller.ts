@@ -72,10 +72,10 @@ export class AdminController {
     });
   }
 
-  static async getUserRoles(req: Request, res: Response) {
+  static async getUserRole(req: Request, res: Response) {
     const { userID } = req.params;
-    const userRolesData = await AdminService.getUserRoles(userID as string);
-    res.status(200).json({ success: true, data: userRolesData });
+    const userRoleData = await AdminService.getUserRole(userID as string);
+    res.status(200).json({ success: true, data: userRoleData });
   }
   static async getAllStaff(req: Request, res: Response) {
 

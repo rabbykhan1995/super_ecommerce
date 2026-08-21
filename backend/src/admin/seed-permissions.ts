@@ -25,7 +25,9 @@ export const PERMISSIONS_LIST = [
   { name: "sale:create", description: "Create sales" },
   { name: "sale:read", description: "Read sales" },
   { name: "sale:void", description: "Void sales" },
-
+  // Order
+  { name: "order:create", description: "Create orders" },
+  { name: "order:update", description: "Update orders" },
   // Purchase
   { name: "purchase:create", description: "Create purchases" },
   { name: "purchase:read", description: "Read purchases" },
@@ -101,6 +103,65 @@ export const PERMISSIONS_LIST = [
   { name: "warranty:read", description: "Read warranty records" },
   { name: "warranty:update", description: "Update warranty records" },
   { name: "warranty:delete", description: "Delete warranty records" },
+
+  // Purchase Return
+  { name: "purchase-return:create", description: "Create purchase returns" },
+  { name: "purchase-return:read", description: "Read purchase returns" },
+  { name: "purchase-return:delete", description: "Delete purchase returns" },
+
+  // Sale Return
+  { name: "sale-return:create", description: "Create sale returns" },
+  { name: "sale-return:read", description: "Read sale returns" },
+  { name: "sale-return:delete", description: "Delete sale returns" },
+
+  // Quotation
+  { name: "quotation:create", description: "Create quotations" },
+  { name: "quotation:read", description: "Read quotations" },
+  { name: "quotation:approve", description: "Approve quotations" },
+
+  // Parcel
+  { name: "parcel:create", description: "Create parcels" },
+  { name: "parcel:read", description: "Read parcels" },
+  { name: "parcel:update", description: "Update parcels" },
+  { name: "parcel:delete", description: "Delete parcels" },
+  { name: "parcel:pack", description: "Pack orders into parcels" },
+
+  // Order
+  { name: "order:create", description: "Create orders" },
+  { name: "order:read", description: "Read orders" },
+  { name: "order:update", description: "Update orders" },
+
+  // Payment
+  { name: "payment:create", description: "Create payments" },
+  { name: "payment:read", description: "Read payments" },
+
+  // Banner
+  { name: "banner:create", description: "Create banners" },
+  { name: "banner:read", description: "Read banners" },
+  { name: "banner:update", description: "Update banners" },
+  { name: "banner:delete", description: "Delete banners" },
+
+  // Flash Sale
+  { name: "flash-sale:create", description: "Create flash sales" },
+  { name: "flash-sale:read", description: "Read flash sales" },
+  { name: "flash-sale:update", description: "Update flash sales" },
+  { name: "flash-sale:delete", description: "Delete flash sales" },
+
+  // Featured Product
+  { name: "featured-product:create", description: "Add featured products" },
+  { name: "featured-product:read", description: "Read featured products" },
+  { name: "featured-product:delete", description: "Remove featured products" },
+
+  // Image
+  { name: "image:upload", description: "Upload images" },
+  { name: "image:delete", description: "Delete images" },
+
+  // Notification
+  { name: "notification:create", description: "Create push notifications" },
+
+  // Purchase extras
+  { name: "purchase:update", description: "Update purchases" },
+  { name: "purchase:delete", description: "Delete purchases" },
 ];
 
 export const seedPermissions = async () => {

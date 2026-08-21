@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import { eq, inArray } from "drizzle-orm";
 import db from "../drizzle/src";
 import {
-  userRoles,
+  userRole,
   roles,
   rolePermissions,
   permissions,
@@ -38,9 +38,9 @@ export const authorize = (requiredPermission: string) => {
           roleID: roles.id,
           isSuperAdmin: roles.isSuperAdmin,
         })
-        .from(userRoles)
-        .innerJoin(roles, eq(userRoles.roleID, roles.id))
-        .where(eq(userRoles.userID, userID));
+        .from(userRole)
+        .innerJoin(roles, eq(userRole.roleID, roles.id))
+        .where(eq(userRole.userID, userID));
 
       if (userRoleRows.length === 0) {
         throw new ApiError(403, "No role assigned to this user");
@@ -72,7 +72,7 @@ export const authorize = (requiredPermission: string) => {
       if (!hasPermission) {
         throw new ApiError(
           403,
-          `You do not have permission: ${requiredPermission}`,
+          `You do not have permission to do this`,
         );
       }
 

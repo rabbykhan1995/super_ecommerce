@@ -4,10 +4,11 @@ import Table from "../../components/tables/Table";
 import { toast } from "sonner";
 import type { Category } from "../../types/type";
 import { Delete, Edit } from "lucide-react";
+import Helper from "../../utils/helper";
 
 export default function Category() {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [editID, setEditID] = useState<string | null>(null);
+  const [editID, setEditID] = useState<number | null>(null);
   const [name, setName] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -34,11 +35,11 @@ export default function Category() {
   };
 
   const handleEdit = (category: Category) => {
-    setEditID(category._id);
+    setEditID(category.id);
     setName(category.name);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     toast("Are you sure?", {
       action: {
         label: "Delete",
@@ -90,7 +91,7 @@ export default function Category() {
       {/* Table */}
       <Table
         data={categories}
-        keyExtractor={(row) => row._id}
+        keyExtractor={(row) => row.id}
         columns={[
           { header: "#", accessor: (_, i) => i as number + 1, className: "w-10 text-center" },
           {
@@ -100,12 +101,12 @@ export default function Category() {
             header: "Action", className: "text-right", headerClassName: "text-right",
             accessor: (row) => (
               <div className="flex gap-2 justify-end">
-                <button onClick={() => handleEdit(row)} className="global_edit">
+             { Helper.isPermitter("category:update")  &&  <button onClick={() => handleEdit(row)} className="global_edit">
                   <Edit size={18} />
-                </button>
-                <button onClick={() => handleDelete(row._id)} className="global_button_red">
+                </button>}
+             {Helper.isPermitter("category:delete")  &&   <button onClick={() => handleDelete(row.id)} className="global_button_red">
                   <Delete size={18} />
-                </button>
+                </button>}
               </div>
             ),
           },

@@ -7,6 +7,7 @@ import {
 } from "./category.validator";
 import { CategoryController } from "./category.controller";
 import { authMiddleware } from "../../middlewares/auth.middleware";
+import { authorize } from "../../middlewares/rbac.middleware";
 
 const router = express.Router();
 
@@ -14,17 +15,19 @@ router
   .post(
     "/create",
     authMiddleware,
+    authorize('category:create'),
     validate(createCategorySchema),
     asyncHandler(CategoryController.create),
   )
   .put(
     "/update/:id",
     authMiddleware,
+    authorize('category:update'),
     validate(updateCategorySchema),
     asyncHandler(CategoryController.update),
   )
   .get("/list", asyncHandler(CategoryController.list))
-  .delete('/delete/:id', authMiddleware,
+  .delete('/delete/:id', authMiddleware, authorize('category:delete'),
     asyncHandler(CategoryController.delete))
 
 export default router;

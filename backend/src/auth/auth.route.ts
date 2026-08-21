@@ -47,5 +47,6 @@ router.post("/mobile-google-auth", validate(mobileGoogleAuthSchema), asyncHandle
 router.post("/admin-login", validate(adminLoginSchema), asyncHandler(AuthController.adminLogin));
 router.get("/admin-google-auth", asyncHandler(AuthController.getAdminGoogleAuth));
 router.get("/admin-google-callback", asyncHandler(AuthController.adminGoogleCallback));
+router.get("/admin-profile", authMiddleware, asyncHandler(AuthController.getAdminProfile));
 
 export default router;

@@ -22,7 +22,37 @@ export default function DashboardLayout() {
   const { sidePanel, setSidePanel } = dashboardStore();
 
   const { logout } = userStore();
-  
+
+  const filteredRoutes = AdminRoutes
+  .map((item) => {
+    // Parent-এর permission থাকলে check
+    if (item.permission && !Helper.isPermitter(item.permission)) {
+      return null;
+    }
+
+    // Sub items filter
+    if (item.subItems) {
+      const allowedSubItems = item.subItems.filter(
+        (subItem) =>
+          !subItem.permission ||
+          Helper.isPermitter(subItem.permission)
+      );
+
+      // কোনো sub item accessible না হলে parent-ও hide
+      if (allowedSubItems.length === 0) {
+        return null;
+      }
+
+      return {
+        ...item,
+        subItems: allowedSubItems,
+      };
+    }
+
+    return item;
+  })
+  .filter(Boolean);
+
   const handleLogout = (): void => {
     Helper.clearToken();
     logout();
@@ -32,7 +62,7 @@ export default function DashboardLayout() {
     setActiveSubmenu((prev) => (prev === index ? null : index));
   };
 
-  const navItems = AdminRoutes;
+  const navItems = filteredRoutes;
 
   return (
     <div className="text-[rgb(var(--primary-text))]">
@@ -74,15 +104,15 @@ export default function DashboardLayout() {
         <ul className="p-4 space-y-3 overflow-y-auto h-[calc(100vh-4rem)]">
           {navItems.map((item, index) => (
             <li key={index}>
-              {item.subItems ? (
+              {item!.subItems ? (
                 <>
                   <div
                     onClick={() => toggleSubmenu(index)}
                     className="flex items-center justify-between cursor-pointer px-3 py-2 rounded-md hover:bg-orange-500"
                   >
                     <div className="flex items-center gap-3">
-                      {item.icon}
-                      {item.name}
+                      {item!.icon}
+                      {item!.name}
                     </div>
                     <ChevronRight
                       size={18}
@@ -93,7 +123,7 @@ export default function DashboardLayout() {
 
                   {activeSubmenu === index && (
                     <ul className="ml-8 mt-2 space-y-2">
-                      {item.subItems.map((sub, i) => (
+                      {item!.subItems.map((sub, i) => (
                         <li key={i}>
                           <NavLink
                             to={sub.link}
@@ -112,14 +142,14 @@ export default function DashboardLayout() {
                 </>
               ) : (
                 <NavLink
-                  to={item.link!}
+                  to={item!.link!}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2 rounded-md ${isActive ?"bg-orange-600" : "hover:bg-orange-500"
                     }`
                   }
                 >
-                  {item.icon}
-                  {item.name}
+                  {item!.icon}
+                  {item!.name}
                 </NavLink>
               )}
             </li>
@@ -148,15 +178,15 @@ export default function DashboardLayout() {
         <ul className="overflow-y-auto h-[calc(100vh-4rem)] p-4 space-y-3">
           {navItems.map((item, index) => (
             <li key={index}>
-              {item.subItems ? (
+              {item!.subItems ? (
                 <>
                   <div
                     onClick={() => toggleSubmenu(index)}
                     className="flex items-center justify-between cursor-pointer px-3 py-2 rounded-md hover:bg-orange-500"
                   >
                     <div className="flex items-center gap-3">
-                      {item.icon}
-                      {item.name}
+                      {item!.icon}
+                      {item!.name}
                     </div>
                     <ChevronRight
                       size={18}
@@ -167,7 +197,7 @@ export default function DashboardLayout() {
 
                   {activeSubmenu === index && (
                     <ul className="ml-8 mt-2 space-y-2">
-                      {item.subItems.map((sub, i) => (
+                      {item!.subItems.map((sub, i) => (
                         <li key={i}>
                           <NavLink
                             to={sub.link}
@@ -186,14 +216,14 @@ export default function DashboardLayout() {
                 </>
               ) : (
                 <NavLink
-                  to={item.link!}
+                  to={item!.link!}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2 rounded-md ${isActive ? "bg-orange-600" : "hover:bg-orange-500"
                     }`
                   }
                 >
-                  {item.icon}
-                  {item.name}
+                  {item!.icon}
+                  {item!.name}
                 </NavLink>
               )}
             </li>

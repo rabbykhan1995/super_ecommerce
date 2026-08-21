@@ -51,12 +51,13 @@ import FeatureProduct from "../pages/Ecommerce/FeatureProduct";
 import FlashSale from "../pages/Ecommerce/FlashSale";
 import FlashProduct from "../pages/Ecommerce/FlashProduct";
 import OrderListInEcommerce from "../pages/Ecommerce/OrderList";
-import OrderListInOrders  from "../pages/Orders/OrderList";
+import OrderListInOrders from "../pages/Orders/OrderList";
 import PendingParcels from "../pages/Parcel/PendingParcel";
 import CreateOrder from "../pages/Orders/CreateOrder";
 import EcomUserList from "../pages/Ecommerce/EcomUserList";
 import Stuffs from "../pages/HRM/Stuffs";
 import Roles from "../pages/HRM/Roles";
+import PermissionRoute from "./PermissionRoute";
 
 
 export const router = createBrowserRouter([
@@ -79,24 +80,36 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "customer",
-            Component: Customer,
+            element: (
+              <PermissionRoute permission="contact:read">
+                <Customer />
+              </PermissionRoute>
+            ),
           },
           {
             path: "supplier",
-            Component: Supplier,
+            element: (
+              <PermissionRoute permission="contact:read">
+                <Supplier />
+              </PermissionRoute>
+            ),
           },
 
           {
             path: "supplier-ledger/:id",
-            Component: SupplierLedger,
+            element: (
+              <PermissionRoute permission="ledger:read">
+                <SupplierLedger />
+              </PermissionRoute>
+            ),
           },
           {
             path: "customer-ledger/:id",
-            Component: CustomerLedger,
-          },
-          {
-            path: "supplier-ledger/:id",
-            Component: SupplierLedger,
+            element: (
+              <PermissionRoute permission="ledger:read">
+                <CustomerLedger />
+              </PermissionRoute>
+            ),
           },
 
         ],
@@ -107,43 +120,83 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "new",
-            Component: NewProduct,
+            element: (
+              <PermissionRoute permission="product:create">
+                <NewProduct />
+              </PermissionRoute>
+            ),
           },
           {
             path: "list",
-            Component: ProductList,
+            element: (
+              <PermissionRoute permission="product:read">
+                <ProductList />
+              </PermissionRoute>
+            ),
           },
           {
             path: "edit/:id",
-            Component: EditProduct,
+            element: (
+              <PermissionRoute permission="product:update">
+                <EditProduct />
+              </PermissionRoute>
+            ),
           },
           {
             path: "brand",
-            Component: Brand,
+            element: (
+              <PermissionRoute permission="brand:read">
+                <Brand />
+              </PermissionRoute>
+            ),
           },
           {
             path: "unit",
-            Component: Unit,
+            element: (
+              <PermissionRoute permission="unit:read">
+                <Unit />
+              </PermissionRoute>
+            ),
           },
           {
             path: "category",
-            Component: Category,
+            element: (
+              <PermissionRoute permission="category:read">
+                <Category />
+              </PermissionRoute>
+            ),
           },
-           {
+          {
             path: "featured-products",
-            Component: FeatureProduct,
+            element: (
+              <PermissionRoute permission="featured-product:read">
+                <FeatureProduct />
+              </PermissionRoute>
+            ),
           },
-           {
+          {
             path: "flash-sale",
-            Component: FlashSale,
+            element: (
+              <PermissionRoute permission="flash-sale:read">
+                <FlashSale />
+              </PermissionRoute>
+            ),
           },
           {
             path: "flash-products",
-            Component: FlashProduct,
+            element: (
+              <PermissionRoute permission="flash-sale:read">
+                <FlashProduct />
+              </PermissionRoute>
+            ),
           },
           {
             path: "pos-products",
-            Component: PosProducts,
+            element: (
+              <PermissionRoute permission="product:read">
+                <PosProducts />
+              </PermissionRoute>
+            ),
           },
         ],
       },
@@ -153,25 +206,50 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "new",
-            Component: NewPurchase,
+            element: <PermissionRoute permission="purchase:create">
+              <NewPurchase />
+            </PermissionRoute>,
           },
           {
             path: "list",
-            Component: PurchaseList,
+            element: (
+              <PermissionRoute permission="purchase:read">
+                <PurchaseList />
+              </PermissionRoute>
+            ),
           },
           {
             path: "edit/:id",
-            Component: EditPurchase,
+            element: (
+              <PermissionRoute permission="purchase:update">
+                <EditPurchase />
+              </PermissionRoute>
+            ),
           },
           {
             path: "return/:id",
-            Component: PurchaseReturn,
+            element: (
+              <PermissionRoute permission="purchase-return:create">
+                <PurchaseReturn />
+              </PermissionRoute>
+            ),
           },
           {
             path: "return-list",
-            Component: PurchaseReturnList,
+            element: (
+              <PermissionRoute permission="purchase-return:read">
+                <PurchaseReturnList />
+              </PermissionRoute>
+            ),
           },
-          { path: 'invoice/:id', Component: PurchaseInvoice }
+          {
+            path: 'invoice/:id',
+            element: (
+              <PermissionRoute permission="purchase:read">
+                <PurchaseInvoice />
+              </PermissionRoute>
+            ),
+          }
 
         ],
       },
@@ -182,22 +260,52 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "new",
-            Component: NewSale,
+            element: (
+              <PermissionRoute permission="sale:create">
+                <NewSale />
+              </PermissionRoute>
+            ),
           },
           {
             path: "list",
-            Component: SaleList,
+            element: (
+              <PermissionRoute permission="sale:read">
+                <SaleList />
+              </PermissionRoute>
+            ),
           },
           {
             path: "return/:id",
-            Component: SaleReturn,
+            element: (
+              <PermissionRoute permission="sale-return:create">
+                <SaleReturn />
+              </PermissionRoute>
+            ),
           },
           {
             path: "return-list",
-            Component: SaleReturnList,
+            element: (
+              <PermissionRoute permission="sale-return:read">
+                <SaleReturnList />
+              </PermissionRoute>
+            ),
           },
-          { path: 'invoice/:id', Component: SaleInvoice },
-          { path: 'fifo-sale', Component: FifoSale }
+          {
+            path: 'invoice/:id',
+            element: (
+              <PermissionRoute permission="sale:read">
+                <SaleInvoice />
+              </PermissionRoute>
+            ),
+          },
+          {
+            path: 'fifo-sale',
+            element: (
+              <PermissionRoute permission="sale:create">
+                <FifoSale />
+              </PermissionRoute>
+            ),
+          }
 
         ],
       },
@@ -207,15 +315,27 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "",
-            Component: Account,
+            element: (
+              <PermissionRoute permission="account:read">
+                <Account />
+              </PermissionRoute>
+            ),
           },
           {
             path: "transaction/:id",
-            Component: Transactions,
+            element: (
+              <PermissionRoute permission="transaction:read">
+                <Transactions />
+              </PermissionRoute>
+            ),
           },
           {
             path: "payment-details/:id",
-            Component: PaymentDetails,
+            element: (
+              <PermissionRoute permission="payment:read">
+                <PaymentDetails />
+              </PermissionRoute>
+            ),
           },
 
         ],
@@ -226,11 +346,19 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "create",
-            Component: CreateDamage,
+            element: (
+              <PermissionRoute permission="damage:create">
+                <CreateDamage />
+              </PermissionRoute>
+            ),
           },
           {
             path: "list",
-            Component: DamageList,
+            element: (
+              <PermissionRoute permission="damage:read">
+                <DamageList />
+              </PermissionRoute>
+            ),
           },
 
         ],
@@ -242,7 +370,11 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "list",
-            Component: WarrantyList,
+            element: (
+              <PermissionRoute permission="warranty:read">
+                <WarrantyList />
+              </PermissionRoute>
+            ),
           }
 
         ],
@@ -253,15 +385,27 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "create",
-            Component: NewExpense,
+            element: (
+              <PermissionRoute permission="expense:create">
+                <NewExpense />
+              </PermissionRoute>
+            ),
           },
           {
             path: "list",
-            Component: ExpenseList,
+            element: (
+              <PermissionRoute permission="expense:read">
+                <ExpenseList />
+              </PermissionRoute>
+            ),
           },
           {
             path: "types",
-            Component: ExpenseTypes,
+            element: (
+              <PermissionRoute permission="expense:read">
+                <ExpenseTypes />
+              </PermissionRoute>
+            ),
           }
         ],
       },
@@ -271,19 +415,27 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "create-sale-quotation",
-            Component: NewSaleQuotation,
+            element: (
+              <PermissionRoute permission="quotation:create">
+                <NewSaleQuotation />
+              </PermissionRoute>
+            ),
           },
           {
             path: "list/sale",
-            Component: SaleQuotationList,
-          },
-          {
-            path: "types",
-            Component: ExpenseTypes,
+            element: (
+              <PermissionRoute permission="quotation:read">
+                <SaleQuotationList />
+              </PermissionRoute>
+            ),
           },
           {
             path: "sale-quotation-invoice/:id",
-            Component: SaleQuotationInvoice,
+            element: (
+              <PermissionRoute permission="quotation:read">
+                <SaleQuotationInvoice />
+              </PermissionRoute>
+            ),
           }
         ],
       },
@@ -293,21 +445,33 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "barcode",
-            Component: GenerateBarcode,
+            element: (
+              <PermissionRoute permission="product:read">
+                <GenerateBarcode />
+              </PermissionRoute>
+            ),
           },
         ],
       },
-         // Order
+      // Order
       {
         path: "order",
         children: [
           {
             path: "create",
-            Component: CreateOrder,
+            element: (
+              <PermissionRoute permission="order:create">
+                <CreateOrder />
+              </PermissionRoute>
+            ),
           },
           {
             path: "list",
-            Component: OrderListInOrders,
+            element: (
+              <PermissionRoute permission="order:read">
+                <OrderListInOrders />
+              </PermissionRoute>
+            ),
           },
         ],
       },
@@ -317,68 +481,124 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "create",
-            Component: CreateParcel,
+            element: (
+              <PermissionRoute permission="parcel:create">
+                <CreateParcel />
+              </PermissionRoute>
+            ),
           },
           {
             path: "order-pack/:id",
-            Component: OrderPack,
+            element: (
+              <PermissionRoute permission="parcel:pack">
+                <OrderPack />
+              </PermissionRoute>
+            ),
           },
           {
             path: "list",
-            Component: ParcelList,
-          },      {
+            element: (
+              <PermissionRoute permission="parcel:read">
+                <ParcelList />
+              </PermissionRoute>
+            ),
+          }, {
             path: "pending",
-            Component: PendingParcels,
+            element: (
+              <PermissionRoute permission="parcel:read">
+                <PendingParcels />
+              </PermissionRoute>
+            ),
           },
         ],
       },
-           // Ecommerce
+      // Ecommerce
       {
         path: "ecom",
         children: [
           {
             path: "product-list",
-            Component: EcomProductList,
+            element: (
+              <PermissionRoute permission="product:read">
+                <EcomProductList />
+              </PermissionRoute>
+            ),
           },
           {
             path: "orders",
-            Component: OrderListInEcommerce,
+            element: (
+              <PermissionRoute permission="order:read">
+                <OrderListInEcommerce />
+              </PermissionRoute>
+            ),
           },
-              {
+          {
             path: "edit-product/:id",
-            Component: EditEcomProduct,
+            element: (
+              <PermissionRoute permission="product:update">
+                <EditEcomProduct />
+              </PermissionRoute>
+            ),
           },
-           {
+          {
             path: "banners",
-            Component: Banner,
-          },{
+            element: (
+              <PermissionRoute permission="banner:read">
+                <Banner />
+              </PermissionRoute>
+            ),
+          }, {
             path: "featured-products",
-            Component: FeatureProduct,
-          },{
+            element: (
+              <PermissionRoute permission="featured-product:read">
+                <FeatureProduct />
+              </PermissionRoute>
+            ),
+          }, {
             path: "flash-sale",
-            Component: FlashSale,
-          },{
+            element: (
+              <PermissionRoute permission="flash-sale:read">
+                <FlashSale />
+              </PermissionRoute>
+            ),
+          }, {
             path: "flash-products",
-            Component: FlashProduct,
-          },{
+            element: (
+              <PermissionRoute permission="flash-sale:read">
+                <FlashProduct />
+              </PermissionRoute>
+            ),
+          }, {
             path: "all-users-list",
-            Component: EcomUserList,
+            element: (
+              <PermissionRoute permission="user:read">
+                <EcomUserList />
+              </PermissionRoute>
+            ),
           },
 
         ],
       },
 
-                 // Ecommerce
+      // HRM
       {
         path: "hrm",
         children: [
           {
             path: "stuffs",
-            Component: Stuffs,
+            element: (
+              <PermissionRoute permission="user:read">
+                <Stuffs />
+              </PermissionRoute>
+            ),
           },
-    {
+          {
             path: "roles",
-            Component: Roles,
+            element: (
+              <PermissionRoute permission="role:read">
+                <Roles />
+              </PermissionRoute>
+            ),
           },
         ],
       },
@@ -399,4 +619,3 @@ export const router = createBrowserRouter([
     Component: GoogleCallback,
   },
 ]);
-

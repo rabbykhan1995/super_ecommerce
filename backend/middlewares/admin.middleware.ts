@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { eq } from "drizzle-orm";
 import { ApiError } from "../utils/ApiError";
 import db from "../drizzle/src";
-import { roles, userRoles } from "../src/auth/auth.table";
+import { roles, userRole } from "../src/auth/auth.table";
 import { UserInToken } from "../src/auth/auth.type";
 
 interface AuthRequest extends Request {
@@ -19,9 +19,9 @@ export const adminMiddleware = async (
 
     const [row] = await db
       .select({ roleId: roles.id })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleID, roles.id))
-      .where(eq(userRoles.userID, req.user.id));
+      .from(userRole)
+      .innerJoin(roles, eq(userRole.roleID, roles.id))
+      .where(eq(userRole.userID, req.user.id));
 
     if (!row) {
       throw new ApiError(403, "Admin access required");

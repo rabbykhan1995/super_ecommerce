@@ -4,6 +4,7 @@ import Table from "../../components/tables/Table";
 import { toast } from "sonner";
 import type { Unit } from "../../types/type";
 import { Delete, Edit } from "lucide-react";
+import Helper from "../../utils/helper";
 
 export default function Unit() {
   const [units, setUnits] = useState<Unit[]>([]);
@@ -90,7 +91,7 @@ export default function Unit() {
       </div>
 
       {/* Table */}
-    <Table
+      <Table
         data={units}
         keyExtractor={(row) => row.id}
         columns={[
@@ -102,12 +103,13 @@ export default function Unit() {
             header: "Action", className: "text-right", headerClassName: "text-right",
             accessor: (row) => (
               <div className="flex gap-2 justify-end">
-                <button onClick={() => handleEdit(row)} className="global_edit">
+                {Helper.isPermitter('unit:update') && <button onClick={() => handleEdit(row)} className="global_edit">
                   <Edit size={18} />
-                </button>
-                <button onClick={() => handleDelete(row.id)} className="global_button_red">
+                </button>}
+                {Helper.isPermitter('unit:update') && <button onClick={() => handleDelete(row.id)} className="global_button_red">
                   <Delete size={18} />
-                </button>
+                </button>}
+
               </div>
             ),
           },

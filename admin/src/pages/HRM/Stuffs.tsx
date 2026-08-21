@@ -12,14 +12,16 @@ type FormType = {
   userID: string;
   designation: string;
   department: string;
-  roleIDs: string[];
+  roleID: string;
+
 };
 
 const defaultForm: FormType = {
   userID: "",
   designation: "",
   department: "",
-  roleIDs: [],
+  roleID: "",
+
 };
 
 export default function Stuffs() {
@@ -28,10 +30,10 @@ export default function Stuffs() {
   const [editID, setEditID] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [userOptions, setUserOptions] = useState<SelectOption[]>([]);
-  const [roleOptions, setRoleOptions] = useState<SelectOption[]>([]);
+  const [userOptions, setUserOptions] = useState<SelectOption<User>[]>([]);
+  const [roleOptions, setRoleOptions] = useState<SelectOption<Role>[] | []>([]);
   const [selectedUserOption, setSelectedUserOption] = useState<SelectOption | null>(null);
-  const [selectedRoleOptions, setSelectedRoleOptions] = useState<SelectOption[]>([]);
+  const [selectedRoleOption, setSelectedRoleOption] = useState<SelectOption<Role> | null>(null);
   const [userSearch, setUserSearch] = useState("");
 
   const fetchAllStaff = async () => {
@@ -43,14 +45,14 @@ export default function Stuffs() {
     const res = await api("/admin/role-list");
     if (res.data.success) {
       setRoleOptions(
-        res.data.data.map((r: Role) => ({ value: r.id, label: r.name }))
+        res.data.data.map((r: Role) => ({ value: r.id, label: r.name, ...r }))
       );
     }
   };
 
-  const fetchUsers = useCallback(async (search: string) => {
+  const fetchUsers = async () => {
     const res = await api("/auth/all-users-list", {
-      params: { search, limit: 20, page: 1 },
+      params: { search: userSearch, limit: 40, page: 1 },
     });
     if (res.data.success) {
       const staffUserIDs = staffs.map((s) => s.userID);
@@ -64,23 +66,28 @@ export default function Stuffs() {
           }))
       );
     }
-  }, [staffs]);
+  }
 
-  const fetchUserRoles = async (userID: string) => {
-    const res = await api(`/admin/user/${userID}/roles`);
-    if (res.data.success && res.data.data.length > 0) {
-      const roles = res.data.data.map((r: { role: Role }) => ({
-        value: r.role.id,
-        label: r.role.name,
-      }));
-      setSelectedRoleOptions(roles);
+  const fetchUserRole = async (userID: string) => {
+  
+    const res = await api(`/admin/user/${userID}/role`);
+    if (res.data.success && res.data.data) {
+       console.log(res.data.data)
+      const role = res.data.data.role;
+
+      const formattedRole = {
+        ...role, value: role.id,
+        label: role.name,
+      }
+
+      setSelectedRoleOption(formattedRole);
       setForm((prev) => ({
         ...prev,
-        roleIDs: roles.map((r: SelectOption) => r.value),
+        roleID: formattedRole.value,
       }));
     } else {
-      setSelectedRoleOptions([]);
-      setForm((prev) => ({ ...prev, roleIDs: [] }));
+      setSelectedRoleOption(null);
+      setForm((prev) => ({ ...prev, roleID: "" }));
     }
   };
 
@@ -89,11 +96,11 @@ export default function Stuffs() {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => fetchUsers(userSearch), 400);
+    const timer = setTimeout(() => fetchUsers(), 400);
     return () => clearTimeout(timer);
-  }, [userSearch, fetchUsers]);
+  }, [userSearch]);
 
-  const handleUserSelect = (option: SelectOption | null) => {
+  const handleUserSelect = (option: SelectOption<User> | null) => {
     setSelectedUserOption(option);
     if (option) {
       setForm((prev) => ({
@@ -102,37 +109,39 @@ export default function Stuffs() {
         designation: (option as any).designation || "",
         department: (option as any).department || "",
       }));
-      fetchUserRoles(option.value);
+      fetchUserRole(option.value);
     } else {
       setForm(defaultForm);
-      setSelectedRoleOptions([]);
+      setSelectedRoleOption(null);
     }
   };
 
-  const handleRoleChange = (options: readonly SelectOption[]) => {
-    const selected = Array.from(options);
-    setSelectedRoleOptions(selected);
+  const handleRoleChange = (option: SelectOption<Role>) => {
+    setSelectedRoleOption(option);
     setForm((prev) => ({
       ...prev,
-      roleIDs: selected.map((r) => r.value),
+      roleID: option.id,
     }));
   };
 
   const handleEdit = (staff: StaffProfile) => {
+    // @ts-ignore
+    const role = staff.user.userRole.role;
     setEditID(staff.id);
     setForm({
       userID: staff.userID,
       designation: staff.designation || "",
       department: staff.department || "",
-      roleIDs: [],
+      roleID: role.id,
     });
-    if (staff.user) {
+    if (staff.userID) {
       setSelectedUserOption({
-        value: staff.userID,
-        label: `${staff.user.name} (${staff.user.email || staff.user.mobile || "no contact"})`,
+        value: staff?.userID,
+        label: `${staff?.user?.name} (${staff?.user?.email || staff?.user?.mobile || "no contact"})`,
+        ...staff.user
       });
     }
-    fetchUserRoles(staff.userID);
+    fetchUserRole(staff.userID);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -140,7 +149,7 @@ export default function Stuffs() {
     setEditID(null);
     setForm(defaultForm);
     setSelectedUserOption(null);
-    setSelectedRoleOptions([]);
+    setSelectedRoleOption(null);
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -166,21 +175,19 @@ export default function Stuffs() {
         });
       }
 
-      if (form.roleIDs.length > 0) {
-        await Promise.all(
-          form.roleIDs.map((roleID) =>
-            api.post("/admin/role/assign-user", {
-              userID: form.userID,
-              roleID,
-            })
-          )
-        );
+      if (form.roleID) {
+        api.post("/admin/role/assign-user", {
+          userID: form.userID,
+          roleID: form.roleID,
+        })
+
+
       }
 
       setEditID(null);
       setForm(defaultForm);
       setSelectedUserOption(null);
-      setSelectedRoleOptions([]);
+      setSelectedRoleOption(null);
       fetchAllStaff();
     } finally {
       setLoading(false);
@@ -201,14 +208,12 @@ export default function Stuffs() {
           </label>
           <Select
             options={userOptions}
-            value={selectedUserOption}
-            onChange={handleUserSelect}
-            onInputChange={(val) => setUserSearch(val)}
-            isClearable
             isDisabled={!!editID}
+            onChange={(val) => handleUserSelect(val as SelectOption<User> | null)}
+            onInputChange={(val) => setUserSearch(val)}
             placeholder="Search and select user..."
-            styles={getReactSelectStyles()}
-            classNamePrefix="react-select"
+            styles={getReactSelectStyles<SelectOption<User>>()}
+            isClearable
           />
         </div>
 
@@ -234,23 +239,28 @@ export default function Stuffs() {
           />
         </div>
 
+
         <div>
           <label className="block text-sm font-medium mb-1">Roles</label>
           <Select
-            isMulti
             options={roleOptions}
-            value={selectedRoleOptions}
-            onChange={handleRoleChange}
+            value={selectedRoleOption}
+            onChange={(val) => handleRoleChange(val as SelectOption<Role>)}
             placeholder="Assign roles..."
-            styles={getReactSelectStyles()}
-            classNamePrefix="react-select"
+            styles={getReactSelectStyles<SelectOption<Role>>()}
+
           />
         </div>
-
+        {selectedUserOption && <div>
+          <h1>ID : {selectedUserOption.value}</h1>
+          {/* @ts-ignore */}
+          <h1>Name : {selectedUserOption.name}</h1><h1>Address : {selectedUserOption.address}</h1>
+              {/* @ts-ignore */}
+          <h1>Email : {selectedUserOption.email}</h1></div>}
         <div className="flex gap-3 pt-2 col-span-full">
-          <button type="submit" disabled={loading} className="global_button">
+          {<button type="submit" disabled={loading} className="global_button">
             {loading ? "Saving..." : editID ? "Update Staff" : "Create Staff"}
-          </button>
+          </button>}
           {editID && (
             <button
               type="button"
@@ -262,6 +272,8 @@ export default function Stuffs() {
           )}
         </div>
       </form>
+
+
 
       {/* Table */}
       <Table
@@ -295,6 +307,11 @@ export default function Stuffs() {
           {
             header: "Department",
             accessor: (row) => row.department || "—",
+          },
+          {
+            header: "Role",
+            // @ts-ignore
+            accessor: (row) => row.user.userRole.role.name || "—",
           },
           {
             header: "Action",

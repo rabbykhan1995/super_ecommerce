@@ -1,5 +1,4 @@
 import axios from "axios";
-import { eq } from "drizzle-orm";
 import { sendEmail } from "../../config/mailSender.config";
 import { ApiError } from "../../utils/ApiError";
 import { generateEmailTemplate } from "../../utils/emailTemplate";
@@ -8,8 +7,6 @@ import { AuthRepository } from "./auth.repository";
 import { AdminLoginInput, AdminUserWithRoles, CreateStaffInput, CreateUserInput, PasswordResetInput, UpdateStaffInput, User, UserLoginInput } from "./auth.type";
 import ContactService from "../contact/contact.service";
 import { withTransaction } from "../../utils/withTransaction";
-import db from "../../drizzle/src";
-import { staffProfiles } from "./auth.table";
 
 export class AuthService {
   static async sendEmailVerifyOTP(email: string) {
@@ -471,55 +468,24 @@ export class AuthService {
   // Admin / Staff Auth
   // ===========================
 
-  static async adminLogin(payload: AdminLoginInput): Promise<{ token: string; user: AdminUserWithRoles }> {
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.identifier);
+  private static async buildAdminUserWithRoles(user: User): Promise<AdminUserWithRoles> {
+    const roles = await AuthRepository.findRolesByUserID(user.id);
 
-    const userWithRoles = isEmail
-      ? await AuthRepository.findUserWithRolesByEmail(payload.identifier)
-      : await AuthRepository.findUserWithRolesByMobile(payload.identifier);
+    const roleIDs = roles.map((role) => role.id);
 
-    if (!userWithRoles) {
-      throw new ApiError(404, "Wrong credentials");
-    }
+    const permissionRows = await AuthRepository.findPermissionNamesByRoleIDs(roleIDs);
 
-    if (!userWithRoles.password && userWithRoles.openID) {
-      throw new ApiError(400, "Wrong login method. Please login with Google.");
-    }
+    const staffProfile = await AuthRepository.findStaffProfileByUserID(user.id);
 
-    if (!userWithRoles.password) {
-      throw new ApiError(400, "No password set for this account");
-    }
-
-    const passwordMatched = await Helper.comparePassword(payload.password, userWithRoles.password);
-
-    if (!passwordMatched) {
-      throw new ApiError(404, "Wrong credentials");
-    }
-
-    if (userWithRoles.roles.length === 0) {
-      throw new ApiError(403, "Access denied. No role assigned to this account.");
-    }
-
-    const staffProfile = await db.query.staffProfiles.findFirst({
-      where: eq(staffProfiles.userID, userWithRoles.id),
-    });
-
-    const token = Helper.generateToken({
-      id: userWithRoles.id,
-      name: userWithRoles.name,
-      email: userWithRoles.email,
-      mobile: userWithRoles.mobile,
-    });
-
-    const user: AdminUserWithRoles = {
-      id: userWithRoles.id,
-      name: userWithRoles.name,
-      email: userWithRoles.email,
-      mobile: userWithRoles.mobile,
-      image: userWithRoles.image,
-      roles: userWithRoles.roles,
-      permissions: userWithRoles.permissions,
-      isSuperAdmin: userWithRoles.isSuperAdmin,
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+      image: user.image,
+      roles,
+      permissions: permissionRows.map((permission) => permission.name),
+      isSuperAdmin: roles.some((role) => role.isSuperAdmin),
       staffProfile: staffProfile
         ? {
           employeeCode: staffProfile.employeeCode,
@@ -528,8 +494,63 @@ export class AuthService {
         }
         : null,
     };
+  }
 
-    return { token, user };
+  static async adminLogin(payload: AdminLoginInput): Promise<{ token: string; user: AdminUserWithRoles }> {
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.identifier);
+
+    const user = isEmail
+      ? await AuthRepository.findByEmail(payload.identifier)
+      : await AuthRepository.findByMobile(payload.identifier);
+
+    if (!user) {
+      throw new ApiError(404, "Wrong credentials");
+    }
+
+    if (!user.password && user.openID) {
+      throw new ApiError(400, "Wrong login method. Please login with Google.");
+    }
+
+    if (!user.password) {
+      throw new ApiError(400, "No password set for this account");
+    }
+
+    const passwordMatched = await Helper.comparePassword(payload.password, user.password as string);
+
+    if (!passwordMatched) {
+      throw new ApiError(404, "Wrong credentials");
+    }
+
+    const userWithRoles = await this.buildAdminUserWithRoles(user);
+
+    if (userWithRoles.roles.length === 0) {
+      throw new ApiError(403, "Access denied. No role assigned to this account.");
+    }
+
+    const token = Helper.generateToken({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+    });
+
+    return { token, user: userWithRoles };
+  }
+
+  static async getAdminProfile(userID: string): Promise<AdminUserWithRoles> {
+    const user = await AuthRepository.findByID(userID);
+
+    if (!user) {
+      throw new ApiError(404, "User Not Found");
+    }
+
+    const userWithRoles = await this.buildAdminUserWithRoles(user);
+
+    if (userWithRoles.roles.length === 0) {
+      throw new ApiError(403, "Access denied. No role assigned to this account.");
+    }
+
+    return userWithRoles;
   }
 
   static getAdminGoogleAuthURL() {
@@ -580,53 +601,32 @@ export class AuthService {
 
     const googleUser: any = userInfoResponse.data;
 
-    let userWithRoles = await AuthRepository.findUserWithRolesByEmail(googleUser.email);
+    const user = await AuthRepository.findByEmail(googleUser.email);
 
-    if (!userWithRoles) {
+    if (!user) {
       throw new ApiError(403, "No admin/staff account found for this Google email. Please contact your administrator.");
     }
 
-    if (!userWithRoles.openID) {
-      await AuthRepository.updateUser(userWithRoles.id, { openID: googleUser.id });
-      userWithRoles = { ...userWithRoles, openID: googleUser.id };
+    if (!user.openID) {
+      await AuthRepository.updateUser(user.id, { openID: googleUser.id });
     }
+
+    const userWithRoles = await this.buildAdminUserWithRoles(user);
 
     if (userWithRoles.roles.length === 0) {
       throw new ApiError(403, "Access denied. No role assigned to this account.");
     }
 
-    const staffProfile = await db.query.staffProfiles.findFirst({
-      where: eq(staffProfiles.userID, userWithRoles.id),
-    });
-
     const token = Helper.generateToken({
-      id: userWithRoles.id,
-      name: userWithRoles.name,
-      email: userWithRoles.email,
-      mobile: userWithRoles.mobile,
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
     });
-
-    const user: AdminUserWithRoles = {
-      id: userWithRoles.id,
-      name: userWithRoles.name,
-      email: userWithRoles.email,
-      mobile: userWithRoles.mobile,
-      image: userWithRoles.image,
-      roles: userWithRoles.roles,
-      permissions: userWithRoles.permissions,
-      isSuperAdmin: userWithRoles.isSuperAdmin,
-      staffProfile: staffProfile
-        ? {
-          employeeCode: staffProfile.employeeCode,
-          designation: staffProfile.designation,
-          department: staffProfile.department,
-        }
-        : null,
-    };
 
     const clientRedirectURL = process.env.ADMIN_CLIENT_URL!;
 
-    return { token, user, clientRedirectURL };
+    return { token, user: userWithRoles, clientRedirectURL };
   }
 
 

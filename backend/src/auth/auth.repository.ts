@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import db, { QueryClient } from "../../drizzle/src";
 import { CreateStaffInput, UpdateStaffInput, UpdateUserInput, UserPayload } from "./auth.type";
 import {
   userTable,
-  userRoles,
+  userRole,
   roles,
   rolePermissions,
   permissions,
@@ -59,158 +59,32 @@ export class AuthRepository {
     });
   }
 
-  static async findUserWithRolesByEmail(email: string, client: QueryClient = db) {
-    const user = await client.query.userTable.findFirst({
-      where: (users, { eq }) => eq(users.email, email),
-    });
-
-    if (!user) return null;
-
-    const userRoleRows = await client
+  static async findRolesByUserID(userID: string, client: QueryClient = db) {
+    return client
       .select({
-        roleId: roles.id,
-        roleName: roles.name,
+        id: roles.id,
+        name: roles.name,
         isSuperAdmin: roles.isSuperAdmin,
       })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleID, roles.id))
-      .where(eq(userRoles.userID, user.id));
-
-    if (userRoleRows.length === 0) return { ...user, roles: [], permissions: [], isSuperAdmin: false };
-
-    const roleIds = userRoleRows.map((r) => r.roleId);
-
-    const permissionRows = await client
-      .select({ name: permissions.name })
-      .from(rolePermissions)
-      .innerJoin(permissions, eq(rolePermissions.permissionID, permissions.id))
-      .where(eq(rolePermissions.roleID, roleIds[0]));
-
-    let allPermissions: string[] = [];
-
-    if (roleIds.length > 1) {
-      const morePerms = await client
-        .select({ name: permissions.name })
-        .from(rolePermissions)
-        .innerJoin(permissions, eq(rolePermissions.permissionID, permissions.id))
-        .where(eq(rolePermissions.roleID, roleIds[1]));
-      allPermissions = [...permissionRows.map((p) => p.name), ...morePerms.map((p) => p.name)];
-    } else {
-      allPermissions = permissionRows.map((p) => p.name);
-    }
-
-    const uniquePermissions = [...new Set(allPermissions)];
-
-    const isSuperAdmin = userRoleRows.some((r) => r.isSuperAdmin);
-
-    return {
-      ...user,
-      roles: userRoleRows.map((r) => ({ id: r.roleId, name: r.roleName, isSuperAdmin: r.isSuperAdmin })),
-      permissions: uniquePermissions,
-      isSuperAdmin,
-    };
+      .from(userRole)
+      .innerJoin(roles, eq(userRole.roleID, roles.id))
+      .where(eq(userRole.userID, userID));
   }
 
-  static async findUserWithRolesByMobile(mobile: string, client: QueryClient = db) {
-    const user = await client.query.userTable.findFirst({
-      where: (users, { eq }) => eq(users.mobile, mobile),
-    });
+  static async findPermissionNamesByRoleIDs(roleIDs: string[], client: QueryClient = db) {
+    if (roleIDs.length === 0) return [];
 
-    if (!user) return null;
-
-    const userRoleRows = await client
-      .select({
-        roleId: roles.id,
-        roleName: roles.name,
-        isSuperAdmin: roles.isSuperAdmin,
-      })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleID, roles.id))
-      .where(eq(userRoles.userID, user.id));
-
-    if (userRoleRows.length === 0) return { ...user, roles: [], permissions: [], isSuperAdmin: false };
-
-    const roleIds = userRoleRows.map((r) => r.roleId);
-
-    const permissionRows = await client
-      .select({ name: permissions.name })
+    return client
+      .selectDistinct({ name: permissions.name })
       .from(rolePermissions)
       .innerJoin(permissions, eq(rolePermissions.permissionID, permissions.id))
-      .where(eq(rolePermissions.roleID, roleIds[0]));
-
-    let allPermissions: string[] = [];
-
-    if (roleIds.length > 1) {
-      const morePerms = await client
-        .select({ name: permissions.name })
-        .from(rolePermissions)
-        .innerJoin(permissions, eq(rolePermissions.permissionID, permissions.id))
-        .where(eq(rolePermissions.roleID, roleIds[1]));
-      allPermissions = [...permissionRows.map((p) => p.name), ...morePerms.map((p) => p.name)];
-    } else {
-      allPermissions = permissionRows.map((p) => p.name);
-    }
-
-    const uniquePermissions = [...new Set(allPermissions)];
-    const isSuperAdmin = userRoleRows.some((r) => r.isSuperAdmin);
-
-    return {
-      ...user,
-      roles: userRoleRows.map((r) => ({ id: r.roleId, name: r.roleName, isSuperAdmin: r.isSuperAdmin })),
-      permissions: uniquePermissions,
-      isSuperAdmin,
-    };
+      .where(inArray(rolePermissions.roleID, roleIDs));
   }
 
-  static async findUserWithRolesByID(userID: string, client: QueryClient = db) {
-    const user = await client.query.userTable.findFirst({
-      where: (users, { eq }) => eq(users.id, userID),
+  static async findStaffProfileByUserID(userID: string, client: QueryClient = db) {
+    return client.query.staffProfiles.findFirst({
+      where: (staff, { eq }) => eq(staff.userID, userID),
     });
-
-    if (!user) return null;
-
-    const userRoleRows = await client
-      .select({
-        roleId: roles.id,
-        roleName: roles.name,
-        isSuperAdmin: roles.isSuperAdmin,
-      })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleID, roles.id))
-      .where(eq(userRoles.userID, user.id));
-
-    if (userRoleRows.length === 0) return { ...user, roles: [], permissions: [], isSuperAdmin: false };
-
-    const roleIds = userRoleRows.map((r) => r.roleId);
-
-    const permissionRows = await client
-      .select({ name: permissions.name })
-      .from(rolePermissions)
-      .innerJoin(permissions, eq(rolePermissions.permissionID, permissions.id))
-      .where(eq(rolePermissions.roleID, roleIds[0]));
-
-    let allPermissions: string[] = [];
-
-    if (roleIds.length > 1) {
-      const morePerms = await client
-        .select({ name: permissions.name })
-        .from(rolePermissions)
-        .innerJoin(permissions, eq(rolePermissions.permissionID, permissions.id))
-        .where(eq(rolePermissions.roleID, roleIds[1]));
-      allPermissions = [...permissionRows.map((p) => p.name), ...morePerms.map((p) => p.name)];
-    } else {
-      allPermissions = permissionRows.map((p) => p.name);
-    }
-
-    const uniquePermissions = [...new Set(allPermissions)];
-    const isSuperAdmin = userRoleRows.some((r) => r.isSuperAdmin);
-
-    return {
-      ...user,
-      roles: userRoleRows.map((r) => ({ id: r.roleId, name: r.roleName, isSuperAdmin: r.isSuperAdmin })),
-      permissions: uniquePermissions,
-      isSuperAdmin,
-    };
   }
 
   static async allUserslist(query: {
@@ -233,13 +107,21 @@ export class AuthRepository {
     });
   }
 
-  static async allStuff(){
-    return db.query.staffProfiles.findMany({
-      with: {
-        user: true,
+static async allStuff() {
+  return db.query.staffProfiles.findMany({
+    with: {
+      user: {
+        with: {
+          userRole: {
+            with: {
+              role: true,
+            },
+          },
+        },
       },
-    });
-  }
+    },
+  });
+}
 
   static async createStaff(
   data: CreateStaffInput,

@@ -4,7 +4,7 @@ import {
   roles,
   permissions,
   rolePermissions,
-  userRoles,
+  userRole,
   userTable,
 } from "../auth/auth.table";
 
@@ -99,11 +99,7 @@ export class AdminRepository {
     return client.delete(roles).where(eq(roles.id, id));
   }
 
-  static async findUserById(id: string, client: QueryClient = db) {
-    return client.query.userTable.findFirst({
-      where: (u, { eq }) => eq(u.id, id),
-    });
-  }
+
 
   static async findUserRole(
     userID: string,
@@ -112,16 +108,16 @@ export class AdminRepository {
   ) {
     return client
       .select()
-      .from(userRoles)
-      .where(and(eq(userRoles.userID, userID), eq(userRoles.roleID, roleID)))
+      .from(userRole)
+      .where(and(eq(userRole.userID, userID), eq(userRole.roleID, roleID)))
       .limit(1);
   }
 
   static async hasUsersWithRoleId(roleID: string, client: QueryClient = db) {
     const result = await client
       .select()
-      .from(userRoles)
-      .where(eq(userRoles.roleID, roleID))
+      .from(userRole)
+      .where(eq(userRole.roleID, roleID))
       .limit(1);
     return result.length > 0;
   }
@@ -130,7 +126,7 @@ export class AdminRepository {
     data: { userID: string; roleID: string },
     client: QueryClient = db
   ) {
-    return client.insert(userRoles).values(data).onConflictDoNothing();
+    return client.insert(userRole).values(data).onConflictDoNothing();
   }
 
   static async removeUserRole(
@@ -139,23 +135,19 @@ export class AdminRepository {
     client: QueryClient = db
   ) {
     return client
-      .delete(userRoles)
-      .where(and(eq(userRoles.userID, userID), eq(userRoles.roleID, roleID)));
+      .delete(userRole)
+      .where(and(eq(userRole.userID, userID), eq(userRole.roleID, roleID)));
   }
 
-  static async findUserRolesByUserId(userId: string, client: QueryClient = db) {
-    return client.query.userRoles.findMany({
+  static async removeAllUserRoles(userID: string, client: QueryClient = db) {
+    return client.delete(userRole).where(eq(userRole.userID, userID));
+  }
+
+  static async findUserRoleByUserId(userId: string, client: QueryClient = db) {
+    return client.query.userRole.findFirst({
       where: (ur, { eq }) => eq(ur.userID, userId),
       with: {
-        role: {
-          with: {
-            rolePermissions: {
-              with: {
-                permission: true,
-              },
-            },
-          },
-        },
+        role: true
       },
     });
   }

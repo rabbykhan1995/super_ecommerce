@@ -61,11 +61,13 @@ export default function ProductList() {
         keyExtractor={(row) => row.id}
         columns={[
           { header: "#", accessor: (_, i) => (i ?? 0) + 1, className: "w-10 text-center", headerClassName: "text-center", },
-          { header: "Name", accessor: (row) =>
+          {
+            header: "Name", accessor: (row) =>
 
-              <h1 className="max-w-[200px]">{row.product.name} ({row.attributes.map(a=> <span>{a.name}-{a.value}</span>)})</h1>, headerClassName: "min-w-[200px]" },
+              <h1 className="max-w-[200px]">{row.product.name} ({row.attributes.map(a => <span>{a.name}-{a.value}</span>)})</h1>, headerClassName: "min-w-[200px]"
+          },
           { header: "Barcode", accessor: "barcode", className: "text-center" },
-   
+
           {
             header: "S. Price", accessor: (row) =>
 
@@ -84,25 +86,31 @@ export default function ProductList() {
               ),
           },
 
-                    {
+          {
             header: "Weight",
             className: "text-center",
             headerClassName: "text-center",
             accessor: (row) =>
 
-                <span>{row.weight} KG</span>
-           
-          },
-          { header: "Brand", accessor: (row) =>
-           
-                <span>{row?.product?.brand?.name}</span>, className: "text-center" },
-          { header: "Category", accessor: (row) =>
-           
-                <span>{row.product.category.name}</span>, className: "text-center" },
+              <span>{row.weight} KG</span>
 
-                      { header: "Featured", accessor: (row) =>
-           row.product.featured? <span className="text-green-400 text-xs">Yes</span>: <span className="text-red-400 text-xs">No</span>
-               , className: "text-center" },
+          },
+          {
+            header: "Brand", accessor: (row) =>
+
+              <span>{row?.product?.brand?.name}</span>, className: "text-center"
+          },
+          {
+            header: "Category", accessor: (row) =>
+
+              <span>{row.product.category.name}</span>, className: "text-center"
+          },
+
+          {
+            header: "Featured", accessor: (row) =>
+              row.product.featured ? <span className="text-green-400 text-xs">Yes</span> : <span className="text-red-400 text-xs">No</span>
+            , className: "text-center"
+          },
           {
             header: "Action",
             headerClassName: "text-right",
@@ -116,11 +124,11 @@ export default function ProductList() {
                 }} className="global_button bg-blue-400">
                   <Clipboard size={18} />
                 </button>}
-                <Link to={`/product/edit/${row.product.id}`}
+                {Helper.isPermitter('product:update') && <Link to={`/product/edit/${row.product.id}`}
                   className="global_button"
                 >
                   <Edit size={18} />
-                </Link>
+                </Link>}
               </div>
             ),
           },
