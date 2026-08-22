@@ -302,7 +302,7 @@ const Dashboard = () => {
     <div className="space-y-5">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-col lg:flex-wrap items-start justify-between flex-wrap gap-3">
         <h1 className="text-xl font-medium">Dashboard</h1>
 
         <div className="flex items-end gap-2 flex-wrap">

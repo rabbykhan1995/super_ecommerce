@@ -91,7 +91,7 @@ function AttributeCell({
       </button>
 
       {open && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/10 backdrop-blur-sm text-black dark:text-white">
           {/* Modal */}
           <div
             ref={modalRef}
@@ -99,13 +99,13 @@ function AttributeCell({
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700">
-              <h3 className="text-lg font-semibold dark:text-white">
+              <h3 className="text-lg font-semibold">
                 Attributes ({variant.attributes.length})
               </h3>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none"
+                className="text-2xl leading-none"
               >
                 ×
               </button>

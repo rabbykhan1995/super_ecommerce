@@ -169,6 +169,7 @@ export type SaleProduct = {
   selectedSerials: SelectOption<Batch>[];
   batches: SelectOption<Batch>[];
   selectedBatch: SelectOption<Batch> | null;
+  isLocked:boolean;
 };
 
 export type PosProduct = {

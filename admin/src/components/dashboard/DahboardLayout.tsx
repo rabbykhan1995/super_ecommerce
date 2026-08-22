@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router";
 import {
   LogOut,
@@ -20,38 +20,38 @@ export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
   const [activeSubmenu, setActiveSubmenu] = useState<number | null>(null);
   const { sidePanel, setSidePanel } = dashboardStore();
-
+const mobileSidePanelRef = useRef<HTMLDivElement | null>(null);
   const { logout } = userStore();
 
   const filteredRoutes = AdminRoutes
-  .map((item) => {
-    // Parent-এর permission থাকলে check
-    if (item.permission && !Helper.isPermitter(item.permission)) {
-      return null;
-    }
-
-    // Sub items filter
-    if (item.subItems) {
-      const allowedSubItems = item.subItems.filter(
-        (subItem) =>
-          !subItem.permission ||
-          Helper.isPermitter(subItem.permission)
-      );
-
-      // কোনো sub item accessible না হলে parent-ও hide
-      if (allowedSubItems.length === 0) {
+    .map((item) => {
+      // Parent-এর permission থাকলে check
+      if (item.permission && !Helper.isPermitter(item.permission)) {
         return null;
       }
 
-      return {
-        ...item,
-        subItems: allowedSubItems,
-      };
-    }
+      // Sub items filter
+      if (item.subItems) {
+        const allowedSubItems = item.subItems.filter(
+          (subItem) =>
+            !subItem.permission ||
+            Helper.isPermitter(subItem.permission)
+        );
 
-    return item;
-  })
-  .filter(Boolean);
+        // কোনো sub item accessible না হলে parent-ও hide
+        if (allowedSubItems.length === 0) {
+          return null;
+        }
+
+        return {
+          ...item,
+          subItems: allowedSubItems,
+        };
+      }
+
+      return item;
+    })
+    .filter(Boolean);
 
   const handleLogout = (): void => {
     Helper.clearToken();
@@ -64,6 +64,37 @@ export default function DashboardLayout() {
 
   const navItems = filteredRoutes;
 
+useEffect(() => {
+  if (mobileOpen) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "";
+  }
+
+  return () => {
+    document.body.style.overflow = "";
+  };
+}, [mobileOpen]);
+
+
+useEffect(() => {
+  const handleOutsideClick = (event: MouseEvent) => {
+    if (
+      mobileOpen &&
+      mobileSidePanelRef.current &&
+      !mobileSidePanelRef.current.contains(event.target as Node)
+    ) {
+      setMobileOpen(false);
+    }
+  };
+
+  document.addEventListener("mousedown", handleOutsideClick);
+
+  return () => {
+    document.removeEventListener("mousedown", handleOutsideClick);
+  };
+}, [mobileOpen]);
+
   return (
     <div className="text-[rgb(var(--primary-text))]">
       {/* Top Navbar */}
@@ -71,12 +102,13 @@ export default function DashboardLayout() {
 
         {!sidePanel && <button
           onClick={() => setSidePanel(!sidePanel)}
-          className="global_button bg-amber-50 text-black"
+          className="global_button bg-amber-50 text-black hidden lg:block"
         >
           <TextAlignCenter size={20} />
         </button>}
-        <h1 className="text-lg font-bold">Shokher Bazar</h1>
-        <div className="flex items-center gap-3">
+ 
+
+        <div className="lg:hidden items-center gap-3 flex">
           <DarkLightToggle />
 
           <button
@@ -87,21 +119,37 @@ export default function DashboardLayout() {
             <LogOut size={20} />
           </button>
 
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden"
-          >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+
         </div>
+        <h1 className="text-lg font-bold">Shokher Bazar</h1>
+        <div className="lg:flex items-center gap-3 hidden">
+          <DarkLightToggle />
+
+          <button
+            onClick={handleLogout}
+            className="cursor-pointer"
+            title="Logout"
+          >
+            <LogOut size={20} />
+          </button>
+
+
+        </div>
+               <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="lg:hidden"
+        >
+          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </nav>
 
       {/* Mobile Sidebar */}
       <div
-        className={`lg:hidden fixed top-0 bg-[rgb(var(--primary-bg))] left-0 pt-16 h-screen w-64 z-40 transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"
+      ref={mobileSidePanelRef}
+        className={`lg:hidden fixed top-0 bg-[rgb(var(--primary-bg))] left-0 pt-16 h-screen w-64 z-40 transition-translate duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
-        <ul className="p-4 space-y-3 overflow-y-auto h-[calc(100vh-4rem)]">
+        <ul className="p-4 space-y-3 overflow-y-auto h-[calc(100vh-4rem)] font-semibold">
           {navItems.map((item, index) => (
             <li key={index}>
               {item!.subItems ? (
@@ -131,6 +179,7 @@ export default function DashboardLayout() {
                               `flex items-center gap-2 px-2 py-2 text-sm rounded-md ${isActive ? "bg-orange-600" : "hover:bg-orange-500"
                               }`
                             }
+                            onClick={() => setMobileOpen(false)}
                           >
                             {sub.icon}
                             {sub.name}
@@ -144,7 +193,7 @@ export default function DashboardLayout() {
                 <NavLink
                   to={item!.link!}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-md ${isActive ?"bg-orange-600" : "hover:bg-orange-500"
+                    `flex items-center gap-3 px-3 py-2 rounded-md ${isActive ? "bg-orange-600" : "hover:bg-orange-500"
                     }`
                   }
                 >
@@ -205,6 +254,7 @@ export default function DashboardLayout() {
                               `flex items-center gap-2 px-2 py-2 text-sm rounded-md ${isActive ? "bg-orange-600" : "hover:bg-orange-500"
                               }`
                             }
+
                           >
                             {sub.icon}
                             {sub.name}

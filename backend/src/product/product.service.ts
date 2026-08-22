@@ -116,11 +116,11 @@ export default class ProductService {
 
         if (haveToCreateNewVariant) {
           const newVariants: VariantPayload[] = variants.filter((v) => !v.id);
-       
+
           await Promise.all(
             newVariants.map(async (v) => {
               if (v.barcode) {
-   
+
                 const exist = await ProductRepository.findVariantByBarcode(
                   v.barcode,
                 );
@@ -191,11 +191,11 @@ export default class ProductService {
     const result = await ProductRepository.list(query);
     return result;
   }
-    static async variantList(query: any) {
+  static async variantList(query: any) {
     const result = await ProductRepository.variantList(query);
     return result;
   }
-      static async ecomProductList(query: any) {
+  static async ecomProductList(query: any) {
     const result = await ProductRepository.ecomProductList(query);
     return result;
   }
@@ -290,7 +290,7 @@ export default class ProductService {
     return await ProductRepository.updateBatchDynamically(batchID, options, tx);
   }
 
-  static async deleteBatches(batchIDs:number[], tx?: QueryClient) {
+  static async deleteBatches(batchIDs: number[], tx?: QueryClient) {
     await ProductRepository.deleteBatches(batchIDs, tx);
   }
 
@@ -307,11 +307,11 @@ export default class ProductService {
   ): Promise<Batch | null> {
     return ProductRepository.findBatchByIDForSale(id, tx);
   }
-  static findOneBatch(fieldName: any, fieldVal:any, tx?: QueryClient) {
-    return ProductRepository.findOneBatch(fieldName,fieldVal, tx);
+  static findOneBatch(fieldName: any, fieldVal: any, tx?: QueryClient) {
+    return ProductRepository.findOneBatch(fieldName, fieldVal, tx);
   }
 
-  static async getSaleReturnBatches() {}
+  static async getSaleReturnBatches() { }
   static async getPosProducts() {
     return ProductRepository.findManyByField("inPosList", true);
   }
@@ -336,7 +336,7 @@ export default class ProductService {
     return batches;
   }
 
-  static async countProduct(fieldName:any, fieldVal:any,tx?:QueryClient) {
+  static async countProduct(fieldName: any, fieldVal: any, tx?: QueryClient) {
     return await ProductRepository.countProduct(fieldName, fieldVal, tx);
   }
   static async decreaseProductStock(
@@ -449,92 +449,112 @@ export default class ProductService {
     );
   }
 
-static async getSaleProduct(
+  static async getSaleProduct(
     productID: number,
     variantID: number,
 
-) {
+  ) {
     // 1. Find product
     const product = await ProductRepository.findByID(
-        productID,
+      productID,
     );
 
     if (!product) {
-        throw new ApiError(404, "Product not found");
+      throw new ApiError(404, "Product not found");
+    }
+
+    const variant = await ProductRepository.findVariantByID(variantID);
+
+    if (!variant) {
+      throw new ApiError(404, "Variant not found");
     }
 
     // ================================
     // STOCK + NO WARRANTY
     // ================================
     if (product.manageStock && !product.manageWarranty) {
-        const batches = await ProductRepository.findSaleBatches(
-            variantID,
-        );
+      const batches = await ProductRepository.findSaleBatches(
+        variantID,
+      );
 
-        const formattedBatches = batches.map((b) => ({
-            value: b.id,
-            label: `${Helper.formatDate(b.purchaseDate)} - ${b.remainingQty}`,
-            ...b,
-        }));
+      const formattedBatches = batches.map((b) => ({
+        value: b.id,
+        label: `${Helper.formatDate(b.purchaseDate)} - ${b.remainingQty}`,
+        ...b,
+      }));
 
-        return {
-            ...product,
+      return {
+        ...product,
+        id: variant.id,
+        productID: product.id,
+        name: `${product.name} - ${variant.attributes
+          .slice(0, 2)
+          .map(attr => `${attr.name}: ${attr.value}`)
+          .join(", ")}`,
+        batches: formattedBatches,
 
-            batches: formattedBatches,
+        purchaseID: formattedBatches[0]?.purchaseID,
 
-            purchaseID: formattedBatches[0]?.purchaseID,
+        purchasePrice: formattedBatches[0]?.cost,
 
-            purchasePrice: formattedBatches[0]?.cost,
+        salePrice: product.salePrice,
 
-            salePrice: product.salePrice,
+        soldQty: 1,
 
-            soldQty: 1,
+        serials: [],
 
-            serials: [],
+        selectedSerials: [],
 
-            selectedSerials: [],
+        selectedBatch: formattedBatches[0] ?? null,
 
-            selectedBatch: formattedBatches[0] ?? null,
-        };
+        isLocked:false,
+      };
     }
 
     // ================================
     // STOCK + WARRANTY
     // ================================
     if (product.manageStock && product.manageWarranty) {
-        const serials = await ProductRepository.findSaleSerials(variantID
-        );
+      const serials = await ProductRepository.findSaleSerials(variantID
+      );
 
-        const formattedSerials = serials.map((s) => ({
-            value: s.id,
-            label: s.serial,
-            ...s,
-        }));
+      const formattedSerials = serials.map((s) => ({
+        value: s.id,
+        label: s.serial,
+        ...s,
+      }));
 
-        return {
-            ...product,
+      return {
+        ...product,
+        id: variant.id,
+        productID: product.id,
+        name: `${product.name} - ${variant.attributes
+          .slice(0, 2)
+          .map(attr => `${attr.name}: ${attr.value}`)
+          .join(", ")}`,
+        serials: formattedSerials,
 
-            serials: formattedSerials,
+        purchasePrice: 0,
 
-            purchasePrice: 0,
+        salePrice: product.salePrice,
 
-            salePrice: product.salePrice,
+        soldQty: 0,
 
-            soldQty: 0,
+        selectedSerials: [],
 
-            selectedSerials: [],
+        batches: [],
 
-            batches: [],
+        selectedBatch: null,
 
-            selectedBatch: null,
+        purchaseID: null,
 
-            purchaseID: null,
-        };
+        isLocked:false,
+      };
     }
 
     // ================================
     // NO STOCK MANAGEMENT
     // ================================
     return product;
-}
+  }
 }

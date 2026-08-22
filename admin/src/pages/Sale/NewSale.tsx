@@ -114,32 +114,33 @@ export default function NewSale() {
 
     };
 
-    const handleAddProduct = async (p: SelectOption<VariantListItem>) => {
-        console.log(p);
-        if (!p.product.manageStock) {
+    const handleAddProduct = async (variant: SelectOption<VariantListItem>) => {
+  
+        if (!variant.product.manageStock) {
             const existing = selectedProducts.value.find(
-                product => product.id === p.id
+                product => product.id === variant.id
             );
 
             if (existing) {
                 selectedProducts.value = selectedProducts.value.map(product =>
-                    product.id === p.id
+                    product.id === variant.id
                         ? { ...product, soldQty: product.soldQty + 1 }
                         : product
                 );
             } else {
                 selectedProducts.value = [...selectedProducts.value, {
-                    ...p.product,
-                    id:p.id,
-                    productID:p.product.id,
-                    name:p.label,
+                    ...variant.product,
+                    id:variant.id,
+                    productID:variant.product.id,
+                    name:variant.label,
                     soldQty: 1,
                     warranty: 0,
                     serials: [],
                     selectedSerials: [],
                     batches: [],
                     selectedBatch: null,
-                    salePrice:p.salePrice
+                    salePrice:variant.salePrice,
+                    isLocked:false,
                 }];
             }
 
@@ -147,24 +148,26 @@ export default function NewSale() {
         }
 
         // only warranty product
-        if (p.product.manageStock && p.product.manageWarranty) {
-            const isExist = selectedProducts.value.find(product => product.id === p.id);
+        if (variant.product.manageStock && variant.product.manageWarranty) {
+
+            const isExist = selectedProducts.value.find(product =>  product.id === variant.id);
+
             if (isExist) {
                 return toast.error("Product already exists");
             }
 
-            const product: SaleProduct = await fetchSaleProduct(p.productID,p.id);
+            const product: SaleProduct = await fetchSaleProduct(variant.productID,variant.id);
             if (product?.serials.length === 0) {
                 return toast.error("No Serial Available");
             }
-            product.salePrice = p.salePrice;
-            product.productID = p.productID;
+            product.salePrice = variant.salePrice;
+            product.productID = variant.productID;
             return selectedProducts.value = [...selectedProducts.value, product];
         }
 
         // only batches/non-warranty/stock product
-        if (p.product.manageStock && !p.product.manageWarranty) {
-            const existingRows = selectedProducts.value.filter(product => product.id === p.id);
+        if (variant.product.manageStock && !variant.product.manageWarranty) {
+            const existingRows = selectedProducts.value.filter(product => product.id === variant.id);
 
             if (existingRows.length > 0) {
                 // ✅ সবার শেষের row টা নিন (last added)
@@ -177,7 +180,7 @@ export default function NewSale() {
                 // ✅ Check করুন last row এর batch এ আরো qty available আছে কিনা
                 const currentlyUsed = selectedProducts.value
                     .filter(prod =>
-                        prod.id === p.id &&
+                        prod.id === variant.id &&
                         prod.selectedBatch?.id === lastRow.selectedBatch?.id
                     )
                     .reduce((sum, prod) => sum + prod.soldQty, 0);
@@ -216,7 +219,7 @@ export default function NewSale() {
                     soldQty: 1,
                     batches: availableBatches, // ✅ শুধু available batches
                     selectedSerials: [],
-                    salePrice:p.salePrice
+                    salePrice:variant.salePrice
                 };
 
                 selectedProducts.value = [...selectedProducts.value, newEntry];
@@ -224,14 +227,14 @@ export default function NewSale() {
             }
 
             // ✅ First time adding this product
-            const product: SaleProduct = await fetchSaleProduct(p.productID,p.id);
+            const product: SaleProduct = await fetchSaleProduct(variant.productID,variant.id);
 
             if (product?.batches.length === 0) {
                 return toast.error("No Stock Available");
             }
 
-            product.salePrice = p.salePrice;
-            product.productID = p.productID;
+            product.salePrice = variant.salePrice;
+            product.productID = variant.productID;
             selectedProducts.value = [...selectedProducts.value, product];
         }
     };

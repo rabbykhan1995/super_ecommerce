@@ -42,9 +42,9 @@ export default function TableFilterBar({
       </div>
 
       {/* Right */}
-      <div className="flex items-center justify-end gap-3 lg:w-3/4">
+      <div className="flex flex-col lg:flex-row items-center justify-end gap-3 lg:w-3/4">
         {/* Search */}
-{!disableSearch   &&     <div className="relative w-6/8">
+{!disableSearch   &&     <div className="relative w-full lg:w-6/8">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40"
             size={14}
@@ -59,7 +59,7 @@ export default function TableFilterBar({
         </div>}
 
         {/* Limit */}
-        <div className="w-2/8">
+        <div className="w-full lg:w-2/8">
           <Dropdown
             value={limit}
             options={[10, 20, 50, 100]}
